@@ -456,6 +456,16 @@ function initGL(){
   loadGLTFStatic('arch','assets/models/prop_arch.gltf',1);
   loadGLTFStatic('stGate','assets/models/station_gate.gltf',1);
   loadGLTFStatic('stSide','assets/models/station_side.gltf',1);
+  loadGLTFStatic('cTower','assets/models/city_tower.gltf',1);
+  loadGLTFStatic('cDome','assets/models/city_dome.gltf',1);
+  loadGLTFStatic('cArc','assets/models/city_arcology.gltf',1);
+  loadGLTFStatic('cSpire','assets/models/city_spire_pair.gltf',1);
+  loadGLTFStatic('cClu','assets/models/city_cluster.gltf',1);
+  loadGLTFStatic('cGate','assets/models/city_gate.gltf',1);
+  loadGLTFStatic('sRing','assets/models/station_ring.gltf',1);
+  loadGLTFStatic('sRef','assets/models/station_refinery.gltf',1);
+  loadGLTFStatic('sHang','assets/models/station_hangar.gltf',1);
+  loadGLTFStatic('sAnt','assets/models/station_antenna.gltf',1);
   loadGLTFBike('mtb','assets/models/bike_mtb.gltf',{scale:0.94,dz:0.05});
   loadGLTFBike('race','assets/models/bike_race.gltf',{});
   ['uMVP','uModel','uLimb','uHead','uWave','uSpin','uLegL','uLegR','uShadowMat','uPivF','uPivR','uPivC']

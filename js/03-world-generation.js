@@ -1224,6 +1224,72 @@ function buildWorld(scene,onProgress){
     }
   }
 
+  /* --- the space cities: lit districts the road runs right through,
+     towers and domes flanking both sides, industry and antennas on the
+     horizon, and a monumental gate over the road at each city's heart --- */
+  {
+    const NEAR=['cTower','cDome','cSpire','cClu','cArc','sHang'].filter(k=>GLTREES[k]);
+    const FAR=['sRef','sAnt','sRing','cArc','cTower'].filter(k=>GLTREES[k]);
+    if(NEAR.length){
+      const flatStraight=(i,len)=>{
+        if(i<len+2||i>=nMain-len-2) return false;
+        const y0=ry[i];
+        for(let o=-len;o<=len;o++){
+          const j=i+o;
+          if(inTunnel[j]||inBridge[j]) return false;
+          if(Math.abs(ry[j]-y0)>1.6) return false;
+        }
+        return (tx[i-len]*tx[i+len]+tz[i-len]*tz[i+len])>0.998;
+      };
+      const clearOfRoads=(x,z,r)=>{
+        const nb=roadNear(x,z);
+        return !nb||nb.d>r;
+      };
+      const nZones=scene.road.epic?3:2;
+      const HL=Math.max(8,Math.floor(480/ROUTE_STEP));  /* zone half length */
+      const STEPB=Math.max(6,Math.floor(65/ROUTE_STEP)); /* building spacing */
+      window.__cities=[];
+      for(let zn=0;zn<nZones;zn++){
+        const ci=Math.floor(nMain*((zn+0.35+rnd()*0.3)/nZones))%nMain;
+        if(ci<HL+4||ci>=nMain-HL-4) continue;
+        window.__cities.push(ci);
+        let nB=0, side=rnd()<0.5?-1:1, gateI=-1;
+        for(let o=-HL;o<=HL&&nB<15;o+=STEPB+Math.floor(rnd()*3)){
+          const i=ci+o;
+          if(inTunnel[i]||inBridge[i]||nearJn(i)) continue;
+          /* the gate stands at the first straight near the centre */
+          if(gateI<0&&o>=-2&&GLTREES.cGate&&flatStraight(i,4)){
+            mb.setTF(rx[i],ry[i]-0.05,rz[i],yawAt(i),1);
+            appendGLTF(mb,GLTREES.cGate);
+            mb.setTF(0,0,0,0,1);
+            gateI=i; nB++;
+            continue;
+          }
+          /* most slots build on both sides, so the road threads the city */
+          const sides=rnd()<0.7?[side,-side]:[side];
+          for(const sd of sides){
+            const far=rnd()<0.22&&FAR.length;
+            const off=far?170+rnd()*90:56+rnd()*62;
+            const x=rx[i]-tz[i]*off*sd, z=rz[i]+tx[i]*off*sd;
+            const gy=meshH(x,z);
+            if(Math.abs(gy-ry[i])>28) continue;
+            if(waterY!==null&&gy<waterY+0.5) continue;
+            if(!clearOfRoads(x,z,far?24:20)) continue;
+            const key=(far?FAR:NEAR)[Math.floor(rnd()*(far?FAR.length:NEAR.length))];
+            /* face the road, with a little variation */
+            const yaw=Math.atan2(rx[i]-x,rz[i]-z)+(rnd()*2-1)*0.35;
+            mb.setTF(x,gy-1.0,z,yaw,1);
+            appendGLTF(mb,GLTREES[key]);
+            mb.setTF(0,0,0,0,1);
+            nB++;
+          }
+          side=-side;
+        }
+        (window.__gates2=window.__gates2||[]).push(gateI);
+      }
+    }
+  }
+
   /* --- the summit arch: the crown of an epic climb --- */
   if(scene.road.epic&&GLTREES.arch){
     let hi=-1e9,hiI=0;
