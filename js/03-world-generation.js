@@ -741,6 +741,10 @@ function buildWorld(scene,onProgress){
       mb.setTF(rx[i],ry[i],rz[i],yawAt(i),1);
       if((i-a)%6===0)                        /* ceiling light */
         mb.box(0,TH+TW-0.45,0,1.9,0.24,0.6,K.glow,0.95);
+      if((i-a)%6===3){                       /* wall sconces at eye height */
+        mb.box(-(TW-0.16),2.05,0,0.10,0.46,0.30,K.glow,0.75);
+        mb.box( (TW-0.16),2.05,0,0.10,0.46,0.30,K.glow,0.75);
+      }
       /* services along the walls: continuous pipes that follow the bore */
       mb.setTF(0,0,0,0,1);
       const pp=PIPES.map(q2=>RP(i,q2.lat,q2.h));
