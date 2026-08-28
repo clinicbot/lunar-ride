@@ -203,7 +203,7 @@ function junctionAhead(){
 }
 /* walk dist metres the way the rider is facing, crossing junctions */
 function walkPath(seg,s,dir,dist,choiceTurn){
-  let lap=0, guard=0;
+  let lap=0, guard=0, crossedJn=false;
   while(dist>1e-6&&guard++<6){
     if(seg==='m'){
       const L=world.lapLen;
@@ -211,6 +211,7 @@ function walkPath(seg,s,dir,dist,choiceTurn){
       let dJ=world.nCut?(dir>0?(((J-s)%L)+L)%L:(((s-J)%L)+L)%L):Infinity;
       if(dJ<1e-4) dJ=L;
       if(!choiceTurn||dist<dJ){
+        if(dist>=dJ) crossedJn=true;      /* rode straight through the fork */
         const s2=s+dir*dist;
         if(dir>0&&s2>=L) lap++;
         s=((s2%L)+L)%L; dist=0;
@@ -224,7 +225,7 @@ function walkPath(seg,s,dir,dist,choiceTurn){
       else { dist=-s2; seg='m'; s=world.jnA*ROUTE_STEP; }
     }
   }
-  return {seg,s,dir,lap};
+  return {seg,s,dir,lap,crossedJn};
 }
 function pathAt(rel,off,out){
   if(rel>=0){
@@ -237,12 +238,22 @@ function advancePlayer(d){
   const before=state.seg;
   const r=walkPath(state.seg,state.s,state.dir,d,state.choice==='turn');
   if(before==='m'&&r.seg==='c') state.choice='straight';   /* the turn was taken */
+  /* remember which branch carried you through the last junction, so that a
+     U-turn can send you back the way you actually came */
+  if(before==='c'&&r.seg==='m') state.cameVia='c';
+  else if(r.crossedJn) state.cameVia='m';
   state.lap+=r.lap;
   state.seg=r.seg; state.s=r.s;
 }
 function doUturn(){
   if(!state.scene||!world) return;
-  state.dir*=-1; state.choice='straight'; state.playerX*=-1;
+  state.dir*=-1; state.playerX*=-1;
+  /* retrace: if the shortcut brought you here, the way back is the shortcut */
+  state.choice=(state.cameVia==='c'&&state.seg==='m')?'turn':'straight';
+  /* riders keep their physical direction; only the roles swap — whoever was
+     oncoming is now going your way, and your old company rides toward you */
+  if(world&&world.actors)
+    for(const a of world.actors) if(a.type==='rider') a.oncoming=!a.oncoming;
   gradeSent=999; pushGrade(true);
 }
 function gradeNow(){

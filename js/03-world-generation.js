@@ -1295,8 +1295,9 @@ function buildWorld(scene,onProgress){
                         :1.15+rnd()*0.25;
       actors.push({type:'rider', kit:(i%RIDER_KITS.length), mesh:'rider'+(i%RIDER_KITS.length), meta:RIDER_META,
         s:((rnd()*640-320)%lapLen+lapLen)%lapLen, v:4+rnd()*4,
-        /* everyone keeps right: the lane sits at +42% of the half width */
-        off:hw*0.42+(rnd()*2-1)*1.1,
+        /* everyone keeps right: the lane sits at 42% of the half width,
+           signed each frame by direction of travel */
+        laneAbs:hw*0.42+(rnd()*2-1)*1.1,
         fac:fac, mass:60+rnd()*32,
         varF:0.015+rnd()*0.05, ph:rnd()*6.28318,
         headYaw:0, headPitch:0, swing:0, emiss:1, k:1});
@@ -1308,7 +1309,7 @@ function buildWorld(scene,onProgress){
       actors.push({type:'rider', oncoming:true,
         kit:(i%RIDER_KITS.length), mesh:'rider'+(i%RIDER_KITS.length), meta:RIDER_META,
         s:(120+rnd()*520)%lapLen, v:5+rnd()*4,
-        off:-(hw*0.42+(rnd()*2-1)*1.1),
+        laneAbs:hw*0.42+(rnd()*2-1)*1.1,
         fac:0.8+rnd()*0.4, mass:60+rnd()*32,
         varF:0.015+rnd()*0.05, ph:rnd()*6.28318,
         headYaw:0, headPitch:0, swing:0, emiss:1, k:1});

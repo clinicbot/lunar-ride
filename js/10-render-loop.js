@@ -400,8 +400,9 @@ function updateActors(dt){
       /* the same physics the player rides, at this rider's own power. The
          power breathes slowly, so the near-parity riders surge and fade the
          way real company does. */
+      const dsg=(a.oncoming?-1:1)*state.dir;   /* direction of travel */
       const i=Math.floor(a.s/ROUTE_STEP)%world.nMain;
-      const th=Math.atan((a.oncoming?-1:1)*world.grade[i]/100);
+      const th=Math.atan(dsg*world.grade[i]/100);
       const gr=cfg.moonG?1.62:9.81, rho=cfg.moonG?0:1.226;
       /* paced off the player's rolling average, not the player's FTP —
          nobody holds FTP for an hour, and the company should match the ride
@@ -412,32 +413,34 @@ function updateActors(dt){
       const acc=(P*0.975/v -0.0045*a.mass*gr*Math.cos(th)
                  -0.5*rho*0.32*a.v*a.v -a.mass*gr*Math.sin(th))/a.mass;
       a.v=clamp(a.v+acc*dt,0,MAX_MS);
-      a.s+=(a.oncoming?-1:1)*a.v*dt;
+      a.s+=dsg*a.v*dt;
       const L=world.lapLen;
       a.s=((a.s%L)+L)%L;
       /* keep the company near the player: anyone dropped or long gone off the
          front quietly rejoins the road ahead or behind with fresh legs */
       const pms=playerMainS();
       let gap=((a.s-pms)%L+L)%L; if(gap>L/2)gap-=L;
+      let tGap=gap*state.dir;                 /* + means ahead of the player */
       if(a.oncoming){
         /* once it has swept past, it reappears far up the road and returns */
-        if(gap<-70||gap>780){
-          a.s=((pms+380+Math.random()*320)%L+L)%L;
+        if(tGap<-70||tGap>780){
+          a.s=((pms+state.dir*(380+Math.random()*320))%L+L)%L;
           a.fac=0.8+Math.random()*0.4;
           a.v=Math.max(4,a.v);
           gap=((a.s-pms)%L+L)%L; if(gap>L/2)gap-=L;
+          tGap=gap*state.dir;
         }
-      }else if(Math.abs(gap)>700){
-        a.s=((pms+(gap>0?-1:1)*(340+Math.random()*160))%L+L)%L;
+      }else if(Math.abs(tGap)>700){
+        a.s=((pms+state.dir*(tGap>0?-1:1)*(340+Math.random()*160))%L+L)%L;
         a.fac*=0.94+Math.random()*0.12;
         a.v=Math.max(4,a.v);
         gap=((a.s-pms)%L+L)%L; if(gap>L/2)gap-=L;
+        tGap=gap*state.dir;
       }
-      roadPoint(a.s, a.off+Math.sin(t*0.6+a.ph)*0.12, actTmp);
+      roadPoint(a.s, dsg*(a.laneAbs||2.2)+Math.sin(t*0.6+a.ph)*0.12, actTmp);
       a.px=actTmp[0]; a.py=actTmp[1]; a.pz=actTmp[2];
       const j=Math.floor(a.s/ROUTE_STEP)%world.nMain;
-      a.yaw=a.oncoming?Math.atan2(-world.tx[j],-world.tz[j])
-                      :Math.atan2(world.tx[j],world.tz[j]);
+      a.yaw=Math.atan2(dsg*world.tx[j],dsg*world.tz[j]);
       const cadHz=clamp(55+a.v*3.2,50,102)/60;
       a.crank=(a.crank||0)+cadHz*6.28318*dt;           /* one rev per pedal stroke */
       a.wheel=(a.wheel||0)-a.v/0.34*dt;                /* rolling, radius 34 cm */
@@ -463,14 +466,14 @@ function updateActors(dt){
          a minute or so however often you trade places. */
       a.greetCd=(a.greetCd||0)-dt;
       if(!a.oncoming){
-        const sg=gap>0.5?1:(gap<-0.5?-1:0);
+        const sg=tGap>0.5?1:(tGap<-0.5?-1:0);
         if(sg!==0 && a.lastSide!==undefined && a.lastSide!==0 && sg!==a.lastSide
-           && Math.abs(gap)<25 && a.greetCd<=0 && Math.random()<0.4){
+           && Math.abs(tGap)<25 && a.greetCd<=0 && Math.random()<0.4){
           a.greetT=2.4;
           a.greetCd=50+Math.random()*70;
         }
         if(sg!==0) a.lastSide=sg;
-      }else if(gap>0&&gap<22&&a.greetCd<=0&&Math.random()<0.10*dt*60){
+      }else if(tGap>0&&tGap<22&&a.greetCd<=0&&Math.random()<0.10*dt*60){
         /* an oncoming rider sometimes lifts a hand as you close */
         a.greetT=1.6; a.greetCd=40+Math.random()*60;
       }
