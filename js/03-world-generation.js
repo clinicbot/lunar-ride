@@ -671,7 +671,7 @@ function buildWorld(scene,onProgress){
          each portal - where it does, it fades to tunnel darkness */
       const nrT=roadNear(x,z);
       if(nrT&&tunNear[nrT.i]&&nrT.d<TUN_SLOT+1
-         &&y>ry[nrT.i]-6&&y<ry[nrT.i]+21){
+         &&y>ry[nrT.i]+2.5&&y<ry[nrT.i]+21){
         tCol[k*4]*=0.02; tCol[k*4+1]*=0.02; tCol[k*4+2]*=0.02;
       }
     }
@@ -689,10 +689,11 @@ function buildWorld(scene,onProgress){
     const a=j*NV+i,b=a+1,c=a+NV,d=c+1;
     const cx3=-HALF+(i+0.5)*STEP, cz3=-HALF+(j+0.5)*STEP;
     const nrC=roadNear(cx3,cz3);
-    if(nrC&&tunNear[nrC.i]&&nrC.d<hwT){
+    if(nrC&&tunNear[nrC.i]&&nrC.d<TUN_SLOT+1.5){
       const y0=Math.min(hgt[a],hgt[b],hgt[c],hgt[d]);
       const y1=Math.max(hgt[a],hgt[b],hgt[c],hgt[d]);
-      if(y1>ry[nrC.i]-4&&y0<ry[nrC.i]+bandTop) continue;
+      const road=ry[nrC.i];
+      if(y1>road-4&&y0<road+bandTop&&(nrC.d<hwT||y1>road+6)) continue;
     }
     tIdx[p++]=a;tIdx[p++]=c;tIdx[p++]=b;
     tIdx[p++]=b;tIdx[p++]=c;tIdx[p++]=d;
