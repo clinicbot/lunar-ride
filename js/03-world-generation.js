@@ -514,8 +514,11 @@ function buildWorld(scene,onProgress){
          spikes marching through the tunnel. */
       if(near.d<TUN_SLOT) return ry[near.i]-2.5;
       /* the sloped trench wall must span several terrain-grid cells or the
-         mesh triangles straddle it and wall off the bore */
-      const t=(near.d-TUN_SLOT)/Math.max(22,STEP*2.8);
+         mesh triangles straddle it and wall off the bore — and where the
+         mountain towers over the road, the cutting runs out further still,
+         or the walls come out vertical */
+      const wallH=Math.max(0,h-ry[near.i]);
+      const t=(near.d-TUN_SLOT)/clamp(wallH*1.15,Math.max(22,STEP*2.8),130);
       if(t<1) return lerp(ry[near.i]-2.5, h, smoothstep(t));
       return h;
     }
@@ -783,9 +786,11 @@ function buildWorld(scene,onProgress){
       const row=LAT.map(function(t){
         const o=t*LID_W;
         const px=rx[i]+nx*o, pz=rz[i]+nz*o;
-        /* the outer edge tucks just under the real ground to hide the seam */
+        /* the outer edge tucks just under the ground AS CARVED - the raw
+           land height floats above the portal cuttings */
         const edge=(Math.abs(t)>0.9)?1.2:0;
-        return [px, Math.max(landAt(px,pz)-edge, ry[i]+TH+TW+1.6), pz];
+        const base=edge?groundAt(px,pz):landAt(px,pz);
+        return [px, Math.max(base-edge, ry[i]+TH+TW+1.6), pz];
       });
       if(lidPrev) for(let k=0;k<row.length-1;k++)
         mb.quad(lidPrev[k],lidPrev[k+1],row[k+1],row[k],lidCol,0);
