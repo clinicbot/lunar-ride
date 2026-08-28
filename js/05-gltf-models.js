@@ -155,6 +155,12 @@ async function loadGLTFRider(){
         }
       }
     }
+    /* the glance pivot: the model's actual neck base in the riding pose,
+       so a turning head stays attached whatever the proportions */
+    {
+      const WN=world().Neck;
+      GLTFR.headY=WN.y; GLTFR.headZ=WN.z;
+    }
     /* bake each crank angle */
     const m4=(a,b)=>{const o=new Float32Array(16);
       for(let c2=0;c2<4;c2++)for(let r=0;r<4;r++){let v=0;

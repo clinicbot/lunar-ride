@@ -631,7 +631,9 @@ function drawActors(maxD){
     vLimb[2]=(a.swing||0)*(M?1:0.8);
     vLimb[3]=M?M.sh:1.45;
     vHead[0]=a.headYaw||0; vHead[1]=a.headPitch||0;
-    vHead[2]=M?M.headY:0;  vHead[3]=M?M.headZ:0;
+    if(a.type==='rider'&&GLTFR.ready&&GLTFR.headY!==undefined){
+      vHead[2]=GLTFR.headY; vHead[3]=GLTFR.headZ;
+    }else{ vHead[2]=M?M.headY:0; vHead[3]=M?M.headZ:0; }
     gl.uniform3f(CU.uWave, a.waveAng||0, M&&M.wvY?M.wvY:0, M&&M.wvX?M.wvX:0);
     gl.uniform2f(CU.uSpin, a.crank||0, a.wheel||0);
     if(a.legL){gl.uniform4fv(CU.uLegL,a.legL);gl.uniform4fv(CU.uLegR,a.legR);}
