@@ -1561,7 +1561,7 @@ function buildWorld(scene,onProgress){
           const side=rnd()<.5?-1:1;
           const off=(hw+6)+Math.pow(rnd(),1.4)*16;
           const x=rx[i]-tz[i]*off*side, z=rz[i]+tx[i]*off*side;
-          if(Math.abs(meshH(x,z)-ry[i])<3.0)
+          if(Math.abs(meshH(x,z)-ry[i])<4.5)
             return {x,z,off,rpx:rx[i],rpz:rz[i]};
         }
       }
@@ -1588,7 +1588,7 @@ function buildWorld(scene,onProgress){
     /* a herd or a jelly cluster every ~200 m, all the way round */
     const SC=Math.max(1,nPts/1600);   /* long routes space their life out */
     let flip=0;
-    for(let i2=25;i2<nPts-10;i2+=Math.floor((40+rnd()*22)*SC)){
+    for(let i2=25;i2<nPts-10;i2+=Math.floor((28+rnd()*16)*SC)){
       const sp=levelSpot(i2);
       if(!sp){
         if(inTunnel[i2]){
@@ -1619,8 +1619,8 @@ function buildWorld(scene,onProgress){
       const haveCat=GLCRE.cat&&GLCRE.cat.ready;
       const pick=flip++%3;
       if(pick===2)      groundAtSpot('gjelly','jelly',sp,1+(rnd()<0.4?1:0),0.9);
-      else if(haveCat&&rnd()<0.35)
-                        groundAtSpot('gcat','cat',sp,1+(rnd()<0.5?1:0),2.3);
+      else if(haveCat&&rnd()<0.55)
+                        groundAtSpot('gcat','cat',sp,2+(rnd()<0.5?1:0),2.3);
       else              groundAtSpot('gstag','stag',sp,2+Math.floor(rnd()*3),0.9);
     }
     /* a welcoming party right after the start line, close to the tarmac,
@@ -1647,6 +1647,7 @@ function buildWorld(scene,onProgress){
     nearSpawn('gstag','stag',18,10.5,-1);
     nearSpawn('gstag','stag',60,12,1);
     nearSpawn('gjelly','jelly',38,10,1);
+    if(GLCRE.cat&&GLCRE.cat.ready) nearSpawn('gcat','cat',44,9.5,-1);
     actors.push({type:'gbird', gcre:'bird', cx:rx[30], cz:rz[30],
       R:24, circ:rnd()*6.28318, w:0.10, baseY:ry[30]+9,
       px:rx[30], py:0, pz:rz[30], yaw:0,

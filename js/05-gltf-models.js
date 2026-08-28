@@ -135,7 +135,7 @@ async function loadGLTFRider(){
     /* arms: bent numerically until each wrist lands on the handlebars.
        This works whatever the model's rest pose or sign conventions are. */
     {
-      const HB={y:0.95,z:0.50};
+      const HB={y:0.91,z:0.52};
       const wristErr=(sd)=>{
         const Wq=world(), Wp=Wq['Wrist_'+sd];
         const dy=Wp.y-HB.y, dz=Wp.z-HB.z;
