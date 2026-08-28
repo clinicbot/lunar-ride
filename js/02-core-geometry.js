@@ -705,7 +705,8 @@ const CREATURE={
   hopper :{headY:1.45,headZ:0.12,gait:4.2,turn:2.10,rest:0.10,eye:1.9,float:0,hip:0.88,sh:1.46},
   drifter:{headY:0,   headZ:0,   gait:0,  turn:0,   rest:0,   eye:2.6,float:2.4,hip:0,sh:0},
   gstag  :{headY:1.38,headZ:0.42,gait:3.4,turn:1.90,rest:-0.05,eye:1.85,float:0,hip:0,sh:0},
-  gjelly :{headY:0,   headZ:0,   gait:0,  turn:0,   rest:0,   eye:0.6,float:2.0,hip:0,sh:0}
+  gjelly :{headY:0,   headZ:0,   gait:0,  turn:0,   rest:0,   eye:0.6,float:2.0,hip:0,sh:0},
+  gcat   :{headY:0.52,headZ:0.30,gait:4.6,turn:2.20,rest:0.05,eye:0.55,float:0,hip:0,sh:0}
 };
 
 const wrapAng=x=>((x+Math.PI)%6.28318+6.28318)%6.28318-Math.PI;

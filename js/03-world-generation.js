@@ -1141,8 +1141,12 @@ function buildWorld(scene,onProgress){
         }
         continue;
       }
-      if(flip++%3===2) groundAtSpot('gjelly','jelly',sp,1+(rnd()<0.4?1:0),0.9);
-      else            groundAtSpot('gstag','stag',sp,2+Math.floor(rnd()*3),0.9);
+      const haveCat=GLCRE.cat&&GLCRE.cat.ready;
+      const pick=flip++%3;
+      if(pick===2)      groundAtSpot('gjelly','jelly',sp,1+(rnd()<0.4?1:0),0.9);
+      else if(haveCat&&rnd()<0.35)
+                        groundAtSpot('gcat','cat',sp,1+(rnd()<0.5?1:0),0.9);
+      else              groundAtSpot('gstag','stag',sp,2+Math.floor(rnd()*3),0.9);
     }
     /* a welcoming party right after the start line, close to the tarmac,
        so the animals are impossible to miss */
@@ -1172,6 +1176,19 @@ function buildWorld(scene,onProgress){
       R:24, circ:rnd()*6.28318, w:0.10, baseY:ry[30]+9,
       px:rx[30], py:0, pz:rz[30], yaw:0,
       flap:true, flapT:1.5, gph:0, emiss:1, k:1.3});
+    if(GLCRE.dfly&&GLCRE.dfly.ready)
+      for(let i2=60;i2<nPts-10;i2+=Math.floor(70+rnd()*50)){
+        if(inTunnel[i2]||inBridge[i2]) continue;
+        const side=rnd()<.5?-1:1, off=6+rnd()*8;
+        const cx0=rx[i2]-tz[i2]*off*side, cz0=rz[i2]+tx[i2]*off*side;
+        for(let b2=0;b2<1+(rnd()<0.5?1:0);b2++)
+          actors.push({type:'gbird', gcre:'dfly', cx:cx0, cz:cz0,
+            R:5+rnd()*9, circ:rnd()*6.28318,
+            w:(rnd()<.5?-1:1)*(0.30+rnd()*0.25),
+            baseY:ry[i2]+2.0+rnd()*2.0, px:cx0, py:0, pz:cz0, yaw:0,
+            flap:true, flapT:9e9, flapHz:7+rnd()*3, noGlide:true,
+            gph:rnd()*6.28318, emiss:1, k:0.8+rnd()*0.4});
+      }
     for(let i2=35;i2<nPts-10;i2+=Math.floor(32+rnd()*20)){
       if(inTunnel[i2]) continue;
       const side=rnd()<.5?-1:1, off=8+rnd()*26;

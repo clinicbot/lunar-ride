@@ -388,11 +388,12 @@ function updateActors(dt){
       a.py=a.py?lerp(a.py,wantY,1-Math.pow(0.45,dt)):wantY;
       a.pitch=0;
       a.flapT-=dt;
-      if(a.flapT<=0){ a.flap=!a.flap;
+      if(a.flapT<=0&&!a.noGlide){ a.flap=!a.flap;
         a.flapT=a.flap?1.4+Math.random()*1.6:2.0+Math.random()*3.0; }
-      if(a.flap) a.gph+=dt*2.6*6.28318*0.5;
+      const fw=(a.flapHz||1.3)*6.28318;
+      if(a.flap) a.gph+=dt*fw;
       else{ const m2=a.gph%6.28318;
-        if(m2>0.06) a.gph+=Math.min(dt*2.6*6.28318*0.5, 6.28318-m2); }
+        if(m2>0.06) a.gph+=Math.min(dt*fw, 6.28318-m2); }
 
     }else if(a.type==='rider'){
       /* the same physics the player rides, at this rider's own power. The
