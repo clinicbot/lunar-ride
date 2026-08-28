@@ -697,6 +697,9 @@ function buildWorld(scene,onProgress){
     tIdx[p++]=a;tIdx[p++]=c;tIdx[p++]=b;
     tIdx[p++]=b;tIdx[p++]=c;tIdx[p++]=d;
   }
+  /* p is a shared scratch counter reused by later meshes - freeze the
+     terrain's own index count NOW, before anyone else touches it */
+  const tIdxLen=p;
 
   /* --- road ribbon --- */
   const hw=scene.road.halfWidth;
@@ -1755,7 +1758,7 @@ function buildWorld(scene,onProgress){
            col:new Float32Array(gb.col),idx:new Uint32Array(gb.idx)}:null,
     screens,
     tunnels, bridges, lavaY, inTunnel, inBridge,
-    terrain:{pos:tPos,nrm:tNrm,col:tCol,idx:p<tIdx.length?tIdx.slice(0,p):tIdx},
+    terrain:{pos:tPos,nrm:tNrm,col:tCol,idx:tIdxLen<tIdx.length?tIdx.slice(0,tIdxLen):tIdx},
     road:{pos:rPos,nrm:rNrm,col:rCol,idx:rIdx},
     props:{pos:new Float32Array(mb.pos),nrm:new Float32Array(mb.nrm),
            col:new Float32Array(mb.col),idx:new Uint32Array(mb.idx)}
