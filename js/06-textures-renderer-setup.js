@@ -83,7 +83,7 @@ function bakeTextures(){
     /* the vegetation atlas: left half a grass tuft, right half a bush,
        drawn in grayscale + alpha and tinted per world in the shader */
     const cnv=document.createElement('canvas');
-    cnv.width=1024; cnv.height=256;
+    cnv.width=1536; cnv.height=256;
     const c2=cnv.getContext('2d');
     c2.clearRect(0,0,1024,256);
     const rr=mulberry32(777);
@@ -141,6 +141,38 @@ function bakeTextures(){
       c2.moveTo(896,yTop);
       c2.lineTo(896-half,yTop+42); c2.lineTo(896+half,yTop+42);
       c2.closePath(); c2.fill();
+    }
+    /* dry wisp: sparse arcing straw stalks with seed heads - the desert
+       grass. Mostly air, so it never tints into a solid slab. */
+    for(let i=0;i<70;i++){
+      const bx=1152+(rr()*2-1)*100, lean=(rr()*2-1)*70;
+      const h2=90+rr()*130, lum=150+rr()*70;
+      c2.strokeStyle='rgba('+(lum|0)+','+((lum*0.82)|0)+','+((lum*0.45)|0)+',1)';
+      c2.lineWidth=1.6+rr()*1.8;
+      c2.beginPath();
+      c2.moveTo(bx,254);
+      c2.quadraticCurveTo(bx+lean*0.3,254-h2*0.7,bx+lean,254-h2);
+      c2.stroke();
+      c2.fillStyle='rgba('+((lum*0.9)|0)+','+((lum*0.7)|0)+','+((lum*0.38)|0)+',1)';
+      c2.beginPath(); c2.arc(bx+lean,254-h2,2.4+rr()*2.6,0,7); c2.fill();
+    }
+    /* desert shrub: an open twiggy dome, branches with air between them */
+    c2.strokeStyle='rgba(122,86,52,1)';
+    for(let i=0;i<46;i++){
+      const a=(-0.15-rr()*0.7)*Math.PI*(rr()<.5?1:-1)*0.5+(-Math.PI/2);
+      const len=60+rr()*95;
+      const x0=1408+(rr()*2-1)*26, y0=252;
+      const x1=x0+Math.cos(a)*len*(rr()<.5?1:-1)*0.9, y1=y0+Math.sin(a)*len;
+      c2.lineWidth=1.4+rr()*2.2;
+      c2.beginPath();
+      c2.moveTo(x0,y0);
+      c2.quadraticCurveTo((x0+x1)/2+(rr()*2-1)*22,(y0+y1)/2,x1,y1);
+      c2.stroke();
+      if(rr()<0.6){                              /* dry leaf tufts on the twigs */
+        const lum=120+rr()*80;
+        c2.fillStyle='rgba('+(lum|0)+','+((lum*0.78)|0)+','+((lum*0.42)|0)+',1)';
+        c2.beginPath(); c2.arc(x1,y1,3+rr()*4.5,0,7); c2.fill();
+      }
     }
     TEX.veg=gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D,TEX.veg);

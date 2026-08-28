@@ -98,7 +98,7 @@ const SCENES = [
     col:{high:'#a9663d', low:'#6d3f24', road:'#4a2d1c', rumble:'#e8c39a', lane:'#e8d3b4'},
     sky:{top:'#4a3222', horizon:'#c08a5a', fog:'#c9a077', fogDen:.00085, stars:0, starBright:0,
          cloud:.22, cloudCol:'#d8b48c', earth:null},
-    veg:{grass:4200, bush:170, tintA:'#8a5a33', tintB:'#b08348'},
+    veg:{grass:4200, bush:170, dry:true, tintA:'#8a5a33', tintB:'#b08348'},
     life:{bases:2, walkers:10, rovers:3, ships:1, drones:2, station:true, spaceport:true},
     flora:{fans:180, tufts:430, pods:80, spires:45},
     fauna:{grazer:8, strider:5, hopper:6},

@@ -103,7 +103,7 @@ void main(){
   vec4 t=texture2D(uAtlas,vUv);
   if(t.a*1.4<0.34) discard;
   vec3 tint=mix(uTintA,uTintB,vRnd);
-  if(vUv.x>0.4999) tint=mix(vec3(1.0),tint,0.30);   /* tree cells: mostly own colour */
+  if(vUv.x>0.3332) tint=mix(vec3(1.0),tint,0.30);   /* tree and desert cells: own colour */
   vec3 col=t.rgb*tint*(uAmbB*1.6+uSunColB*0.85);
   float dist=length(vWp-uCamB);
   float f=1.0-exp(-pow(dist*uFogDenB,2.0));

@@ -1062,7 +1062,7 @@ function buildWorld(scene,onProgress){
     const plant=(x,z,y,size,kind,bias)=>{
       const b=ctr.length/3;
       const rndv=clamp((bias===undefined?0.5:bias)+(rnd()-0.5)*0.5,0,0.999);
-      const u0=kind*0.25, u1=u0+0.25;
+      const u0=kind/6, u1=u0+1/6;
       for(const [ox,oy,uu,vv] of [[-1,0,u0,1],[1,0,u1,1],[1,1,u1,0],[-1,1,u0,0]]){
         ctr.push(x,y,z); dat.push(ox,oy,size,rndv); uv.push(uu,vv);
       }
@@ -1080,6 +1080,11 @@ function buildWorld(scene,onProgress){
       /* the road corridor is flat by construction - only test steepness out
          in open country, where the coarse mesh can genuinely be a cliff */
       if(near.d>13&&Math.abs(meshH(x+2.5,z)-y)>2.6) return;
+      let kind2=kind;
+      if(scene.veg.dry){                 /* desert worlds grow desert plants */
+        if(kind===0) kind2=4;
+        else if(kind===1) kind2=5;
+      }
       const zk=zoneOf(i);
       if(zk&&kind===0&&rnd()>ZONE_GRASS[zk]) return;   /* forests thin the grass */
       if(zk&&kind>=2&&rnd()>(ZONE_TREES[zk]||0.3)) return; /* forests OWN the trees */
@@ -1088,7 +1093,7 @@ function buildWorld(scene,onProgress){
                 :kind===1?1.0+rnd()*1.1
                 :kind===2?5.5+rnd()*2.6        /* oak: 9-13 m tall  */
                 :4.5+rnd()*2.4;                /* pine: 7-11 m tall */
-      plant(x,z,y+0.02,size,kind,bias);
+      plant(x,z,y+0.02,size,kind2,bias);
     };
     for(let k=0;k<(scene.veg.grass||0);k++) tryPlace(0,26);
     for(let k=0;k<(scene.veg.bush||0);k++)  tryPlace(1,70);
