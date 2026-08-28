@@ -444,7 +444,8 @@ function updateActors(dt){
         tGap=gap*state.dir;
       }
       roadPoint(a.s, dsg*(a.laneAbs||2.2)+Math.sin(t*0.6+a.ph)*0.12, actTmp);
-      a.px=actTmp[0]; a.py=actTmp[1]; a.pz=actTmp[2];
+      /* the drawn road surface sits 10 cm above the route line - stand on it */
+      a.px=actTmp[0]; a.py=actTmp[1]+0.10; a.pz=actTmp[2];
       const j=Math.floor(a.s/ROUTE_STEP)%world.nMain;
       a.yaw=Math.atan2(dsg*world.tx[j],dsg*world.tz[j]);
       const cadHz=clamp(55+a.v*3.2,50,102)/60;
@@ -595,7 +596,7 @@ function updateActors(dt){
     segPoint(state.seg,state.s,state.playerX*state.dir,actTmp);
     const mdx=actTmp[0]-ME.px, mdz=actTmp[2]-ME.pz;
     if(mdx*mdx+mdz*mdz>1e-6) ME.yaw=Math.atan2(mdx,mdz);
-    ME.px=actTmp[0]; ME.py=actTmp[1]; ME.pz=actTmp[2];
+    ME.px=actTmp[0]; ME.py=actTmp[1]+0.10; ME.pz=actTmp[2];
     ME.crank+=(state.cad||0)/60*6.28318*dt;
     ME.wheel-=(state.speed||0)/0.34*dt;
     ME.py+=Math.abs(Math.sin(ME.crank))*0.015;
