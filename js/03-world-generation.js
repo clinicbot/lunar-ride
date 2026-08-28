@@ -1071,6 +1071,15 @@ function buildWorld(scene,onProgress){
     }
   }
 
+  /* --- the summit arch: the crown of an epic climb --- */
+  if(scene.road.epic&&GLTREES.arch){
+    let hi=-1e9,hiI=0;
+    for(let i2=0;i2<nMain;i2++) if(ry[i2]>hi){hi=ry[i2];hiI=i2;}
+    mb.setTF(rx[hiI],ry[hiI]-0.05,rz[hiI],yawAt(hiI),1);
+    appendGLTF(mb,GLTREES.arch);
+    mb.setTF(0,0,0,0,1);
+  }
+
   /* --- roadside display screens showing his AI artwork: a big mission
          screen on the approach to every settlement, and smaller race
          posters of the cyclist dotted along the lap --- */
@@ -1161,6 +1170,11 @@ function buildWorld(scene,onProgress){
         if(waterY!==null&&gfy<waterY+0.3) continue;
         mb.setTF(x,gfy-0.06,z,rnd()*6.28318,0.7+rnd()*0.85);
         const zk=zoneOf(i);
+        if(scene.road.epic && gfy>mean+(scene.iceAbove||120)-10){
+          /* the frozen world above the ice line */
+          const fz=[GLTREES.frozen,GLTREES.ice,GLTREES.ice].filter(Boolean);
+          if(fz.length){ appendGLTF(mb,fz[Math.floor(rnd()*fz.length)]); break; }
+        }
         const k=zk?zonePick(zk):list[n];
         if(k==='spires')        mSpire(mb,BIO,rnd);
         else if(k==='fans')     mFan(mb,BIO,rnd);
