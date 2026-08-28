@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#04060b">
+  <title>Lunar Ride</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div id="topbar" class="panel">
+    <div><div class="lbl">Time</div><div class="val mono" id="tTime">0:00</div></div>
+    <div><div class="lbl">Distance</div><div class="val mono" id="tDist">0.00 km</div></div>
+    <div><div class="lbl">Climbed</div><div class="val mono" id="tElev">0 m</div></div>
+    <div id="sceneName"></div>
+  </div>
+
+  <div id="left" class="panel">
+    <div class="srow"><span><i id="connDot"></i>Source</span><span id="sSrc">keyboard</span></div>
+    <div class="srow"><span>Resistance</span><span id="sRes">—</span></div>
+    <div class="srow"><span>Avg power</span><span class="mono" id="sAvg">0 W</span></div>
+    <div class="srow"><span>Max power</span><span class="mono" id="sMax">0 W</span></div>
+    <div class="srow"><span>Avg speed</span><span class="mono" id="sAvgSpd">0.0</span></div>
+    <div class="srow"><span>Work</span><span class="mono" id="sKj">0 kJ</span></div>
+    <div class="srow"><span>Altitude</span><span class="mono" id="sAlt">0 m</span></div>
+  </div>
+
+  <div id="right" class="panel">
+    <h4 class="lbl">Route profile</h4>
+    <canvas id="profile"></canvas>
+    <div id="gradeRow"><span class="lbl" id="gradeLbl">Gradient</span><span id="gradeVal" class="mono">0.0%</span></div>
+    <div id="gradeBarWrap"><div id="gradeBar"></div></div>
+    <div id="progWrap"><div id="progBar"></div></div>
+    <div id="progTxt">lap 1</div>
+  </div>
+
+  <div id="metrics" class="panel">
+    <div class="metric"><div class="lbl">Power</div>
+      <div class="val mono"><span id="pwrVal">0</span><span class="unit">W</span></div></div>
+    <div class="metric"><div class="lbl">Cadence</div>
+      <div class="val mono"><span id="cadVal">0</span><span class="unit">rpm</span></div></div>
+    <div class="metric"><div class="lbl">Speed</div>
+      <div class="val mono"><span id="spdVal">0.0</span><span class="unit">km/h</span></div></div>
+    <div class="metric" id="hrBox" style="display:none"><div class="lbl">Heart rate</div>
+      <div class="val mono"><span id="hrVal">0</span><span class="unit">bpm</span></div></div>
+  </div>
+
+  <div id="ctrl" class="panel">
+    <button id="cMenu" title="Back to the menu (Esc)">Menu</button>
+    <div class="grp" id="cRes">
+      <button id="cMode" title="Sim follows the road. Steady ignores the hills and holds one resistance.">Sim</button>
+      <button id="cDown" title="Less resistance">&minus;</button>
+      <b id="cDiff">50%</b>
+      <button id="cUp" title="More resistance">+</button>
+    </div>
+    <button id="cUturn" title="Turn around (U)">U-turn</button>
+    <button id="cSound" title="Sound on or off (S)">Sound</button>
+    <button id="cCam" title="Change camera (C)">Cam</button>
+    <button id="cPanels" title="Show fewer panels (H)">Panels</button>
+  </div>
+
+  <div id="turnUI" class="panel">
+    <span class="lbl">junction ahead</span>
+    <span id="tuStraight" class="tuOpt">STRAIGHT</span>
+    <span id="tuTurn" class="tuOpt">TURN</span>
+  </div>
+
+  <div id="hint"><kbd>U</kbd> u-turn &nbsp; <kbd>Esc</kbd> menu &nbsp; <kbd>&larr;</kbd><kbd>&rarr;</kbd> steer &nbsp; <kbd>&uarr;</kbd><kbd>&darr;</kbd> effort &nbsp; <kbd>C</kbd> camera &nbsp; <kbd>H</kbd> panels &nbsp; <kbd>S</kbd> sound<br>drag any panel to move it</div>
+</div>
+
+<div id="loading">
+  <img id="loadArt" src="assets/images/bike rider.jfif" alt="" onerror="this.remove()">
+  <div id="loadTxt">Building the world</div>
+  <div id="loadBarWrap"><div id="loadBar"></div></div>
+</div>
+
+<div id="menu">
+  <div id="brand">Lunar&nbsp;<b>Ride</b></div>
+  <div id="tagline">Solo indoor cycling on landscapes that do not exist.</div>
+  <img id="heroArt" src="assets/images/bike rider.jfif" alt="" onerror="this.remove()">
+  <div id="buildTag">build 21</div>
+
+  <div id="bar">
+    <button id="btnTrainer">Connect trainer</button>
+    <button id="btnHr">Connect heart rate</button>
+    <button id="btnHrAll" title="List every nearby Bluetooth device, not only the ones announcing heart rate">Show all devices</button>
+    <span class="pill" id="pillTrainer">no trainer</span>
+    <span class="pill" id="pillHr">no HR</span>
+    <button id="btnResume" class="primary" style="display:none">Resume ride</button>
+    <button id="btnExport" style="display:none">Save ride (.tcx)</button>
+    <button id="btnEnd" style="display:none">End ride</button>
+  </div>
+
+  <div id="setup">
+    <div class="field"><label class="lbl">Rider kg</label><input id="inWeight" type="number" value="78" min="35" max="180" step="0.5"></div>
+    <div class="field"><label class="lbl">Bike kg</label><input id="inBike" type="number" value="8" min="4" max="25" step="0.5"></div>
+    <div class="field"><label class="lbl">FTP watts</label><input id="inFtp" type="number" value="230" min="60" max="600" step="5"></div>
+    <div class="field"><label class="lbl" title="AI riders on the road with you. 0 = ride alone. Applies from the next ride.">Other riders</label><input id="inRiders" type="number" value="6" min="0" max="24" step="1"></div>
+    <div class="field" style="width:200px">
+      <label class="lbl">Trainer difficulty <b id="diffVal" style="color:var(--accent)">50%</b></label>
+      <input id="inDiff" type="range" min="0" max="100" step="5" value="50"
+             style="width:200px;accent-color:var(--accent);padding:0"></div>
+    <div class="field" style="width:200px">
+      <label class="lbl">Keep resistance downhill <b id="descentVal" style="color:var(--accent)">50%</b></label>
+      <input id="inDescent" type="range" min="0" max="100" step="5" value="50"
+             style="width:200px;accent-color:var(--accent);padding:0"></div>
+    <div class="field" style="width:200px">
+      <label class="lbl">Steady level <b id="steadyVal" style="color:var(--accent)">4.0%</b></label>
+      <input id="inSteadyLv" type="range" min="0" max="15" step="0.5" value="4"
+             style="width:200px;accent-color:var(--accent);padding:0"></div>
+    <div class="field" style="width:150px">
+      <label class="lbl">Volume <b id="volVal" style="color:var(--accent)">70%</b></label>
+      <input id="inVol" type="range" min="0" max="100" step="5" value="70"
+             style="width:150px;accent-color:var(--accent);padding:0"></div>
+    <label class="check"><input type="checkbox" id="inMoonG"> Moon gravity &amp; vacuum</label>
+    <label class="check"><input type="checkbox" id="inAuto" checked> Auto-centre steering</label>
+    <label class="check"><input type="checkbox" id="inReconn" checked> Reconnect devices on start-up</label>
+    <label class="check"><input type="checkbox" id="inSteadyOn"> Steady resistance (ignore hills)</label>
+    <label class="check"><input type="checkbox" id="inSound" checked> Sound</label>
+  </div>
+
+  <div id="bar2" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+    <button id="btnForget">Forget saved devices</button>
+    <button id="btnResetPanels">Reset panel positions</button>
+  </div>
+
+  <div id="msg"></div>
+
+  <h3 class="sec">Choose a world</h3>
+  <div id="scenes"></div>
+
+  <div id="foot">
+    Trainer link uses Web Bluetooth &mdash; Chrome or Edge on Windows. Close Zwift first: most trainers accept only one Bluetooth connection at a time.<br>
+    No trainer connected? Everything still runs &mdash; press <kbd>&uarr;</kbd><kbd>&darr;</kbd> to fake your watts and ride around.<br>
+    To have devices reconnect by themselves on start-up: open <b>chrome://flags</b>, search <b>bluetooth</b>, enable <b>&ldquo;Use the new permissions backend for Web Bluetooth&rdquo;</b>, restart Chrome.<br>
+    A Galaxy Watch does not broadcast heart rate on its own &mdash; install a &ldquo;BLE heart rate broadcaster&rdquo; app <i>on the watch</i>, start it, then use <b>Show all devices</b>.<br>
+    <span id="texStatus" style="color:#8fd8ff"></span>
+  </div>
+</div>
+
+  <script src="js/01-scenes.js"></script>
+  <script src="js/02-core-geometry.js"></script>
+  <script src="js/03-world-generation.js"></script>
+  <script src="js/04-webgl-shaders.js"></script>
+  <script src="js/05-gltf-models.js"></script>
+  <script src="js/06-textures-renderer-setup.js"></script>
+  <script src="js/07-ride-physics.js"></script>
+  <script src="js/08-audio.js"></script>
+  <script src="js/09-bluetooth.js"></script>
+  <script src="js/10-render-loop.js"></script>
+  <script src="js/11-hud.js"></script>
+  <script src="js/12-export-tcx.js"></script>
+  <script src="js/13-app.js"></script>
+</body>
+</html>
