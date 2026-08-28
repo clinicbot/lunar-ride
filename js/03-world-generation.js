@@ -511,7 +511,9 @@ function buildWorld(scene,onProgress){
          curved bore, and the triangles between them render as a row of green
          spikes marching through the tunnel. */
       if(near.d<TUN_SLOT) return ry[near.i]-2.5;
-      const t=(near.d-TUN_SLOT)/22;
+      /* the sloped trench wall must span several terrain-grid cells or the
+         mesh triangles straddle it and wall off the bore */
+      const t=(near.d-TUN_SLOT)/Math.max(22,STEP*2.8);
       if(t<1) return lerp(ry[near.i]-2.5, h, smoothstep(t));
       return h;
     }
@@ -772,7 +774,7 @@ function buildWorld(scene,onProgress){
     const gc=hx(scene.col.high);
     const lidCol=[gc[0]*0.82,gc[1]*0.82,gc[2]*0.82];
     const LAT=[-1,-0.55,0,0.55,1];
-    const LID_W=TUN_SLOT+24;   /* reaches past the sloped trench walls */
+    const LID_W=TUN_SLOT+Math.max(24,STEP*3.1);   /* past the sloped trench walls */
     let lidPrev=null;
     for(let i=a;i<=b;i++){
       const nx=-tz[i], nz=tx[i];
