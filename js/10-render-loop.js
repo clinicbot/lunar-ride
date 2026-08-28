@@ -484,9 +484,23 @@ function updateActors(dt){
       /* -- flee: an animal may stray onto the tarmac, but not with a rider
             bearing down on it: it trots straight off the road, then turns
             to watch like the rest of the herd -- */
-      if(!M.float&&a.rdx!==undefined&&!a.flee){
-        const rdd=Math.hypot(a.px-a.rdx,a.pz-a.rdz);
-        if(dist<30&&rdd<(world.scene.road.halfWidth||5)+2.5) a.flee=1;
+      if(!M.float&&a.rdx!==undefined&&!a.flee&&dist<32){
+        /* measure against the road that is actually under its feet: the
+           stretch near the rider, not the herd's remembered spawn point */
+        const pIdx=segIdx(state.seg,state.s);
+        let bd=1e9,bi=pIdx;
+        for(let o2=-12;o2<=12;o2++){
+          const i3=(((pIdx+o2)%world.nPts)+world.nPts)%world.nPts;
+          const ddx=a.px-world.rx[i3], ddz=a.pz-world.rz[i3];
+          const d3=ddx*ddx+ddz*ddz;
+          if(d3<bd){bd=d3;bi=i3;}
+        }
+        if(Math.sqrt(bd)<(world.scene.road.halfWidth||5)+2.5){
+          a.flee=1;
+          a.rdx=world.rx[bi]; a.rdz=world.rz[bi];
+          const adx=a.px-a.rdx, adz=a.pz-a.rdz, al=Math.hypot(adx,adz);
+          if(al>0.3){ a.awayX=adx/al; a.awayZ=adz/al; }
+        }
       }
       if(a.flee){
         a.hx+=a.awayX*3.6*dt; a.hz+=a.awayZ*3.6*dt;
@@ -494,7 +508,7 @@ function updateActors(dt){
         a.px=a.hx+Math.cos(a.wander)*a.wr;
         a.pz=a.hz+Math.sin(a.wander)*a.wr;
         a.yaw=angLerp(a.yaw,Math.atan2(a.awayX,a.awayZ),1-Math.pow(0.02,dt));
-        if(Math.hypot(a.hx-a.rdx,a.hz-a.rdz)>(world.scene.road.halfWidth||5)+8||dist>50)
+        if(Math.hypot(a.px-a.rdx,a.pz-a.rdz)>(world.scene.road.halfWidth||5)+6||dist>50)
           a.flee=0;
       }
 
