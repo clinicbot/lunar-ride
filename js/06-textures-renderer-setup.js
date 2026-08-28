@@ -419,6 +419,8 @@ function initGL(){
   loadGLTFStatic('crysB','assets/models/prop_crystal_b.gltf',1);
   loadGLTFStatic('rockA','assets/models/prop_rock_a.gltf',1);
   loadGLTFStatic('rockB','assets/models/prop_rock_b.gltf',1);
+  loadGLTFStatic('stGate','assets/models/station_gate.gltf',1);
+  loadGLTFStatic('stSide','assets/models/station_side.gltf',1);
   ['uMVP','uModel','uLimb','uHead','uWave','uSpin','uLegL','uLegR','uShadowMat']
     .forEach(n=>US[n]=gl.getUniformLocation(progShadow,n));
   ['uScene','uPx'].forEach(n=>UB[n]=gl.getUniformLocation(progBloom,n));

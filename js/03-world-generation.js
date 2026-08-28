@@ -852,6 +852,40 @@ function buildWorld(scene,onProgress){
     mb.setTF(0,0,0,0,1);
   }
 
+  /* --- space stations: colossal glTF structures. Gate stations straddle
+     the road on straight flat stretches (their passage is fixed, so the
+     road must not bend or climb inside); side stations tower off in the
+     middle distance. Nothing is placed until the model files exist. --- */
+  if(GLTREES.stGate||GLTREES.stSide){
+    const straightAt=(i,len)=>{
+      if(i<len+2||i>=nMain-len-2) return false;
+      const y0=ry[i];
+      for(let o=-len;o<=len;o++){
+        const j=i+o;
+        if(inTunnel[j]||inBridge[j]) return false;
+        if(Math.abs(ry[j]-y0)>1.6) return false;
+      }
+      return (tx[i-len]*tx[i+len]+tz[i-len]*tz[i+len])>0.998;
+    };
+    let placedG=0, placedS=0;
+    for(let i=90;i<nMain-90&&(placedG<2||placedS<3);i+=Math.floor(80+rnd()*70)){
+      if(GLTREES.stGate&&placedG<2&&straightAt(i,8)){
+        mb.setTF(rx[i],ry[i]-0.05,rz[i],yawAt(i),1);
+        appendGLTF(mb,GLTREES.stGate);
+        mb.setTF(0,0,0,0,1);
+        placedG++; i+=50; continue;
+      }
+      if(GLTREES.stSide&&placedS<3&&!inTunnel[i]){
+        const side=rnd()<.5?-1:1, off=60+rnd()*45;
+        const x=rx[i]-tz[i]*off*side, z=rz[i]+tx[i]*off*side;
+        mb.setTF(x,meshH(x,z)-1.2,z,rnd()*6.28318,1);
+        appendGLTF(mb,GLTREES.stSide);
+        mb.setTF(0,0,0,0,1);
+        placedS++;
+      }
+    }
+  }
+
   /* --- roadside display screens showing his AI artwork: a big mission
          screen on the approach to every settlement, and smaller race
          posters of the cyclist dotted along the lap --- */
