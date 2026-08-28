@@ -1242,6 +1242,8 @@ function buildWorld(scene,onProgress){
   {
     const NEAR=['cTower','cDome','cSpire','cClu','cArc','sHang'].filter(k=>GLTREES[k]);
     const FAR=['sRef','sAnt','sRing','cArc','cTower'].filter(k=>GLTREES[k]);
+    /* footprint radius of each model: placement must clear the road by this */
+    const RAD={cTower:13,cDome:52,cArc:61,cSpire:12,cClu:76,sHang:46,sRef:51,sAnt:22,sRing:36};
     if(NEAR.length){
       const flatStraight=(i,len)=>{
         if(i<len+2||i>=nMain-len-2) return false;
@@ -1281,13 +1283,14 @@ function buildWorld(scene,onProgress){
           const sides=rnd()<0.7?[side,-side]:[side];
           for(const sd of sides){
             const far=rnd()<0.22&&FAR.length;
-            const off=far?170+rnd()*90:56+rnd()*62;
+            const key=(far?FAR:NEAR)[Math.floor(rnd()*(far?FAR.length:NEAR.length))];
+            const R=RAD[key]||30;
+            const off=(far?Math.max(170,R+40):Math.max(56,R+hw+9))+rnd()*(far?90:52);
             const x=rx[i]-tz[i]*off*sd, z=rz[i]+tx[i]*off*sd;
             const gy=meshH(x,z);
             if(Math.abs(gy-ry[i])>28) continue;
             if(waterY!==null&&gy<waterY+0.5) continue;
-            if(!clearOfRoads(x,z,far?24:20)) continue;
-            const key=(far?FAR:NEAR)[Math.floor(rnd()*(far?FAR.length:NEAR.length))];
+            if(!clearOfRoads(x,z,R+10)) continue;
             /* face the road, with a little variation */
             const yaw=Math.atan2(rx[i]-x,rz[i]-z)+(rnd()*2-1)*0.35;
             mb.setTF(x,gy-1.0,z,yaw,1);

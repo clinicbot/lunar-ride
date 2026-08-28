@@ -337,10 +337,13 @@ async function loadGLTFBike(key,file,fit){
       }
       for(let t=0;t<p.I.length;t++) idx.push(base+p.I[t]);
     }
+    /* pedal phase: legs assume the pedal starts at the bottom; a crank
+       modeled with horizontal arms starts a quarter turn ahead */
+    const cph=crank&&((crank.mx[2]-crank.mn[2])>(crank.mx[1]-crank.mn[1])*1.15)?Math.PI/2:0;
     GLBIKES[key]={mesh:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),
         col:new Float32Array(col),limb:new Float32Array(limb),idx:new Uint32Array(idx)},
       piv:{f:[fz*sc+dz,fy*sc],r:[rz2*sc+dz,ryy*sc],c:[cz*sc+dz,cy*sc]},
-      gpu:null, ready:true};
+      phase:cph, gpu:null, ready:true};
     BIKE_KEYS.push(key);
     console.log('glTF bike ready:',file,'tris:',idx.length/3,
       'pivots F/R/C:',GLBIKES[key].piv.f,GLBIKES[key].piv.r,GLBIKES[key].piv.c);

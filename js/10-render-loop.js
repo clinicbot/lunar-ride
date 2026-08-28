@@ -651,10 +651,12 @@ function drawActors(maxD){
       }
       if(B){
         if(!B.gpu) B.gpu=uploadMesh(B.mesh);
+        if(B.phase) gl.uniform2f(CU.uSpin,(a.crank||0)-B.phase,a.wheel||0);
         gl.uniform2f(CU.uPivF,B.piv.f[0],B.piv.f[1]);
         gl.uniform2f(CU.uPivR,B.piv.r[0],B.piv.r[1]);
         gl.uniform2f(CU.uPivC,B.piv.c[0],B.piv.c[1]);
         drawMesh(B.gpu);
+        if(B.phase) gl.uniform2f(CU.uSpin,a.crank||0,a.wheel||0);
         gl.uniform2f(CU.uPivF,0.50,0.34);
         gl.uniform2f(CU.uPivR,-0.42,0.34);
         gl.uniform2f(CU.uPivC,-0.02,0.28);
