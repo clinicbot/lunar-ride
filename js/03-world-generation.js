@@ -8,14 +8,22 @@
    three meshes (terrain, road, rocks) every frame.
    ========================================================================== */
 
-const WORLD=3200, HALF=WORLD/2;   // the world is 3.2 km square
-const STEP=9;                     // terrain grid spacing, metres
-const NG=Math.round(WORLD/STEP);  // grid cells per side
+let WORLD=3200, HALF=WORLD/2;     // the world is 3.2 km square...
+let STEP=9;                       // terrain grid spacing, metres
+let NG=Math.round(WORLD/STEP);    // grid cells per side
 const ROUTE_STEP=4;               // road sample spacing, metres
+/* ...unless a scene asks for an epic one: a 25 km route needs room */
+function setWorldScale(scene){
+  WORLD=scene.road.epic?5600:3200;
+  HALF=WORLD/2;
+  STEP=scene.road.epic?14:9;
+  NG=Math.round(WORLD/STEP);
+}
 
 let world=null;   // everything generated for the current scene
 
 function buildWorld(scene,onProgress){
+  setWorldScale(scene);
   const rnd=mulberry32(scene.seed);
   const n1=makeNoise(scene.seed), n2=makeNoise(scene.seed+77);
   const L=scene.land;
@@ -58,8 +66,13 @@ function buildWorld(scene,onProgress){
         else h+=c.d*0.5*Math.exp(-Math.pow((d-1.0)/0.17,2));
       }
     }
+    if(pkBoost){
+      const dx=x-pkBoost.x, dz=z-pkBoost.z;
+      h+=pkBoost.h*Math.exp(-(dx*dx+dz*dz)/(pkBoost.r*pkBoost.r));
+    }
     return h;
   }
+  let pkBoost=null;
 
   onProgress&&onProgress(0.1);
 
@@ -70,15 +83,108 @@ function buildWorld(scene,onProgress){
                      + 0.09*tw*Math.sin(3*th+ph[1])
                      + 0.05*tw*Math.sin(5*th+ph[2]));
 
+  /* --- the epic mountain: pick the tallest peak beyond the loop, raise it
+     into a true summit, and remember it for the climb --- */
+  if(scene.road.epic&&!pkBoost){
+    const E=scene.road.epic;
+    let best={h:-1e9,x:0,z:0};
+    for(let a2=0;a2<126;a2++){
+      const th=a2/126*6.28318;
+      for(let rr=R*1.05;rr<R*1.35;rr+=45){
+        const x=Math.cos(th)*rr, z=Math.sin(th)*rr;
+        const h=landAt(x,z);
+        if(h>best.h) best={h,x,z};
+      }
+    }
+    pkBoost={x:best.x,z:best.z,h:E.boost||260,r:E.boostR||800};
+  }
+
   /* walk it finely, then resample at an even 4 m spacing */
-  const fine=[];
+  let fine=[];
   const FN=6000;
   for(let i=0;i<=FN;i++){
     const th=i/FN*Math.PI*2, r=rAt(th);
     fine.push([Math.cos(th)*r, Math.sin(th)*r]);
   }
+  if(scene.road.epic){
+    const E=scene.road.epic, pk=pkBoost;
+    const T=E.T||3.4, Td=E.Td||3.05, RMIN=E.rmin||110;
+    const thA=Math.atan2(pk.z,pk.x);              /* leave the loop nearest the peak */
+    const A=[Math.cos(thA)*rAt(thA), Math.sin(thA)*rAt(thA)];
+    const R0=Math.max(520,Math.hypot(A[0]-pk.x,A[1]-pk.z)*0.92);
+    const ph0=Math.atan2(A[1]-pk.z,A[0]-pk.x);
+    /* spiral direction that roughly continues the loop's travel */
+    /* dirS is picked after we know the arc orientation; do it lazily via a
+       function of the final travel tangent at A (computed below) */
+    let dirS=1;
+    const sp=(phi,r)=>[pk.x+Math.cos(phi)*r, pk.z+Math.sin(phi)*r];
+    const bez=(P0,T0,P1,T1,n)=>{ /* cubic with tangent handles */
+      const d=Math.hypot(P1[0]-P0[0],P1[1]-P0[1])*0.4;
+      const C0=[P0[0]+T0[0]*d,P0[1]+T0[1]*d], C1=[P1[0]-T1[0]*d,P1[1]-T1[1]*d];
+      const out=[];
+      for(let k2=1;k2<n;k2++){
+        const t=k2/n,u=1-t;
+        out.push([u*u*u*P0[0]+3*u*u*t*C0[0]+3*u*t*t*C1[0]+t*t*t*P1[0],
+                  u*u*u*P0[1]+3*u*u*t*C0[1]+3*u*t*t*C1[1]+t*t*t*P1[1]]);
+      }
+      return out;
+    };
+    /* the climb: helix up, a half-loop on the summit, helix down offset a
+       half-turn so the two corridors stack like real switchbacks */
+    const cwTanA=[Math.sin(thA),-Math.cos(thA)];   /* arc usually runs CW */
+    {
+      const spinT=[-Math.sin(ph0),Math.cos(ph0)];
+      dirS=(cwTanA[0]*spinT[0]+cwTanA[1]*spinT[1])>0?1:-1;
+    }
+    const up=[],down=[],SN=900;
+    for(let k2=0;k2<=SN;k2++){
+      const t=k2/SN, tt=t*t*(3-2*t);
+      up.push(sp(ph0+dirS*t*T*6.28318, R0+(RMIN-R0)*tt));
+    }
+    const phTop=ph0+dirS*T*6.28318;
+    const crown=[];
+    for(let k2=1;k2<=80;k2++)
+      crown.push(sp(phTop+dirS*k2/80*Math.PI, RMIN));
+    const phD=phTop+dirS*Math.PI;
+    for(let k2=1;k2<=SN;k2++){
+      const t=k2/SN, tt=t*t*(3-2*t);
+      down.push(sp(phD+dirS*t*Td*6.28318, RMIN+(R0-RMIN)*tt));
+    }
+    const S1=down[down.length-1];
+    const phEnd=phD+dirS*Td*6.28318;
+    /* rejoin the loop at the point nearest the descent's foot */
+    let thB=0,bd=1e9;
+    for(let a2=0;a2<600;a2++){
+      const th=a2/600*6.28318;
+      const P=[Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)];
+      const d=Math.hypot(P[0]-S1[0],P[1]-S1[1]);
+      if(d<bd&&Math.abs(wrapAng(th-thA))>0.35){bd=d;thB=th;}
+    }
+    const B=[Math.cos(thB)*rAt(thB),Math.sin(thB)*rAt(thB)];
+    /* assemble: main arc B->A the LONG way round, out to the climb, back */
+    let span=((thA-thB)%6.28318+6.28318)%6.28318, sgn=1;
+    if(span<3.14159){ sgn=-1; span=6.28318-span; }
+    const arc=[];
+    const AN=Math.max(600,Math.round(span/6.28318*FN));
+    for(let k2=0;k2<=AN;k2++){
+      const th=thB+sgn*span*k2/AN;
+      arc.push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]);
+    }
+    const tanA=[-sgn*Math.sin(thA),sgn*Math.cos(thA)];
+    const tanB=[-sgn*Math.sin(thB),sgn*Math.cos(thB)];
+    const tanUp0=[-dirS*Math.sin(ph0),dirS*Math.cos(ph0)];
+    const tanD1=[-dirS*Math.sin(phEnd),dirS*Math.cos(phEnd)];
+    fine=arc
+      .concat(bez(A,tanA,up[0],tanUp0,50))
+      .concat(up).concat(crown).concat(down)
+      .concat(bez(S1,tanD1,B,tanB,60));
+    const plen=q=>{let L2=0;for(let k2=1;k2<q.length;k2++)L2+=Math.hypot(q[k2][0]-q[k2-1][0],q[k2][1]-q[k2-1][1]);return L2|0;};
+    try{window.__epic={pk:[pk.x|0,pk.z|0,+(landAt(pk.x,pk.z)|0)],R0:R0|0,RMIN,T,Td,
+      arc:plen(arc),up:plen(up),down:plen(down),thA:+thA.toFixed(2),thB:+thB.toFixed(2)};}catch(e){}
+  }
+  const FL=fine.length-1;           /* the epic assembly changes the count */
   let total=0; const cum=[0];
-  for(let i=1;i<=FN;i++){
+  for(let i=1;i<=FL;i++){
     total+=Math.hypot(fine[i][0]-fine[i-1][0], fine[i][1]-fine[i-1][1]);
     cum.push(total);
   }
@@ -89,7 +195,7 @@ function buildWorld(scene,onProgress){
   let fi=0;
   for(let i=0;i<nPts;i++){
     const target=i*ROUTE_STEP;
-    while(fi<FN-1 && cum[fi+1]<target) fi++;
+    while(fi<FL-1 && cum[fi+1]<target) fi++;
     const t=(target-cum[fi])/Math.max(cum[fi+1]-cum[fi],1e-6);
     rx[i]=lerp(fine[fi][0],fine[fi+1][0],t);
     rz[i]=lerp(fine[fi][1],fine[fi+1][1],t);
@@ -118,7 +224,20 @@ function buildWorld(scene,onProgress){
     const g=Math.abs(ry[(i+1)%nPts]-ry[i])/ROUTE_STEP*100;
     if(g>maxG) maxG=g;
   }
-  if(maxG>scene.road.maxGrade){
+  if(scene.road.epic){
+    /* clamp slopes locally: scaling would flatten the summit itself */
+    const mg=scene.road.maxGrade/100*ROUTE_STEP;
+    for(let pass=0;pass<5;pass++){
+      for(let i=0;i<nPts;i++){
+        const j=(i+1)%nPts;
+        if(ry[j]>ry[i]+mg) ry[j]=ry[i]+mg;
+      }
+      for(let i=nPts-1;i>=0;i--){
+        const j=(i+1)%nPts;
+        if(ry[i]>ry[j]+mg) ry[i]=ry[j]+mg;
+      }
+    }
+  }else if(maxG>scene.road.maxGrade){
     const k=scene.road.maxGrade/maxG;
     for(let i=0;i<nPts;i++) ry[i]=mean+(ry[i]-mean)*k;
   }
@@ -482,7 +601,14 @@ function buildWorld(scene,onProgress){
       let c=cRoad, em=0;
       if(kind==='rum'){ c=cRum; em=glowRoad?1:(scene.beacons?0.35:0); }
       else if(kind==='lane' && dash){ c=cLane; em=glowRoad?1:0; }
-      rCol[m]=c[0];rCol[m+1]=c[1];rCol[m+2]=c[2];rCol[m+3]=em;
+      let cr=c[0],cg=c[1],cb=c[2];
+      if(scene.road.epic){
+        /* the shoulders ice over as the road climbs */
+        const iceT=clamp((ry[i]-(mean+(scene.iceAbove||120)))/70,0,1);
+        const f=kind==='rum'?iceT:(Math.abs(offs[j])>hw-0.3?iceT*0.55:iceT*0.18);
+        cr=lerp(cr,0.82,f); cg=lerp(cg,0.90,f); cb=lerp(cb,0.99,f);
+      }
+      rCol[m]=cr;rCol[m+1]=cg;rCol[m+2]=cb;rCol[m+3]=em;
     }
   }
   const rIdx=new Uint32Array((nMain+Math.max(0,nCut-1))*(NL-1)*6+(AK?2*AK*6:0));
@@ -1209,8 +1335,9 @@ function buildWorld(scene,onProgress){
       }
     };
     /* a herd or a jelly cluster every ~200 m, all the way round */
+    const SC=Math.max(1,nPts/1600);   /* long routes space their life out */
     let flip=0;
-    for(let i2=25;i2<nPts-10;i2+=Math.floor(40+rnd()*22)){
+    for(let i2=25;i2<nPts-10;i2+=Math.floor((40+rnd()*22)*SC)){
       const sp=levelSpot(i2);
       if(!sp){
         if(inTunnel[i2]){
@@ -1284,7 +1411,7 @@ function buildWorld(scene,onProgress){
           gph:rnd()*6.28318, emiss:1, k:1.6+rnd()*0.5});
       }
     if(GLCRE.dfly&&GLCRE.dfly.ready)
-      for(let i2=60;i2<nPts-10;i2+=Math.floor(70+rnd()*50)){
+      for(let i2=60;i2<nPts-10;i2+=Math.floor((70+rnd()*50)*SC)){
         if(inTunnel[i2]||inBridge[i2]) continue;
         const side=rnd()<.5?-1:1, off=6+rnd()*8;
         const cx0=rx[i2]-tz[i2]*off*side, cz0=rz[i2]+tx[i2]*off*side;
@@ -1296,7 +1423,7 @@ function buildWorld(scene,onProgress){
             flap:true, flapT:9e9, flapHz:7+rnd()*3, noGlide:true,
             gph:rnd()*6.28318, emiss:1, k:2.6+rnd()*1.0});
       }
-    for(let i2=35;i2<nPts-10;i2+=Math.floor(32+rnd()*20)){
+    for(let i2=35;i2<nPts-10;i2+=Math.floor((32+rnd()*20)*SC)){
       if(inTunnel[i2]) continue;
       const side=rnd()<.5?-1:1, off=8+rnd()*26;
       const cx0=rx[i2]-tz[i2]*off*side, cz0=rz[i2]+tx[i2]*off*side;

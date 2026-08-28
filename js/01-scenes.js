@@ -52,9 +52,10 @@ const SCENES = [
   {
     id:'copernicus',
     name:'Copernicus Rim',
-    subtitle:'A young crater with a savage rim. The lap climbs onto the wall and drops back into the basin. Ramps to 9%, black shadows, boulder fields.',
+    subtitle:'The queen stage: 25 km, out of the basin and up the rim in a stack of switchbacks to the summit, where the shoulders turn to ice. Ramps to 9%.',
     land:{amp:95, scale:430, rough:.62, craters:55, craterMax:340, rimAmp:420},
-    road:{maxGrade:9, halfWidth:3.0, loopR:760, twist:.75, tunnels:3, bridges:2},
+    road:{maxGrade:9, halfWidth:3.0, loopR:1400, twist:.55, tunnels:2, bridges:2, lapKm:25,
+          epic:{boost:430, boostR:850, T:4.4, Td:4.0, rmin:100}},
     sun:{az:0.9, el:.40, col:'#fff0d8', amb:'#1b2231'},
     col:{high:'#98918a', low:'#413c37', road:'#41403e', rumble:'#e2dacd', lane:'#cec5b7'},
     sky:{top:'#000002', horizon:'#06040a', fog:'#0d0a12', fogDen:.00022, stars:1, starBright:1,

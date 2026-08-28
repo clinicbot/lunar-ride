@@ -53,7 +53,7 @@ function buildMenu(){
       '<div class="sub"></div><div class="tags"></div></div>';
     d.querySelector('.nm').textContent=sc.name;
     d.querySelector('.sub').textContent=sc.subtitle;
-    const est=(2*Math.PI*sc.road.loopR/1000).toFixed(1);
+    const est=sc.road.lapKm?sc.road.lapKm.toFixed(1):(2*Math.PI*sc.road.loopR/1000).toFixed(1);
     [~~est+'–'+Math.ceil(est*1.15)+' km lap','up to '+sc.road.maxGrade+'%',
      sc.land.amp>70?'mountainous':(sc.land.amp>45?'rolling':'gentle')]
       .forEach(t=>{const e=document.createElement('span');e.className='tag';e.textContent=t;
