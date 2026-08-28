@@ -680,8 +680,20 @@ function buildWorld(scene,onProgress){
 
   const tIdx=new Uint32Array(NG*NG*6);
   let p=0;
+  /* the ground never blocks a bore: any cell that would cross a tunnel's
+     height band on the road line is simply left out of the mesh. The gap
+     hides under the road deck and behind the tube walls, and the view
+     through the tunnel - lights, walls, the far portal - stays clear. */
+  const hwT=scene.road.halfWidth+2.5, bandTop=scene.road.halfWidth+13.3;
   for(let j=0;j<NG;j++) for(let i=0;i<NG;i++){
     const a=j*NV+i,b=a+1,c=a+NV,d=c+1;
+    const cx3=-HALF+(i+0.5)*STEP, cz3=-HALF+(j+0.5)*STEP;
+    const nrC=roadNear(cx3,cz3);
+    if(nrC&&tunNear[nrC.i]&&nrC.d<hwT){
+      const y0=Math.min(hgt[a],hgt[b],hgt[c],hgt[d]);
+      const y1=Math.max(hgt[a],hgt[b],hgt[c],hgt[d]);
+      if(y1>ry[nrC.i]-4&&y0<ry[nrC.i]+bandTop) continue;
+    }
     tIdx[p++]=a;tIdx[p++]=c;tIdx[p++]=b;
     tIdx[p++]=b;tIdx[p++]=c;tIdx[p++]=d;
   }
@@ -1740,7 +1752,7 @@ function buildWorld(scene,onProgress){
            col:new Float32Array(gb.col),idx:new Uint32Array(gb.idx)}:null,
     screens,
     tunnels, bridges, lavaY, inTunnel, inBridge,
-    terrain:{pos:tPos,nrm:tNrm,col:tCol,idx:tIdx},
+    terrain:{pos:tPos,nrm:tNrm,col:tCol,idx:p<tIdx.length?tIdx.slice(0,p):tIdx},
     road:{pos:rPos,nrm:rNrm,col:rCol,idx:rIdx},
     props:{pos:new Float32Array(mb.pos),nrm:new Float32Array(mb.nrm),
            col:new Float32Array(mb.col),idx:new Uint32Array(mb.idx)}
