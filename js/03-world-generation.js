@@ -459,8 +459,11 @@ function buildWorld(scene,onProgress){
   };
   if(RD.tunnels)
     for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&landY[i]-ry[i]>15
-      /* the climb of an epic route stays in the open: its views ARE the ride */
-      &&!(scene.road.epic&&Math.abs(grade[i])>3.5),70,RD.tunnels)) tunnels.push(r);
+      /* the climb of an epic route stays in the open: its views ARE the ride
+         - but only where the cut is shallow; a road buried tens of metres
+         inside the mountain is a tunnel however steep it is */
+      &&!(scene.road.epic&&Math.abs(grade[i])>3.5&&landY[i]-ry[i]<40),
+      70,RD.tunnels+(scene.road.epic?2:0))) tunnels.push(r);
   if(RD.bridges)
     for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>9,45,RD.bridges)) bridges.push(r);
 
@@ -518,16 +521,18 @@ function buildWorld(scene,onProgress){
          mountain towers over the road, the cutting runs out further still,
          or the walls come out vertical */
       const wallH=Math.max(0,h-ry[near.i]);
-      const t=(near.d-TUN_SLOT)/clamp(wallH*1.15,Math.max(22,STEP*2.8),130);
+      const t=(near.d-TUN_SLOT)/clamp(wallH*1.15,Math.max(22,STEP*2.8),240);
       if(t<1) return lerp(ry[near.i]-2.5, h, smoothstep(t));
       return h;
     }
     const w=carve[near.i];
     if(w<=0.001) return h;
+    const dh=Math.abs(h-ry[near.i]);
+    const RUN=clamp(dh*2.0,BLEND-CORRIDOR,92);
     let road;
     if(near.d<=CORRIDOR) road=ry[near.i]-0.25;
-    else if(near.d>=BLEND) return h;
-    else road=lerp(ry[near.i]-0.25,h,smoothstep((near.d-CORRIDOR)/(BLEND-CORRIDOR)));
+    else if(near.d>=CORRIDOR+RUN) return h;
+    else road=lerp(ry[near.i]-0.25,h,smoothstep((near.d-CORRIDOR)/RUN));
     return lerp(h,road,w);
   }
 
