@@ -500,15 +500,22 @@ void main(){
   if(uMat>0.5&&uMat<1.5){
     /* the ground: baked grass and rock textures with normal maps, blended by
        slope; meso noise breaks up the tiling; snow settles on the heights */
-    float g1=fbm(vW.xz*0.045);
+    /* steep faces sample sideways, not top-down: a cliff seen through the
+       XZ projection smears every pattern into long diagonal stripes, so
+       blend toward the facing side plane as the surface tips over */
+    vec2 pSide=(abs(n0.x)>abs(n0.z))?vW.zy:vW.xy;
+    float steep=clamp((0.62-n0.y)*2.8,0.0,1.0);
+    vec2 P=mix(vW.xz,pSide,steep);
+    float g1=fbm(P*0.045);
     alb*=(0.80+0.34*g1);
     float rock=clamp((0.74-n0.y)*3.4,0.0,1.0);
-    vec2 uvg=vW.xz*0.31;
-    vec2 uvr=vW.xz*0.13+vec2(vW.y*0.05,0.0);
+    vec2 uvg=P*0.31;
+    vec2 uvr=mix(vW.xz*0.13+vec2(vW.y*0.05,0.0),pSide*0.13,steep);
     vec3 gA=texture2D(uTexGA,uvg).rgb*1.62;
     vec3 rA=texture2D(uTexRA,uvr).rgb*1.62;
-    vec3 grass=alb*mix(vec3(1.0),gA,df)*(0.88+0.24*fbm(vW.xz*0.85)*(1.0-df));
-    vec3 rockc=vec3(0.42,0.395,0.365)*(0.72+0.55*fbm(vW.xz*0.35+vW.y*0.13))
+    vec3 grass=alb*mix(vec3(1.0),gA,df)*(0.88+0.24*fbm(P*0.85)*(1.0-df));
+    vec3 rockc=vec3(0.42,0.395,0.365)
+               *(0.72+0.55*fbm(mix(vW.xz*0.35+vW.y*0.13,pSide*0.35,steep)))
                *mix(vec3(1.0),rA,df);
     alb=mix(grass,rockc,rock*0.92);
     float snLine=uSnow+16.0*fbm(vW.xz*0.03)-8.0;      /* a ragged snowline */
@@ -518,9 +525,9 @@ void main(){
     alb=mix(alb,vec3(0.90,0.93,0.99)*(0.78+0.28*gA.g),sn);
     /* large-scale light and shade that survives at ANY distance, so far
        mountains never collapse into flat meringue */
-    alb*=0.84+0.30*fbm(vW.xz*0.012+7.3);
+    alb*=0.84+0.30*fbm(P*0.012+7.3);
     vec3 tn=mix(texture2D(uTexGN,uvg).rgb,texture2D(uTexRN,uvr).rgb,rock)*2.0-1.0;
-    n=normalize(n0+vec3(tn.x,0.0,tn.z)*df*(1.0-sn*0.8));
+    n=normalize(n0+vec3(tn.x,0.0,tn.z)*df*(1.0-sn*0.8)*(1.0-steep*0.6));
   }else if(uMat>1.5&&uMat<2.5){
     vec2 uva=vW.xz*0.22;
     vec3 aA=texture2D(uTexAA,uva).rgb;
