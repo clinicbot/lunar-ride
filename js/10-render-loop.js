@@ -308,6 +308,12 @@ function render(){
 const mModel=new Float32Array(16), vLimb=new Float32Array(4), vHead=new Float32Array(4);
 const riderPos=[0,0,0], actTmp=[0,0,0];
 
+/* you: the rider the third-person cameras look at. Not a world actor -
+   position and cadence come straight from the ride state. */
+const ME={type:'rider', me:true, kit:0, meta:RIDER_META, ph:0, emiss:1, k:1,
+  swing:0, headYaw:0, headPitch:0, waveAng:0, crank:0, wheel:0,
+  px:0, py:0, pz:0, yaw:0};
+
 /* --------------------------------------------------------------------------
    Everything that moves gets its transform worked out here, once per frame.
    Creatures also decide whether they have noticed you.
@@ -583,13 +589,38 @@ function updateActors(dt){
       }
     }
   }
+
+  /* ---- you ---- */
+  if(state.scene){
+    segPoint(state.seg,state.s,state.playerX*state.dir,actTmp);
+    const mdx=actTmp[0]-ME.px, mdz=actTmp[2]-ME.pz;
+    if(mdx*mdx+mdz*mdz>1e-6) ME.yaw=Math.atan2(mdx,mdz);
+    ME.px=actTmp[0]; ME.py=actTmp[1]; ME.pz=actTmp[2];
+    ME.crank+=(state.cad||0)/60*6.28318*dt;
+    ME.wheel-=(state.speed||0)/0.34*dt;
+    ME.py+=Math.abs(Math.sin(ME.crank))*0.015;
+    const ik=(a2)=>{
+      const HY=0.93,HZ=-0.16,T=0.40,SH=0.42;
+      let dz2=(-0.02+0.195*Math.sin(a2))-HZ, dy=(0.28-0.195*Math.cos(a2))-HY;
+      let d=Math.hypot(dz2,dy); const mx=T+SH-0.012;
+      if(d>mx){dz2*=mx/d;dy*=mx/d;d=mx;}
+      const phi=Math.atan2(dz2,-dy);
+      const al=Math.acos(Math.max(-1,Math.min(1,(T*T+d*d-SH*SH)/(2*T*d))));
+      const th=phi+al;
+      const kz=HZ+T*Math.sin(th), ky=HY-T*Math.cos(th);
+      const ts=Math.atan2((HZ+dz2)-kz,-((HY+dy)-ky));
+      return [th,ts,kz-HZ,ky-0.53];
+    };
+    ME.legL=ik(ME.crank); ME.legR=ik(ME.crank+3.141593);
+  }
 }
 
 function drawActors(maxD){
   if(!gpu.actors) return;
   const cx2=eye[0], cz2=eye[2], m2=(maxD||430)*(maxD||430);
-  for(let n=0;n<world.actors.length;n++){
-    const a=world.actors[n], M=a.meta;
+  const NA=world.actors.length+(state.camMode>0?1:0);
+  for(let n=0;n<NA;n++){
+    const a=n<world.actors.length?world.actors[n]:ME, M=a.meta;
     if(a.type!=='station'&&a.type!=='shuttle'){
       const ddx=a.px-cx2, ddz=a.pz-cz2;
       if(ddx*ddx+ddz*ddz>m2) continue;
@@ -611,8 +642,10 @@ function drawActors(maxD){
     if(a.type==='rider'&&GLTFR.ready&&gpu.actors.bike){
       let B=null;
       if(BIKE_KEYS.length){
-        /* dealt once per rider, deterministic, classic bikes stay in the mix */
-        if(a.bikeSel===undefined) a.bikeSel=(Math.floor(a.ph*97)%(BIKE_KEYS.length+1))-1;
+        /* dealt once per rider, deterministic, classic bikes stay in the mix;
+           you always get the race bike when one is loaded */
+        if(a.me) a.bikeSel=BIKE_KEYS.indexOf('race');
+        else if(a.bikeSel===undefined) a.bikeSel=(Math.floor(a.ph*97)%(BIKE_KEYS.length+1))-1;
         if(a.bikeSel>=0) B=GLBIKES[BIKE_KEYS[a.bikeSel%BIKE_KEYS.length]];
       }
       if(B){

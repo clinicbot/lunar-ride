@@ -457,6 +457,7 @@ function initGL(){
   loadGLTFStatic('stGate','assets/models/station_gate.gltf',1);
   loadGLTFStatic('stSide','assets/models/station_side.gltf',1);
   loadGLTFBike('mtb','assets/models/bike_mtb.gltf',{scale:0.94,dz:0.05});
+  loadGLTFBike('race','assets/models/bike_race.gltf',{});
   ['uMVP','uModel','uLimb','uHead','uWave','uSpin','uLegL','uLegR','uShadowMat','uPivF','uPivR','uPivC']
     .forEach(n=>US[n]=gl.getUniformLocation(progShadow,n));
   ['uScene','uPx'].forEach(n=>UB[n]=gl.getUniformLocation(progBloom,n));

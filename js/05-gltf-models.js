@@ -285,15 +285,22 @@ async function loadGLTFBike(key,file,fit){
         if(P[v+k2]<mn[k2])mn[k2]=P[v+k2];
         if(P[v+k2]>mx[k2])mx[k2]=P[v+k2];
       }
-      prims.push({P,N,I,col:[c[0],c[1],c[2]],name,mn,mx,
+      let forceL=-1;
+      if(name.indexOf('wheel_front')===0) forceL=9;
+      else if(name.indexOf('wheel_rear')===0) forceL=8;
+      else if(name.indexOf('crank')===0) forceL=7;
+      prims.push({P,N,I,col:[c[0],c[1],c[2]],name,mn,mx,forceL,
         em:name.indexOf('glow')===0?1.1:(name.indexOf('accent')===0?0.55:0)});
     }
-    /* the two big round things are the wheels */
+    /* models that follow the naming contract declare their own parts;
+       otherwise, the two big round things are the wheels */
+    const named=l=>prims.find(p2=>p2.forceL===l);
     const wheels=prims.filter(p=>{
       const h=p.mx[1]-p.mn[1], d=p.mx[2]-p.mn[2];
       return h>0.4&&Math.abs(h-d)<0.25*h;
     }).sort((a2,b2)=>((b2.mx[1]-b2.mn[1])-(a2.mx[1]-a2.mn[1]))).slice(0,2);
-    const wf=wheels.find(p=>(p.mn[2]+p.mx[2])>0), wr=wheels.find(p=>(p.mn[2]+p.mx[2])<=0);
+    const wf=named(9)||wheels.find(p=>(p.mn[2]+p.mx[2])>0),
+          wr=named(8)||wheels.find(p=>(p.mn[2]+p.mx[2])<=0);
     if(!wf||!wr) throw new Error('could not find two wheels');
     const fy=(wf.mn[1]+wf.mx[1])/2, fz=(wf.mn[2]+wf.mx[2])/2;
     const ryy=(wr.mn[1]+wr.mx[1])/2, rz2=(wr.mn[2]+wr.mx[2])/2;
@@ -306,9 +313,9 @@ async function loadGLTFBike(key,file,fit){
         if((yy-wy)*(yy-wy)+(zz-wz)*(zz-wz)>R*R) return false;
       return true;
     };
-    /* the crank: the widest low thing near the bottom bracket (pedals) */
-    let crank=null;
-    for(const p of prims){
+    /* the crank: named, or the widest low thing near the bottom bracket */
+    let crank=named(7);
+    if(!crank) for(const p of prims){
       if(STATIC.test(p.name)) continue;
       const w2=p.mx[0]-p.mn[0], zc=(p.mn[2]+p.mx[2])/2, yc=(p.mn[1]+p.mx[1])/2;
       if(w2>0.34&&yc<0.55&&zc>-0.3&&zc<0.15
@@ -319,7 +326,8 @@ async function loadGLTFBike(key,file,fit){
     const sc=(fit&&fit.scale)||1, dz=(fit&&fit.dz)||0;
     const pos=[],nrm=[],col=[],limb=[],idx=[];
     for(const p of prims){
-      const L=p===crank?7:(inWheel(p,fy,fz)?9:(inWheel(p,ryy,rz2)?8:0));
+      const L=p.forceL>=0?p.forceL
+             :(p===crank?7:(inWheel(p,fy,fz)?9:(inWheel(p,ryy,rz2)?8:0)));
       const base=pos.length/3;
       for(let v=0;v<p.P.length;v+=3){
         pos.push(p.P[v]*sc,p.P[v+1]*sc,p.P[v+2]*sc+dz);
