@@ -275,7 +275,8 @@ function physics(dt){
   if(keys.ArrowLeft)  state.playerX-=dt*2.2;
   if(keys.ArrowRight) state.playerX+=dt*2.2;
   if(cfg.auto && !keys.ArrowLeft && !keys.ArrowRight)
-    state.playerX=lerp(state.playerX,0,1-Math.pow(0.12,dt));
+    state.playerX=lerp(state.playerX,state.scene.road.halfWidth*0.42,
+                       1-Math.pow(0.12,dt));
   const lim=state.scene.road.halfWidth-0.5;
   state.playerX=clamp(state.playerX,-lim,lim);
 

@@ -399,6 +399,19 @@ function buildWorld(scene,onProgress){
     if((j&31)===0) onProgress&&onProgress(0.3+0.45*j/NV);
   }
 
+  /* the RENDERED terrain surface (bilinear over the height grid) - the mesh
+     often sits well above or below the analytic ground, especially in the
+     shaped road corridor, and buries anything placed underneath it. Both
+     the vegetation and the animals stand on THIS. */
+  const meshH=(x,z)=>{
+    const fx=(x+HALF)/STEP, fz=(z+HALF)/STEP;
+    const i0=clamp(Math.floor(fx),0,NG-1), j0=clamp(Math.floor(fz),0,NG-1);
+    const u=fx-i0, v=fz-j0;
+    const h00=hgt[j0*NV+i0], h10=hgt[j0*NV+i0+1];
+    const h01=hgt[(j0+1)*NV+i0], h11=hgt[(j0+1)*NV+i0+1];
+    return (h00*(1-u)+h10*u)*(1-v)+(h01*(1-u)+h11*u)*v;
+  };
+
   const cHigh=hx(scene.col.high), cLow=hx(scene.col.low);
   const tPos=new Float32Array(NV*NV*3);
   const tNrm=new Float32Array(NV*NV*3);
@@ -873,6 +886,7 @@ function buildWorld(scene,onProgress){
         mb.setTF(rx[i],ry[i]-0.05,rz[i],yawAt(i),1);
         appendGLTF(mb,GLTREES.stGate);
         mb.setTF(0,0,0,0,1);
+        (window.__gates=window.__gates||[]).push(i);
         placedG++; i+=50; continue;
       }
       if(GLTREES.stSide&&placedS<3&&!inTunnel[i]){
@@ -1041,18 +1055,6 @@ function buildWorld(scene,onProgress){
       r:35+rnd()*70, alt:24+rnd()*40, ph:rnd()*6.28318,
       w:(rnd()<.5?-1:1)*(0.11+rnd()*0.14), k:1.8});
   }
-  /* the RENDERED terrain surface (bilinear over the height grid) - the mesh
-     often sits well above or below the analytic ground, especially in the
-     shaped road corridor, and buries anything placed underneath it. Both
-     the vegetation and the animals stand on THIS. */
-  const meshH=(x,z)=>{
-    const fx=(x+HALF)/STEP, fz=(z+HALF)/STEP;
-    const i0=clamp(Math.floor(fx),0,NG-1), j0=clamp(Math.floor(fz),0,NG-1);
-    const u=fx-i0, v=fz-j0;
-    const h00=hgt[j0*NV+i0], h10=hgt[j0*NV+i0+1];
-    const h01=hgt[(j0+1)*NV+i0], h11=hgt[(j0+1)*NV+i0+1];
-    return (h00*(1-u)+h10*u)*(1-v)+(h01*(1-u)+h11*u)*v;
-  };
   /* --- vegetation billboards: grass thick beside the road, bushes beyond --- */
   let veg=null;
   if(scene.veg){
@@ -1288,8 +1290,21 @@ function buildWorld(scene,onProgress){
                         :1.15+rnd()*0.25;
       actors.push({type:'rider', kit:(i%RIDER_KITS.length), mesh:'rider'+(i%RIDER_KITS.length), meta:RIDER_META,
         s:((rnd()*640-320)%lapLen+lapLen)%lapLen, v:4+rnd()*4,
-        off:(rnd()<0.5?-1:1)*(0.7+rnd()*Math.max(0.4,hw-1.7)),
+        /* everyone keeps right: the lane sits at +42% of the half width */
+        off:hw*0.42+(rnd()*2-1)*1.1,
         fac:fac, mass:60+rnd()*32,
+        varF:0.015+rnd()*0.05, ph:rnd()*6.28318,
+        headYaw:0, headPitch:0, swing:0, emiss:1, k:1});
+    }
+    /* oncoming traffic: riders coming the other way, in THEIR right lane —
+       the player's left — streaming past all ride long */
+    const nO=Math.ceil(nR*0.7);
+    for(let i=0;i<nO;i++){
+      actors.push({type:'rider', oncoming:true,
+        kit:(i%RIDER_KITS.length), mesh:'rider'+(i%RIDER_KITS.length), meta:RIDER_META,
+        s:(120+rnd()*520)%lapLen, v:5+rnd()*4,
+        off:-(hw*0.42+(rnd()*2-1)*1.1),
+        fac:0.8+rnd()*0.4, mass:60+rnd()*32,
         varF:0.015+rnd()*0.05, ph:rnd()*6.28318,
         headYaw:0, headPitch:0, swing:0, emiss:1, k:1});
     }
