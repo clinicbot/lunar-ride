@@ -464,9 +464,11 @@ function buildWorld(scene,onProgress){
   ];
   const offs=stripes.map(s=>s.o);
   const NL=offs.length;
-  const rPos=new Float32Array(nPts*NL*3);
-  const rNrm=new Float32Array(nPts*NL*3);
-  const rCol=new Float32Array(nPts*NL*4);
+  const AK=nCut>1?Math.min(16,nCut-1):0;   /* apron span at each junction */
+  const APV=AK?2*(AK+1)*2:0;               /* two ends, two verts per step */
+  const rPos=new Float32Array((nPts*NL+APV)*3);
+  const rNrm=new Float32Array((nPts*NL+APV)*3);
+  const rCol=new Float32Array((nPts*NL+APV)*4);
   const glowRoad=scene.grid?1:0;
   for(let i=0;i<nPts;i++){
     const nxv=-tz[i], nzv=tx[i];              // sideways vector
@@ -483,7 +485,7 @@ function buildWorld(scene,onProgress){
       rCol[m]=c[0];rCol[m+1]=c[1];rCol[m+2]=c[2];rCol[m+3]=em;
     }
   }
-  const rIdx=new Uint32Array((nMain+Math.max(0,nCut-1))*(NL-1)*6);
+  const rIdx=new Uint32Array((nMain+Math.max(0,nCut-1))*(NL-1)*6+(AK?2*AK*6:0));
   p=0;
   for(let i=0;i<nPts;i++){
     if(i===nPts-1&&nCut>0) break;               /* the cut does not wrap */
@@ -495,6 +497,38 @@ function buildWorld(scene,onProgress){
       rIdx[p++]=a;rIdx[p++]=b;rIdx[p++]=c;
       rIdx[p++]=b;rIdx[p++]=d;rIdx[p++]=c;
     }
+  }
+  if(AK){
+    /* pave the wedge between the diverging roads at both junctions, so the
+       fork reads as one widening carriageway that splits */
+    let vb=nPts*NL;
+    const apron=(mAt,cAt)=>{
+      /* which side of the main road the cut sits on, measured mid-throat */
+      const mm=mAt(8), cm=cAt(8);
+      const nx8=-tz[mm], nz8=tx[mm];
+      const sn=((rx[cm]-rx[mm])*nx8+(rz[cm]-rz[mm])*nz8)>0?1:-1;
+      const base=vb;
+      for(let k=0;k<=AK;k++){
+        const mI=mAt(k), cI=cAt(k);
+        const pts=[[mI,sn*hw],[cI,-sn*hw]];
+        for(const [I,o] of pts){
+          const nxv=-tz[I], nzv=tx[I];
+          const kk=vb*3;
+          rPos[kk]=rx[I]+nxv*o; rPos[kk+1]=ry[I]+0.085; rPos[kk+2]=rz[I]+nzv*o;
+          rNrm[kk]=0;rNrm[kk+1]=1;rNrm[kk+2]=0;
+          const mm4=vb*4;
+          rCol[mm4]=cRoad[0];rCol[mm4+1]=cRoad[1];rCol[mm4+2]=cRoad[2];rCol[mm4+3]=0;
+          vb++;
+        }
+      }
+      for(let k=0;k<AK;k++){
+        const a=base+k*2,b=a+1,c=a+2,d=a+3;
+        rIdx[p++]=a;rIdx[p++]=b;rIdx[p++]=c;
+        rIdx[p++]=b;rIdx[p++]=d;rIdx[p++]=c;
+      }
+    };
+    apron(k=>(iA+k)%nMain,            k=>nMain+k);
+    apron(k=>(((iB-k)%nMain)+nMain)%nMain, k=>nPts-1-k);
   }
   onProgress&&onProgress(0.85);
 
@@ -674,9 +708,20 @@ function buildWorld(scene,onProgress){
     }
   }
 
+  /* ---- keep street furniture out of the junction throats, where the
+        two roads run side by side and rails would slice across both ---- */
+  const nearJn=(i)=>{
+    if(!nCut) return false;
+    if(i>=nMain) return (i-nMain)<=16 || (nPts-1-i)<=16;
+    const dA=Math.min((((i-iA)%nMain)+nMain)%nMain, (((iA-i)%nMain)+nMain)%nMain);
+    const dB=Math.min((((i-iB)%nMain)+nMain)%nMain, (((iB-i)%nMain)+nMain)%nMain);
+    return dA<=16||dB<=16;
+  };
+
   /* ---- guard rails wherever the road runs along a drop ---- */
   for(let i=2;i<nPts-2;i+=2){
     if(inTunnel[i]||inBridge[i]) continue;
+    if(nearJn(i)) continue;
     if(ry[i]-landY[i]<3) continue;
     for(const s of [-1,1]){
       mb.setTF(rx[i]-tz[i]*s*(hw+1.15),ry[i],rz[i]+tx[i]*s*(hw+1.15),yawAt(i),1);
@@ -908,7 +953,7 @@ function buildWorld(scene,onProgress){
   {
     const put=(i,side,w,tex)=>{
       i=((i%nPts)+nPts)%nPts;
-      if(inTunnel[i]||inBridge[i]) return;
+      if(inTunnel[i]||inBridge[i]||nearJn(i)) return;
       const off=hw+(w>8?8.5:4.9);   /* posters stand inside the tree line */
       const x=rx[i]-tz[i]*off*side, z=rz[i]+tx[i]*off*side;
       const y=groundAt(x,z);
