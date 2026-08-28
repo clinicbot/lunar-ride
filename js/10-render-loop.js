@@ -384,7 +384,8 @@ function updateActors(dt){
       if(Math.hypot(nx-a.px,nz-a.pz)>1e-4) a.yaw=Math.atan2(nx-a.px,nz-a.pz);
       a.px=nx; a.pz=nz;
       const g=(world.meshH||world.groundAt)(a.px,a.pz);
-      const wantY=Math.max(g+7, a.baseY!==undefined?a.baseY:world.meanY+(a.altBase||10));
+      const wantY=a.pinAlt!==undefined ? a.pinAlt
+        : Math.max(g+7, a.baseY!==undefined?a.baseY:world.meanY+(a.altBase||10));
       a.py=a.py?lerp(a.py,wantY,1-Math.pow(0.45,dt)):wantY;
       a.pitch=0;
       a.flapT-=dt;

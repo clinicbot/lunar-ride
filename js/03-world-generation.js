@@ -596,14 +596,14 @@ function buildWorld(scene,onProgress){
       lidPrev=row;
     }
 
-    const ART=['moon','mars','rider'];
-    for(let i=a+8;i<=b-8;i+=13){              /* framed pictures on the walls */
-      const side=(((i/13)|0)%2===0)?-1:1;
+    const ART=['tun1','tun2','tun3','tun4','tun5','tun6','tun7','tun8','moon','mars','rider'];
+    for(let i=a+6;i<=b-6;i+=9){               /* his gallery on the walls */
+      const side=(((i/9)|0)%2===0)?-1:1;
       const nx=-tz[i], nz=tx[i];
       const wx=rx[i]+nx*(TW-0.42)*side, wz=rz[i]+nz*(TW-0.42)*side;
       tunPanels.push({x:wx, y:ry[i], z:wz,
         rx:tx[i]*side, rz:tz[i]*side,
-        w:3.1, by:0.85, em:0.95, tex:ART[((i/13)|0)%3]});
+        w:3.1, by:0.85, em:0.95, tex:ART[((i/9)|0)%ART.length]});
       mb.setTF(rx[i],ry[i],rz[i],yawAt(i),1);  /* thin frame behind the picture */
       mb.box(side*(TW-0.30),1.85,0,0.16,1.9,3.0,[0.16,0.17,0.20],0);
       mb.setTF(0,0,0,0,1);
@@ -1187,6 +1187,16 @@ function buildWorld(scene,onProgress){
       R:24, circ:rnd()*6.28318, w:0.10, baseY:ry[30]+9,
       px:rx[30], py:0, pz:rz[30], yaw:0,
       flap:true, flapT:1.5, gph:0, emiss:1, k:1.3});
+    if(GLCRE.dfly&&GLCRE.dfly.ready)
+      for(let i2=40;i2<nPts-10;i2+=Math.floor(26+rnd()*14)){
+        if(!inTunnel[i2]) continue;           /* in-bore patrols, pinned low */
+        actors.push({type:'gbird', gcre:'dfly', cx:rx[i2], cz:rz[i2],
+          R:1.8+rnd()*1.2, circ:rnd()*6.28318,
+          w:(rnd()<.5?-1:1)*(0.5+rnd()*0.4),
+          pinAlt:ry[i2]+2.3, baseY:ry[i2]+2.3, px:rx[i2], py:ry[i2]+2.3, pz:rz[i2],
+          yaw:0, flap:true, flapT:9e9, flapHz:8+rnd()*3, noGlide:true,
+          gph:rnd()*6.28318, emiss:1, k:1.6+rnd()*0.5});
+      }
     if(GLCRE.dfly&&GLCRE.dfly.ready)
       for(let i2=60;i2<nPts-10;i2+=Math.floor(70+rnd()*50)){
         if(inTunnel[i2]||inBridge[i2]) continue;

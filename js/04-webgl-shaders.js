@@ -141,7 +141,11 @@ let progScr=null, scrQuad=null; const USC={}, SCRTEX={};
 function loadScreenTextures(){
   [['moon','assets/images/space stations moon.jfif'],
    ['mars','assets/images/space stations mars.jfif'],
-   ['rider','assets/images/bike rider.jfif']].forEach(([k,f])=>{
+   ['rider','assets/images/bike rider.jfif'],
+   ['tun1','assets/images/tun1.jpg'],['tun2','assets/images/tun2.jpg'],
+   ['tun3','assets/images/tun3.jpg'],['tun4','assets/images/tun4.jpg'],
+   ['tun5','assets/images/tun5.jpg'],['tun6','assets/images/tun6.jpg'],
+   ['tun7','assets/images/tun7.jpg'],['tun8','assets/images/tun8.jpg']].forEach(([k,f])=>{
     const im=new Image();
     im.onload=()=>{
       const tx=gl.createTexture();
