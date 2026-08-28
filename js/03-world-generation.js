@@ -435,6 +435,37 @@ function buildWorld(scene,onProgress){
      mountain stays whole and the gorge stays open. */
   const landY=new Float32Array(nPts);
   for(let i=0;i<nPts;i++) landY[i]=landAt(rx[i],rz[i]);
+
+  /* the ride is about the views: where the road would run deep inside a
+     mountain for a LONG stretch we do not tunnel it - the mountain itself
+     yields, and a wide pass is scooped along the corridor. Only short
+     deep stretches (a few hundred metres) become bores. */
+  const troughs=[];
+  {
+    const MAXTUN=Math.ceil(300/ROUTE_STEP);
+    let i=0;
+    while(i<nMain){
+      if(landY[i]-ry[i]>30){
+        let j=i; while(j<nMain&&landY[j]-ry[j]>30) j++;
+        if(j-i>MAXTUN)
+          for(let k=i-6;k<j+6;k+=7){
+            const kk=((k%nMain)+nMain)%nMain;
+            troughs.push({x:rx[kk],z:rz[kk],y:ry[kk]-2,R:240});
+          }
+        i=j;
+      } else i++;
+    }
+  }
+  function troughAt(x,z,h){
+    for(let t=0;t<troughs.length;t++){
+      const q=troughs[t];
+      const d2=((x-q.x)*(x-q.x)+(z-q.z)*(z-q.z))/(q.R*q.R);
+      if(d2<7&&h>q.y) h=q.y+(h-q.y)*(1-Math.exp(-d2*1.8));
+    }
+    return h;
+  }
+  if(troughs.length) for(let i=0;i<nPts;i++) landY[i]=troughAt(rx[i],rz[i],landY[i]);
+
   const carve=new Float32Array(nPts).fill(1);
   const inTunnel=new Uint8Array(nPts), inBridge=new Uint8Array(nPts);
   const tunnels=[], bridges=[];
@@ -515,6 +546,7 @@ function buildWorld(scene,onProgress){
   /* --- the finished ground height: land, then base shelves, then the road --- */
   function groundAt(x,z){
     let h=landAt(x,z);
+    if(troughs.length) h=troughAt(x,z,h);
     for(let b=0;b<bases.length;b++){
       const q=bases[b];
       const d=Math.hypot(x-q.x,z-q.z);
@@ -799,6 +831,17 @@ function buildWorld(scene,onProgress){
       }
       mb.setTF(0,0,0,0,1);
     }
+    /* the portal mouths announce themselves: a lit ring traces the arch
+       at each end of the bore */
+    for(const e of [a,b]){
+      const inn=section.map(s2=>RP(e,s2[0]*1.02,s2[1]*1.02+0.02));
+      const out2=section.map(s2=>RP(e,s2[0]*1.16,s2[1]*1.14+0.05));
+      for(let k=0;k<inn.length-1;k++){
+        mb.quad(inn[k],inn[k+1],out2[k+1],out2[k],[0.45,0.85,1.0],0.85);
+        mb.quad(out2[k],out2[k+1],inn[k+1],inn[k],[0.45,0.85,1.0],0.85);
+      }
+    }
+
     /* roof the trench back over, so the hill still reads as solid from
        outside. Never allowed to dip below the top of the bore. */
     const gc=hx(scene.col.high);
