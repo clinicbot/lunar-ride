@@ -236,7 +236,8 @@ async function loadGLTFStatic(key,file,norm){
     for(const mesh of gj.meshes) for(const pr of mesh.primitives){
       const col=(gj.materials[pr.material]||{}).pbrMetallicRoughness||{};
       const c=col.baseColorFactor||[0.5,0.5,0.5,1];
-      prims.push({pos:acc(pr.attributes.POSITION),idx:acc(pr.indices),col:[c[0],c[1],c[2]]});
+      const em2=((gj.materials[pr.material]||{}).name||'').indexOf('glow')===0?1.1:0.02;
+      prims.push({pos:acc(pr.attributes.POSITION),idx:acc(pr.indices),col:[c[0],c[1],c[2]],em:em2});
     }
     GLTREES[key]={prims,norm:norm||1};
     console.log('glTF model ready:',file);
@@ -251,7 +252,7 @@ function appendGLTF(mb,model){
       const A=mb.P(P[i0]*f,P[i0+1]*f,P[i0+2]*f);
       const B=mb.P(P[i1]*f,P[i1+1]*f,P[i1+2]*f);
       const C=mb.P(P[i2]*f,P[i2+1]*f,P[i2+2]*f);
-      mb.tri(A,B,C,c,0.02);
+      mb.tri(A,B,C,c,pr.em||0.02);
     }
   }
 }

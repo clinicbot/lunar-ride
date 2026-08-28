@@ -757,6 +757,13 @@ function buildWorld(scene,onProgress){
     const y=groundAt(x,z);
     if(waterY!==null&&y<waterY+0.3) continue;
     const s=(0.35+Math.pow(rnd(),2.4)*2.6)*(near.d<25?0.75:1.25);
+    const rks=[GLTREES.rockA,GLTREES.rockB].filter(Boolean);
+    if(rks.length){
+      mb.setTF(x,y-0.10,z,rnd()*6.28318,s);
+      appendGLTF(mb,rks[Math.floor(rnd()*rks.length)]);
+      mb.setTF(0,0,0,0,1);
+      placed++; continue;
+    }
     const shade=0.5+rnd()*0.45;
     const cc=[cRock[0]*shade,cRock[1]*shade,cRock[2]*shade];
     /* a lumpy boulder: a coarse sphere pushed around at random */
@@ -939,7 +946,11 @@ function buildWorld(scene,onProgress){
         if(k==='spires')        mSpire(mb,BIO,rnd);
         else if(k==='fans')     mFan(mb,BIO,rnd);
         else if(k==='pods')     mPods(mb,BIO,rnd);
-        else if(k==='crystals') mCrystal(mb,BIO,rnd);
+        else if(k==='crystals'){
+          const cs=[GLTREES.crysA,GLTREES.crysB].filter(Boolean);
+          if(cs.length) appendGLTF(mb,cs[Math.floor(rnd()*cs.length)]);
+          else mCrystal(mb,BIO,rnd);
+        }
         else if(k==='pines'){ if(GLTREES.pine) appendGLTF(mb,GLTREES.pine); else mPine(mb,BIO,rnd); }
         else if(k==='broad'){ if(GLTREES.oak)  appendGLTF(mb,GLTREES.oak);  else mBroad(mb,BIO,rnd); }
         else                    mTuft(mb,BIO,rnd);

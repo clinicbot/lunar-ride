@@ -415,6 +415,10 @@ function initGL(){
   loadGLTFCreature('bird4','assets/models/bird_ray.gltf',{pose:birdPose,N:16});
   loadGLTFCreature('cat','assets/models/creature_cat.gltf',{pose:stagPose,head:['Neck','Head'],N:16});
   loadGLTFCreature('dfly','assets/models/creature_dragonfly.gltf',{pose:birdPose,N:12});
+  loadGLTFStatic('crysA','assets/models/prop_crystal_a.gltf',1);
+  loadGLTFStatic('crysB','assets/models/prop_crystal_b.gltf',1);
+  loadGLTFStatic('rockA','assets/models/prop_rock_a.gltf',1);
+  loadGLTFStatic('rockB','assets/models/prop_rock_b.gltf',1);
   ['uMVP','uModel','uLimb','uHead','uWave','uSpin','uLegL','uLegR','uShadowMat']
     .forEach(n=>US[n]=gl.getUniformLocation(progShadow,n));
   ['uScene','uPx'].forEach(n=>UB[n]=gl.getUniformLocation(progBloom,n));
