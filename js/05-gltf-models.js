@@ -109,7 +109,13 @@ async function loadGLTFRider(){
     };
     const rot={};                               /* extra rotation about x per node */
     for(const n of gj.nodes) rot[n.name]=0;
-    rot.Pelvis=0.10; rot.Spine=0.55; rot.Chest=0.38; rot.Neck=-0.60; rot.Head=-0.30;
+    if(PRO){
+      /* the pro model is anatomically continuous: gentler angles keep the
+         neck attached and the jersey smooth */
+      rot.Pelvis=0.07; rot.Spine=0.30; rot.Chest=0.20; rot.Neck=-0.32; rot.Head=-0.15;
+    }else{
+      rot.Pelvis=0.10; rot.Spine=0.55; rot.Chest=0.38; rot.Neck=-0.60; rot.Head=-0.30;
+    }
     const PELVIS=[0,0.93,-0.20];
     const world=()=>{                           /* pose pass: cum angle + position */
       const W={};
@@ -126,15 +132,27 @@ async function loadGLTFRider(){
       go(byName.Pelvis,0,0,0,0);
       return W;
     };
-    /* arms: solved once to reach the handlebars */
+    /* arms: bent numerically until each wrist lands on the handlebars.
+       This works whatever the model's rest pose or sign conventions are. */
     {
-      const W=world();
+      const HB={y:0.95,z:0.50};
+      const wristErr=(sd)=>{
+        const Wq=world(), Wp=Wq['Wrist_'+sd];
+        const dy=Wp.y-HB.y, dz=Wp.z-HB.z;
+        return dy*dy+dz*dz;
+      };
       for(const sd of ['L','R']){
-        const S=W['Shoulder_'+sd];
-        const e=yz('Elbow_'+sd), w2=yz('Wrist_'+sd);
-        const [t1,t2]=two(len2(e),len2(w2),angOf(e[0],e[1]),angOf(w2[0],w2[1]),
-                          0.97-S.y-(-Math.sin(S.cum)*0), 0.46-S.z, false);
-        rot['Shoulder_'+sd]=t1; rot['Elbow_'+sd]=t2;
+        rot['Shoulder_'+sd]=0; rot['Elbow_'+sd]=0.3;
+        for(let it=0;it<40;it++){
+          for(const jn of ['Shoulder_'+sd,'Elbow_'+sd]){
+            const h=0.05;
+            rot[jn]+=h; const e1=wristErr(sd);
+            rot[jn]-=2*h; const e2=wristErr(sd);
+            rot[jn]+=h;
+            const g=(e1-e2)/(2*h);
+            rot[jn]-=clamp(g*2.0,-0.2,0.2);
+          }
+        }
       }
     }
     /* bake each crank angle */
