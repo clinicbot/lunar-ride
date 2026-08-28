@@ -853,14 +853,29 @@ function buildWorld(scene,onProgress){
       }
       mb.setTF(0,0,0,0,1);
     }
-    /* the portal mouths announce themselves: a lit ring traces the arch
-       at each end of the bore */
+    /* a real portal at each mouth: a lit ring around the opening, a wide
+       concrete arch surround, a parapet beam and battered wing walls */
+    const CONC=[0.60,0.58,0.55];
     for(const e of [a,b]){
       const inn=section.map(s2=>RP(e,s2[0]*1.02,s2[1]*1.02+0.02));
       const out2=section.map(s2=>RP(e,s2[0]*1.16,s2[1]*1.14+0.05));
+      const outw=section.map(s2=>RP(e,s2[0]*1.95,s2[1]*1.62+0.08));
       for(let k=0;k<inn.length-1;k++){
         mb.quad(inn[k],inn[k+1],out2[k+1],out2[k],[0.45,0.85,1.0],0.85);
         mb.quad(out2[k],out2[k+1],inn[k+1],inn[k],[0.45,0.85,1.0],0.85);
+        mb.quad(out2[k],out2[k+1],outw[k+1],outw[k],CONC,0.03);
+        mb.quad(outw[k],outw[k+1],out2[k+1],out2[k],CONC,0.03);
+      }
+      mb.setTF(rx[e],ry[e],rz[e],yawAt(e),1);
+      /* the parapet beam across the top of the face */
+      mb.box(0,(TH+TW)*1.62+0.7,0,TW*4.1,1.1,1.5,CONC,0.02);
+      /* battered wing walls running out from the face corners */
+      mb.setTF(0,0,0,0,1);
+      for(const sgn of [-1,1]){
+        const A1=RP(e,sgn*TW*1.95,4.6), A0=RP(e,sgn*TW*1.95,0);
+        const B1=RP(e,sgn*(TW*1.95+7),1.4), B0=RP(e,sgn*(TW*1.95+7),0);
+        mb.quad(A0,A1,B1,B0,CONC,0.02);
+        mb.quad(B0,B1,A1,A0,CONC,0.02);
       }
     }
 
@@ -879,10 +894,12 @@ function buildWorld(scene,onProgress){
         const px=rx[i]+nx*o, pz=rz[i]+nz*o;
         /* follow the ground AS CARVED, never the raw land - and never rise
            more than a shell above the bore, so inside solid mountain the
-           lid stays buried instead of towering as pale slabs */
+           lid stays buried. Across the road it arches as a barrel vault,
+           not a flat slab */
         const edge=(Math.abs(t)>0.9)?1.2:0;
+        const arch=LO+1.6+7.2*Math.cos(t*1.35);
         const base=groundAt(px,pz);
-        return [px, Math.min(Math.max(base-edge, LO), LO+10), pz];
+        return [px, Math.min(Math.max(base-edge, arch), arch+2.5), pz];
       });
       if(lidPrev) for(let k=0;k<row.length-1;k++)
         mb.quad(lidPrev[k],lidPrev[k+1],row[k+1],row[k],lidCol,0);
