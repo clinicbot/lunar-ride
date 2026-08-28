@@ -19,6 +19,7 @@ uniform vec4 uLimb;          /* x leg swing, y hip height, z arm swing, w should
 uniform vec4 uHead;          /* x yaw, y pitch, z pivot height, w pivot forward   */
 uniform vec3 uWave;          /* x angle, y shoulder height, z shoulder x offset   */
 uniform vec2 uSpin;          /* x crank angle, y wheel angle                      */
+uniform vec2 uPivF,uPivR,uPivC; /* spin pivots (z,y): front wheel, rear, crank    */
 uniform vec4 uLegL,uLegR;    /* IK legs: thigh angle, shin angle, knee offset z,y */
 uniform mat4 uShadowMat;
 varying vec3 vN; varying vec4 vC; varying vec3 vW; varying vec4 vSh;
@@ -41,8 +42,9 @@ void main(){
   }
   else if(aLimb>6.5){        /* cranks and wheels: full rotation in the ride plane */
     float ang=aLimb>7.5?uSpin.y:uSpin.x;
-    float py=aLimb>7.5?0.34:0.28;
-    float pz=aLimb>8.5?0.50:(aLimb>7.5?-0.42:-0.02);
+    vec2 piv=aLimb>8.5?uPivF:(aLimb>7.5?uPivR:uPivC);
+    float py=piv.y;
+    float pz=piv.x;
     float c=cos(ang),sn2=sin(ang);
     float dz=p.z-pz, dy=p.y-py;
     p.z=pz+dz*c-dy*sn2;

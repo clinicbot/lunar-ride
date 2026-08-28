@@ -609,7 +609,22 @@ function drawActors(maxD){
     gl.uniform4fv(CU.uHead,vHead);
     gl.uniform1f(CU.uEmiss,a.emiss||1);
     if(a.type==='rider'&&GLTFR.ready&&gpu.actors.bike){
-      drawMesh(gpu.actors.bike);
+      let B=null;
+      if(BIKE_KEYS.length){
+        /* dealt once per rider, deterministic, classic bikes stay in the mix */
+        if(a.bikeSel===undefined) a.bikeSel=(Math.floor(a.ph*97)%(BIKE_KEYS.length+1))-1;
+        if(a.bikeSel>=0) B=GLBIKES[BIKE_KEYS[a.bikeSel%BIKE_KEYS.length]];
+      }
+      if(B){
+        if(!B.gpu) B.gpu=uploadMesh(B.mesh);
+        gl.uniform2f(CU.uPivF,B.piv.f[0],B.piv.f[1]);
+        gl.uniform2f(CU.uPivR,B.piv.r[0],B.piv.r[1]);
+        gl.uniform2f(CU.uPivC,B.piv.c[0],B.piv.c[1]);
+        drawMesh(B.gpu);
+        gl.uniform2f(CU.uPivF,0.50,0.34);
+        gl.uniform2f(CU.uPivR,-0.42,0.34);
+        gl.uniform2f(CU.uPivC,-0.02,0.28);
+      }else drawMesh(gpu.actors.bike);
       drawMesh(gltfFrameMesh(a));
     }else if(a.gcre&&GLCRE[a.gcre]&&GLCRE[a.gcre].ready) drawMesh(glCreFrame(a));
     else drawMesh(gpu.actors[a.mesh||a.type]);

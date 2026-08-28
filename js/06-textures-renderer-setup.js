@@ -431,7 +431,7 @@ function initGL(){
   ['uMVP','uModel','uLimb','uHead','uWave','uSun','uSunCol','uAmb','uFogCol','uCam',
    'uFogDen','uGrid','uTime','uEmiss','uMat','uSnow','uShadowMat','uShadowMap',
    'uShadowOn','uAlpha','uTexOn','uTexGA','uTexGN','uTexRA','uTexRN','uTexAA','uTexAN',
-   'uSpin','uLegL','uLegR']
+   'uSpin','uLegL','uLegR','uPivF','uPivR','uPivC']
     .forEach(n=>U[n]=gl.getUniformLocation(progMain,n));
   bakeTextures();
   loadAITextures();
@@ -456,7 +456,8 @@ function initGL(){
   loadGLTFStatic('arch','assets/models/prop_arch.gltf',1);
   loadGLTFStatic('stGate','assets/models/station_gate.gltf',1);
   loadGLTFStatic('stSide','assets/models/station_side.gltf',1);
-  ['uMVP','uModel','uLimb','uHead','uWave','uSpin','uLegL','uLegR','uShadowMat']
+  loadGLTFBike('mtb','assets/models/bike_mtb.gltf',{scale:0.94,dz:0.05});
+  ['uMVP','uModel','uLimb','uHead','uWave','uSpin','uLegL','uLegR','uShadowMat','uPivF','uPivR','uPivC']
     .forEach(n=>US[n]=gl.getUniformLocation(progShadow,n));
   ['uScene','uPx'].forEach(n=>UB[n]=gl.getUniformLocation(progBloom,n));
   ['uScene','uBloomT','uPx','uExposure','uBloomAmt']
@@ -464,6 +465,14 @@ function initGL(){
   ['uMVPB','uCamB','uTimeB','uAtlas','uTintA','uTintB','uSunColB','uAmbB',
    'uFogColB','uFogDenB']
     .forEach(n=>UBL[n]=gl.getUniformLocation(progBill,n));
+  /* classic-bike spin pivots as the resting default, in both programs */
+  for(const [pg,uu] of [[progMain,U],[progShadow,US]]){
+    gl.useProgram(pg);
+    gl.uniform2f(uu.uPivF,0.50,0.34);
+    gl.uniform2f(uu.uPivR,-0.42,0.34);
+    gl.uniform2f(uu.uPivC,-0.02,0.28);
+  }
+  gl.useProgram(progMain);
   CU=U;
   /* the shadow map: a depth texture rendered from the sun */
   try{

@@ -257,6 +257,88 @@ function appendGLTF(mb,model){
   }
 }
 
+/* his glTF bikes: static models carved into frame / front wheel / rear
+   wheel / crank by geometry, so the shader can spin the moving parts.
+   Companion riders are dealt bikes from this pool at random. */
+const GLBIKES={}, BIKE_KEYS=[];
+async function loadGLTFBike(key,file,fit){
+  try{
+    const gj=await (await fetch(file)).json();
+    const uri=gj.buffers[0].uri;
+    const bin=Uint8Array.from(atob(uri.slice(uri.indexOf(',')+1)),c=>c.charCodeAt(0)).buffer;
+    const CT={5121:Uint8Array,5123:Uint16Array,5125:Uint32Array,5126:Float32Array};
+    const NC={SCALAR:1,VEC2:2,VEC3:3,VEC4:4};
+    const acc=i=>{
+      const a=gj.accessors[i], bv=gj.bufferViews[a.bufferView];
+      return new CT[a.componentType](bin,(bv.byteOffset||0)+(a.byteOffset||0),a.count*NC[a.type]);
+    };
+    const prims=[];
+    for(const mesh of gj.meshes) for(const pr of mesh.primitives){
+      const mat=gj.materials[pr.material]||{};
+      const c=(mat.pbrMetallicRoughness||{}).baseColorFactor||[0.5,0.5,0.5,1];
+      const name=(mat.name||'').toLowerCase();
+      const P=acc(pr.attributes.POSITION);
+      const N=pr.attributes.NORMAL!==undefined?acc(pr.attributes.NORMAL):null;
+      const I=acc(pr.indices);
+      const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
+      for(let v=0;v<P.length;v+=3) for(let k2=0;k2<3;k2++){
+        if(P[v+k2]<mn[k2])mn[k2]=P[v+k2];
+        if(P[v+k2]>mx[k2])mx[k2]=P[v+k2];
+      }
+      prims.push({P,N,I,col:[c[0],c[1],c[2]],name,mn,mx,
+        em:name.indexOf('glow')===0?1.1:(name.indexOf('accent')===0?0.55:0)});
+    }
+    /* the two big round things are the wheels */
+    const wheels=prims.filter(p=>{
+      const h=p.mx[1]-p.mn[1], d=p.mx[2]-p.mn[2];
+      return h>0.4&&Math.abs(h-d)<0.25*h;
+    }).sort((a2,b2)=>((b2.mx[1]-b2.mn[1])-(a2.mx[1]-a2.mn[1]))).slice(0,2);
+    const wf=wheels.find(p=>(p.mn[2]+p.mx[2])>0), wr=wheels.find(p=>(p.mn[2]+p.mx[2])<=0);
+    if(!wf||!wr) throw new Error('could not find two wheels');
+    const fy=(wf.mn[1]+wf.mx[1])/2, fz=(wf.mn[2]+wf.mx[2])/2;
+    const ryy=(wr.mn[1]+wr.mx[1])/2, rz2=(wr.mn[2]+wr.mx[2])/2;
+    const wR=(wf.mx[1]-wf.mn[1])/2;
+    const STATIC=/fork|stanchion|frame|grip|seat|bar|stem|lever|cable/;
+    const inWheel=(p,wy,wz)=>{
+      if(STATIC.test(p.name)) return false;
+      const R=wR*1.16;
+      for(const yy of [p.mn[1],p.mx[1]]) for(const zz of [p.mn[2],p.mx[2]])
+        if((yy-wy)*(yy-wy)+(zz-wz)*(zz-wz)>R*R) return false;
+      return true;
+    };
+    /* the crank: the widest low thing near the bottom bracket (pedals) */
+    let crank=null;
+    for(const p of prims){
+      if(STATIC.test(p.name)) continue;
+      const w2=p.mx[0]-p.mn[0], zc=(p.mn[2]+p.mx[2])/2, yc=(p.mn[1]+p.mx[1])/2;
+      if(w2>0.34&&yc<0.55&&zc>-0.3&&zc<0.15
+         &&(!crank||w2>crank.mx[0]-crank.mn[0])) crank=p;
+    }
+    const cy=crank?(crank.mn[1]+crank.mx[1])/2:0.28;
+    const cz=crank?(crank.mn[2]+crank.mx[2])/2:-0.02;
+    const sc=(fit&&fit.scale)||1, dz=(fit&&fit.dz)||0;
+    const pos=[],nrm=[],col=[],limb=[],idx=[];
+    for(const p of prims){
+      const L=p===crank?7:(inWheel(p,fy,fz)?9:(inWheel(p,ryy,rz2)?8:0));
+      const base=pos.length/3;
+      for(let v=0;v<p.P.length;v+=3){
+        pos.push(p.P[v]*sc,p.P[v+1]*sc,p.P[v+2]*sc+dz);
+        if(p.N) nrm.push(p.N[v],p.N[v+1],p.N[v+2]); else nrm.push(0,1,0);
+        col.push(p.col[0],p.col[1],p.col[2],p.em);
+        limb.push(L);
+      }
+      for(let t=0;t<p.I.length;t++) idx.push(base+p.I[t]);
+    }
+    GLBIKES[key]={mesh:{pos:new Float32Array(pos),nrm:new Float32Array(nrm),
+        col:new Float32Array(col),limb:new Float32Array(limb),idx:new Uint32Array(idx)},
+      piv:{f:[fz*sc+dz,fy*sc],r:[rz2*sc+dz,ryy*sc],c:[cz*sc+dz,cy*sc]},
+      gpu:null, ready:true};
+    BIKE_KEYS.push(key);
+    console.log('glTF bike ready:',file,'tris:',idx.length/3,
+      'pivots F/R/C:',GLBIKES[key].piv.f,GLBIKES[key].piv.r,GLBIKES[key].piv.c);
+  }catch(e){ console.warn('glTF bike unavailable:',file,e.message); }
+}
+
 /* his glTF creatures: one baker for all of them. Rigged models are posed
    per frame (walk cycle, wing flap) and baked to static meshes; unrigged
    ones become a single frame. Glow-named materials become emissive. */
