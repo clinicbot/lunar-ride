@@ -225,9 +225,15 @@ function buildWorld(scene,onProgress){
     if(g>maxG) maxG=g;
   }
   if(scene.road.epic){
+    /* the raw profile is far too spiky for a long climb: smooth it hard
+       first, so the clamp below is a guard rail rather than the road */
+    ry=smoothLoop(ry,70);
+    ry=smoothLoop(ry,70);
     /* clamp slopes locally: scaling would flatten the summit itself */
     const mg=scene.road.maxGrade/100*ROUTE_STEP;
-    for(let pass=0;pass<5;pass++){
+    for(let pass=0;pass<6;pass++){
+      /* round first, clamp last: the guard rail must have the final word */
+      if(pass) ry=smoothLoop(ry,18);
       for(let i=0;i<nPts;i++){
         const j=(i+1)%nPts;
         if(ry[j]>ry[i]+mg) ry[j]=ry[i]+mg;
@@ -236,6 +242,15 @@ function buildWorld(scene,onProgress){
         const j=(i+1)%nPts;
         if(ry[i]>ry[j]+mg) ry[i]=ry[j]+mg;
       }
+    }
+    /* absolute final guarantee, applied to whatever array survived above */
+    for(let i=0;i<nPts;i++){
+      const j=(i+1)%nPts;
+      if(ry[j]>ry[i]+mg) ry[j]=ry[i]+mg;
+    }
+    for(let i=nPts-1;i>=0;i--){
+      const j=(i+1)%nPts;
+      if(ry[i]>ry[j]+mg) ry[i]=ry[j]+mg;
     }
   }else if(maxG>scene.road.maxGrade){
     const k=scene.road.maxGrade/maxG;

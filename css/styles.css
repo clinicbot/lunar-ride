@@ -78,7 +78,15 @@
   #hud .panel.drag:active{cursor:grabbing}
 
   /* ---- how much of the HUD is showing ---- */
-  #hud.compact #left,#hud.compact #right{display:none}
+  #hud.compact #left,#hud.compact #right,#hud.compact #mapPanel{display:none}
+  #mapPanel{position:absolute;left:18px;bottom:96px;width:212px;padding:10px 12px 8px}
+  #mapHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  #mapHead button{width:26px;height:22px;padding:0;font-size:14px;line-height:1}
+  #miniMap{display:block;width:188px;height:188px;border-radius:10px;
+    background:rgba(8,12,20,.55)}
+  #mapDist{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:11px;color:var(--dim)}
+  #mapBarWrap{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.10);overflow:hidden}
+  #mapBar{height:100%;width:0%;background:var(--accent);border-radius:3px}
   #hud.compact #topbar{padding:7px 16px;gap:18px}
   #hud.compact #topbar .val{font-size:16px}
   #hud.compact .metric{padding:7px 14px;min-width:94px}

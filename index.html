@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lunar Ride</title>
-  <link rel="stylesheet" href="css/styles.css?b=26">
+  <link rel="stylesheet" href="css/styles.css?b=28">
 </head>
 <body>
 
@@ -67,6 +67,17 @@
     <button id="cSound" title="Sound on or off (S)">Sound</button>
     <button id="cCam" title="Change camera (C)">Cam</button>
     <button id="cPanels" title="Show fewer panels (H)">Panels</button>
+  </div>
+
+  <div id="mapPanel" class="panel">
+    <div id="mapHead"><span class="lbl">Route map</span>
+      <span><button id="mapZoomOut" title="Zoom out">&minus;</button><button id="mapZoomIn" title="Zoom in">+</button></span></div>
+    <canvas id="miniMap"></canvas>
+    <div id="mapDist">
+      <span id="mapDone" class="mono">0.0</span>
+      <div id="mapBarWrap"><div id="mapBar"></div></div>
+      <span id="mapLeft" class="mono">0.0</span>
+    </div>
   </div>
 
   <div id="turnUI" class="panel">
@@ -148,19 +159,19 @@
   </div>
 </div>
 
-  <script src="js/01-scenes.js?b=26"></script>
-  <script src="js/02-core-geometry.js?b=26"></script>
-  <script src="js/03-world-generation.js?b=26"></script>
-  <script src="js/04-webgl-shaders.js?b=26"></script>
-  <script src="js/05-gltf-models.js?b=26"></script>
-  <script src="js/06-textures-renderer-setup.js?b=26"></script>
-  <script src="js/07-ride-physics.js?b=26"></script>
-  <script src="js/08-audio.js?b=26"></script>
-  <script src="js/09-bluetooth.js?b=26"></script>
-  <script src="js/10-render-loop.js?b=26"></script>
-  <script src="js/11-hud.js?b=26"></script>
-  <script src="js/12-export-tcx.js?b=26"></script>
-  <script src="js/13-app.js?b=26"></script>
+  <script src="js/01-scenes.js?b=28"></script>
+  <script src="js/02-core-geometry.js?b=28"></script>
+  <script src="js/03-world-generation.js?b=28"></script>
+  <script src="js/04-webgl-shaders.js?b=28"></script>
+  <script src="js/05-gltf-models.js?b=28"></script>
+  <script src="js/06-textures-renderer-setup.js?b=28"></script>
+  <script src="js/07-ride-physics.js?b=28"></script>
+  <script src="js/08-audio.js?b=28"></script>
+  <script src="js/09-bluetooth.js?b=28"></script>
+  <script src="js/10-render-loop.js?b=28"></script>
+  <script src="js/11-hud.js?b=28"></script>
+  <script src="js/12-export-tcx.js?b=28"></script>
+  <script src="js/13-app.js?b=28"></script>
   <script>
     /* installable app: register the offline-capable service worker */
     if('serviceWorker' in navigator)

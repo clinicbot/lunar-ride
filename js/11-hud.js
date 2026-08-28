@@ -39,9 +39,97 @@ function zoneColour(p){
   if(r<1.21) return '#ffa04d';
   return '#ff6b6b';
 }
+/* ---- the route map: the whole lap at a glance, you as the arrow ---- */
+const mcv=$('miniMap'), mctx=mcv.getContext('2d');
+let mapWorld=null, mapPts=[], mapCut=[], mapB=[0,1,0,1], mapZoom=0;
+function buildMap(){
+  mapWorld=world;
+  const st=Math.max(1,Math.floor(world.nMain/1400));
+  mapPts=[];
+  for(let i=0;i<world.nMain;i+=st)
+    mapPts.push([world.rx[i],world.rz[i],Math.abs(world.grade[i])]);
+  mapPts.push(mapPts[0]);
+  mapCut=[];
+  if(world.nCut>0){
+    const st2=Math.max(1,Math.floor(world.nCut/240));
+    for(let i=world.nMain;i<world.nPts;i+=st2) mapCut.push([world.rx[i],world.rz[i]]);
+  }
+  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
+  for(const p of mapPts){
+    if(p[0]<x0)x0=p[0]; if(p[0]>x1)x1=p[0];
+    if(p[1]<z0)z0=p[1]; if(p[1]>z1)z1=p[1];
+  }
+  mapB=[x0,x1,z0,z1];
+}
+function drawMap(){
+  if(!world) return;
+  if(mapWorld!==world){ buildMap(); mapZoom=0; }
+  const w=mcv.clientWidth||188,h=w;
+  if(mcv.width!==w*2){mcv.width=w*2;mcv.height=h*2;}
+  mctx.setTransform(2,0,0,2,0,0);
+  mctx.clearRect(0,0,w,h);
+  const [x0,x1,z0,z1]=mapB;
+  const fit=Math.min((w-14)/Math.max(x1-x0,1),(h-14)/Math.max(z1-z0,1));
+  const sc=fit*([1,2.8,7][mapZoom]||1);
+  const cx=mapZoom===0?(x0+x1)/2:riderPos[0];
+  const cz=mapZoom===0?(z0+z1)/2:riderPos[2];
+  const X=p=>w/2+(p[0]-cx)*sc, Y=p=>h/2+(p[1]-cz)*sc;
+  /* the shortcut first, faint, so the main line draws over the junctions */
+  if(mapCut.length>1){
+    mctx.strokeStyle='rgba(127,215,255,.65)'; mctx.lineWidth=2; mctx.lineCap='round';
+    mctx.beginPath();
+    mapCut.forEach((p,i)=>{i?mctx.lineTo(X(p),Y(p)):mctx.moveTo(X(p),Y(p));});
+    mctx.stroke();
+  }
+  /* the route, coloured by gradient like a climb profile */
+  mctx.lineWidth=3; mctx.lineCap='round';
+  for(let i=1;i<mapPts.length;i++){
+    const g=mapPts[i][2];
+    mctx.strokeStyle=g>7?'#ff6b6b':(g>3.2?'#ffb45e':'rgba(236,241,248,.88)');
+    mctx.beginPath();
+    mctx.moveTo(X(mapPts[i-1]),Y(mapPts[i-1]));
+    mctx.lineTo(X(mapPts[i]),Y(mapPts[i]));
+    mctx.stroke();
+  }
+  /* start line */
+  mctx.fillStyle='#6ee7a8';
+  mctx.beginPath(); mctx.arc(X(mapPts[0]),Y(mapPts[0]),3.4,0,7); mctx.fill();
+  /* the company: gold with you, blue against you */
+  for(const a of world.actors){
+    if(a.type!=='rider') continue;
+    mctx.fillStyle=a.oncoming?'#8fd8ff':'#ffd66e';
+    mctx.beginPath(); mctx.arc(X([a.px,a.pz]),Y([a.px,a.pz]),2.1,0,7); mctx.fill();
+  }
+  /* you: an arrow pointing your way */
+  const ii=segIdx(state.seg,state.s);
+  const hx2=world.tx[ii]*state.dir, hz2=world.tz[ii]*state.dir;
+  const px=w/2+(riderPos[0]-cx)*sc, py=h/2+(riderPos[2]-cz)*sc;
+  const an=Math.atan2(hz2,hx2);
+  mctx.save(); mctx.translate(px,py); mctx.rotate(an);
+  mctx.fillStyle='#ffffff';
+  mctx.beginPath();
+  mctx.moveTo(7,0); mctx.lineTo(-4.5,4.2); mctx.lineTo(-2.2,0); mctx.lineTo(-4.5,-4.2);
+  mctx.closePath(); mctx.fill();
+  mctx.restore();
+}
+$('mapZoomIn').onclick=()=>{ mapZoom=Math.min(2,mapZoom+1); };
+$('mapZoomOut').onclick=()=>{ mapZoom=Math.max(0,mapZoom-1); };
+mcv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  mapZoom=clamp(mapZoom+(e.deltaY<0?1:-1),0,2);
+},{passive:false});
+
 let hudLast=0;
 function hudTick(t){
   if(t-hudLast<100) return; hudLast=t;
+  if(world){
+    drawMap();
+    const L=world.lapLen, s=playerMainS();
+    const done=state.dir>0?s:L-s;
+    $('mapDone').textContent=(done/1000).toFixed(1)+' km';
+    $('mapLeft').textContent=((L-done)/1000).toFixed(1)+' km';
+    $('mapBar').style.width=(done/L*100).toFixed(1)+'%';
+  }
   $('tTime').textContent=fmtTime(state.elapsed);
   $('tDist').textContent=(state.dist/1000).toFixed(2)+' km';
   $('tElev').textContent=Math.round(state.elev)+' m';

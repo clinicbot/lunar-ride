@@ -92,7 +92,7 @@ function setHud(m){
 }
 
 /* --- every panel can be dragged anywhere, and stays put --- */
-const PANELS=[['topbar','tb'],['left','lf'],['right','rt'],['metrics','mt'],['ctrl','ct']];
+const PANELS=[['topbar','tb'],['left','lf'],['right','rt'],['metrics','mt'],['ctrl','ct'],['mapPanel','mp']];
 function placePanel(el,x,y){
   const w=el.offsetWidth,h=el.offsetHeight;
   el.style.transform='none';
