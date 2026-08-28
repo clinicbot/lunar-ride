@@ -491,6 +491,18 @@ function buildWorld(scene,onProgress){
   for(const r of tunnels) markRun(r,inTunnel,0);
   for(const r of bridges) markRun(r,inBridge,3);
 
+  /* metres from each tunnel sample to its nearest portal - around the wrap,
+     so the bore that crosses the start line reads as one tunnel */
+  const tunEnd=new Float32Array(nPts);
+  {
+    const fwd=new Float32Array(nMain), bwd=new Float32Array(nMain);
+    let d=0;
+    for(let k=0;k<2*nMain;k++){ const i=k%nMain; d=inTunnel[i]?d+ROUTE_STEP:0; fwd[i]=d; }
+    d=0;
+    for(let k=2*nMain-1;k>=0;k--){ const i=k%nMain; d=inTunnel[i]?d+ROUTE_STEP:0; bwd[i]=d; }
+    for(let i=0;i<nMain;i++) tunEnd[i]=Math.min(fwd[i],bwd[i]);
+  }
+
   /* A heightfield cannot have a hole in it, so a tunnel cannot simply be left
      as solid mountain: wherever the surface has to come down to road level it
      passes straight through the bore, and that is the wall of ground you end
@@ -511,6 +523,14 @@ function buildWorld(scene,onProgress){
     const near=roadNear(x,z);
     if(!near) return h;
     if(inTunnel[near.i]){
+      /* near a portal the rock face may only rise so fast, so the mountain
+         meets the mouth as a carved slope instead of a sheer wall */
+      const capH=ry[near.i]+scene.road.halfWidth+8.3+tunEnd[near.i]*0.9;
+      if(h>capH) h=capH;
+      /* a deep tunnel needs no trench at all: the mountain stays solid and
+         the bore tube is the interior. Only where the land comes down to
+         meet the bore - the portals, and shallow covers - is a slot cut */
+      if(h>ry[near.i]+scene.road.halfWidth+5.3+3) return h;
       /* The trench needs SLOPED walls, wider than the 9 m terrain grid. A hard
          edge lands neighbouring grid points on opposite sides of it along a
          curved bore, and the triangles between them render as a row of green
@@ -738,7 +758,7 @@ function buildWorld(scene,onProgress){
   section.push([TW,0]);
   for(const r of tunnels){
     /* the bore pokes a little way out of the rock face at each end */
-    const a=Math.max(0,r[0]-2), b=Math.min(nPts-1,r[1]+2);
+    const a=Math.max(0,r[0]-2), b=Math.min(r[1]+2, r[1]<nMain?nMain-1:nPts-1);
     const PIPES=[
       {lat:-(TW-0.30), h:1.95, w:0.095, col:[0.52,0.55,0.58], em:0},
       {lat:-(TW-0.30), h:2.34, w:0.070, col:[0.70,0.44,0.20], em:0},
@@ -788,14 +808,16 @@ function buildWorld(scene,onProgress){
     let lidPrev=null;
     for(let i=a;i<=b;i++){
       const nx=-tz[i], nz=tx[i];
+      const LO=ry[i]+TH+TW+1.6;
       const row=LAT.map(function(t){
         const o=t*LID_W;
         const px=rx[i]+nx*o, pz=rz[i]+nz*o;
-        /* the outer edge tucks just under the ground AS CARVED - the raw
-           land height floats above the portal cuttings */
+        /* follow the ground AS CARVED, never the raw land - and never rise
+           more than a shell above the bore, so inside solid mountain the
+           lid stays buried instead of towering as pale slabs */
         const edge=(Math.abs(t)>0.9)?1.2:0;
-        const base=edge?groundAt(px,pz):landAt(px,pz);
-        return [px, Math.max(base-edge, ry[i]+TH+TW+1.6), pz];
+        const base=groundAt(px,pz);
+        return [px, Math.min(Math.max(base-edge, LO), LO+10), pz];
       });
       if(lidPrev) for(let k=0;k<row.length-1;k++)
         mb.quad(lidPrev[k],lidPrev[k+1],row[k+1],row[k],lidCol,0);
