@@ -95,7 +95,7 @@ function startRide(sc){
     Object.assign(state,{s:0,seg:'m',dir:1,choice:'straight',playerX:0,speed:0,dist:0,elapsed:0,elev:0,
       alt:world.ry[0],pwrSum:0,pwrN:0,maxPwr:0,kj:0,lap:1,samples:[],sampleT:0,
       startedAt:new Date()});
-    $('sceneName').textContent=sc.name;
+    $('sceneName').textContent=sc.name+' \u00b7 v'+APP_STAMP;
     $('loading').classList.remove('on');
     $('hud').classList.add('on');
     $('hint').classList.remove('fade');
@@ -142,16 +142,19 @@ function frame(t){
       code it loaded, however many deploys have happened since. Compare our
       cache stamp with the one the server hands out now, and offer a reload
       from the menu when they differ. ---- */
-const MY_STAMP=(()=>{
-  const sc=document.querySelector('script[src*="?b="]');
-  const m=sc&&sc.src.match(/[?&]b=(\d+)/); return m?m[1]:null;
-})();
 async function checkUpdate(){
-  if(!MY_STAMP) return;
+  if(APP_STAMP==='?') return;
   try{
     const t=await (await fetch('index.html',{cache:'no-store'})).text();
     const m=t.match(/[?&]b=(\d+)/);
-    if(m&&m[1]!==MY_STAMP) $('update').classList.remove('hideU');
+    if(!m||m[1]===APP_STAMP) return;
+    let tried=null; try{ tried=sessionStorage.getItem('lr.upd'); }catch(e){}
+    if(!state.running&&tried!==m[1]){
+      try{ sessionStorage.setItem('lr.upd',m[1]); }catch(e){}
+      location.reload();               /* idle at the menu: just take it */
+      return;
+    }
+    $('update').classList.remove('hideU');   /* mid-ride: offer, not force */
   }catch(e){/* offline is fine - ride on */}
 }
 $('btnUpdate').onclick=()=>location.reload();

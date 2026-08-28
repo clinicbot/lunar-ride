@@ -1,5 +1,12 @@
 "use strict";
 
+/* the deploy stamp carried on every script URL - the single source of
+   truth for which build this page is actually running */
+const APP_STAMP=(()=>{
+  const sc=document.querySelector('script[src*="?b="]');
+  const m=sc&&sc.src.match(/[?&]b=(\d+)/); return m?m[1]:'?';
+})();
+
 /* ==========================================================================
    1. THE WORLDS  --  this is the part you tell me to change
    ==========================================================================
