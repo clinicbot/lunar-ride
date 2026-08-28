@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#04060b">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/images/icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lunar Ride</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -155,5 +161,10 @@
   <script src="js/11-hud.js"></script>
   <script src="js/12-export-tcx.js"></script>
   <script src="js/13-app.js"></script>
+  <script>
+    /* installable app: register the offline-capable service worker */
+    if('serviceWorker' in navigator)
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+  </script>
 </body>
 </html>
