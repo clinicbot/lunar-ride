@@ -456,12 +456,32 @@ function buildWorld(scene,onProgress){
       } else i++;
     }
   }
+  /* which road owns the ground here: nearby and low beats high and far.
+     A trough may open a pass, but never dig the ground out from under a
+     road standing above it - that road keeps its footing, and only true
+     crossings (a road high above someone else's ground) fly as bridges. */
+  function ownerFloor(x,z){
+    const gx=Math.floor(x/CELL), gz=Math.floor(z/CELL);
+    let best=1e18, by=1e9;
+    for(let a2=-2;a2<=2;a2++) for(let b2=-2;b2<=2;b2++){
+      const list=rbuckets.get(rkey(gx+a2,gz+b2));
+      if(!list) continue;
+      for(let n=0;n<list.length;n++){
+        const i=list[n];
+        const c=ry[i]+1.5*Math.hypot(x-rx[i],z-rz[i]);
+        if(c<best){best=c;by=ry[i];}
+      }
+    }
+    return by<1e8? by-6 : -1e9;
+  }
   function troughAt(x,z,h){
+    let pulled=false;
     for(let t=0;t<troughs.length;t++){
       const q=troughs[t];
       const d2=((x-q.x)*(x-q.x)+(z-q.z)*(z-q.z))/(q.R*q.R);
-      if(d2<7&&h>q.y) h=q.y+(h-q.y)*(1-Math.exp(-d2*1.8));
+      if(d2<7&&h>q.y){ h=q.y+(h-q.y)*(1-Math.exp(-d2*1.8)); pulled=true; }
     }
+    if(pulled){ const f=ownerFloor(x,z); if(h<f) h=f; }
     return h;
   }
   if(troughs.length) for(let i=0;i<nPts;i++) landY[i]=troughAt(rx[i],rz[i],landY[i]);
@@ -496,7 +516,8 @@ function buildWorld(scene,onProgress){
       &&!(scene.road.epic&&Math.abs(grade[i])>3.5&&landY[i]-ry[i]<40),
       70,RD.tunnels+(scene.road.epic?2:0))) tunnels.push(r);
   if(RD.bridges)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>9,45,RD.bridges)) bridges.push(r);
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>9,45,
+      RD.bridges+(scene.road.epic?2:0))) bridges.push(r);
 
   const markRun=(r,flags,ramp)=>{
     for(let i=r[0];i<=r[1];i++){
@@ -581,6 +602,7 @@ function buildWorld(scene,onProgress){
     if(w<=0.001) return h;
     const dh=Math.abs(h-ry[near.i]);
     const RUN=clamp(dh*2.0,BLEND-CORRIDOR,92);
+    if(ry[near.i]-0.25>h+16) return h;   /* too high to fill: that is a bridge's job */
     let road;
     if(near.d<=CORRIDOR) road=ry[near.i]-0.25;
     else if(near.d>=CORRIDOR+RUN) return h;
@@ -1611,6 +1633,7 @@ function buildWorld(scene,onProgress){
 
   return {
     scene, nPts, nMain, nCut, cutLen, jnA:iA, jnB:iB, sideA, sideB,
+    _dbg:{roadNear,carve,landAt,troughAt,troughs,tunEnd,landY},
     lapLen, rx, rz, ry, tx, tz, grade,
     meanY:mean, groundAt:groundAt, meshH:meshH, actors, actorMeshes, bases,
     water:waterMesh, waterY, lakeSpots, veg,
