@@ -138,6 +138,29 @@ function frame(t){
   hudTick(t);
 }
 
+/* ---- update check: a long-lived tab or installed app keeps running the
+      code it loaded, however many deploys have happened since. Compare our
+      cache stamp with the one the server hands out now, and offer a reload
+      from the menu when they differ. ---- */
+const MY_STAMP=(()=>{
+  const sc=document.querySelector('script[src*="?b="]');
+  const m=sc&&sc.src.match(/[?&]b=(\d+)/); return m?m[1]:null;
+})();
+async function checkUpdate(){
+  if(!MY_STAMP) return;
+  try{
+    const t=await (await fetch('index.html',{cache:'no-store'})).text();
+    const m=t.match(/[?&]b=(\d+)/);
+    if(m&&m[1]!==MY_STAMP) $('update').classList.remove('hideU');
+  }catch(e){/* offline is fine - ride on */}
+}
+$('btnUpdate').onclick=()=>location.reload();
+checkUpdate();
+setInterval(checkUpdate, 5*60*1000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') checkUpdate();
+});
+
 $('btnTrainer').onclick=connectTrainer;
 $('btnHr').onclick=function(){connectHr(false);};
 $('btnHrAll').onclick=function(){connectHr(true);};
