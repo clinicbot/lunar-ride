@@ -632,6 +632,15 @@ function buildWorld(scene,onProgress){
     return (h00*(1-u)+h10*u)*(1-v)+(h01*(1-u)+h11*u)*v;
   };
 
+  /* tunnel-adjacent samples: the portal face sheets belong to samples just
+     outside the runs, and they must fall to darkness with the rest */
+  const tunNear=new Uint8Array(nPts);
+  for(let i=0;i<nPts;i++) if(inTunnel[i])
+    for(let d2=-4;d2<=4;d2++){
+      const q=i<nMain?((i+d2)%nMain+nMain)%nMain:clamp(i+d2,nMain,nPts-1);
+      tunNear[q]=1;
+    }
+
   const cHigh=hx(scene.col.high), cLow=hx(scene.col.low);
   const tPos=new Float32Array(NV*NV*3);
   const tNrm=new Float32Array(NV*NV*3);
@@ -658,6 +667,13 @@ function buildWorld(scene,onProgress){
       const spec=0.88+0.24*n2(x/23,z/23);
       for(let c=0;c<3;c++) tCol[k*4+c]=lerp(cLow[c],cHigh[c],smoothstep(t))*ao*spec;
       tCol[k*4+3]=0;
+      /* the ground sheet must cross the bore's height band somewhere near
+         each portal - where it does, it fades to tunnel darkness */
+      const nrT=roadNear(x,z);
+      if(nrT&&tunNear[nrT.i]&&nrT.d<TUN_SLOT+1
+         &&y>ry[nrT.i]-6&&y<ry[nrT.i]+21){
+        tCol[k*4]*=0.02; tCol[k*4+1]*=0.02; tCol[k*4+2]*=0.02;
+      }
     }
   }
   onProgress&&onProgress(0.78);

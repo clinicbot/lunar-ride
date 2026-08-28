@@ -608,6 +608,9 @@ void main(){
                *(0.72+0.55*fbm(mix(vW.xz*0.35+vW.y*0.13,pSide*0.35,steep)))
                *mix(vec3(1.0),rA,df);
     alb=mix(grass,rockc,rock*0.92);
+    /* vertex paint darker than any real terrain colour means deliberate
+       darkness (bore interiors) - honour it even where rock colour rules */
+    alb*=clamp((vC.r+vC.g+vC.b-0.05)*8.0,0.0,1.0);
     float snLine=uSnow+16.0*fbm(vW.xz*0.03)-8.0;      /* a ragged snowline */
     float sn=clamp((vW.y-snLine)/14.0,0.0,1.0)*clamp((n0.y-0.45)*3.0,0.0,1.0);
     sn*=0.55+0.65*fbm(vW.xz*0.07+3.1);                 /* patchy, rock showing through */
