@@ -1145,7 +1145,7 @@ function buildWorld(scene,onProgress){
       const pick=flip++%3;
       if(pick===2)      groundAtSpot('gjelly','jelly',sp,1+(rnd()<0.4?1:0),0.9);
       else if(haveCat&&rnd()<0.35)
-                        groundAtSpot('gcat','cat',sp,1+(rnd()<0.5?1:0),0.9);
+                        groundAtSpot('gcat','cat',sp,1+(rnd()<0.5?1:0),2.3);
       else              groundAtSpot('gstag','stag',sp,2+Math.floor(rnd()*3),0.9);
     }
     /* a welcoming party right after the start line, close to the tarmac,
@@ -1187,7 +1187,7 @@ function buildWorld(scene,onProgress){
             w:(rnd()<.5?-1:1)*(0.30+rnd()*0.25),
             baseY:ry[i2]+2.0+rnd()*2.0, px:cx0, py:0, pz:cz0, yaw:0,
             flap:true, flapT:9e9, flapHz:7+rnd()*3, noGlide:true,
-            gph:rnd()*6.28318, emiss:1, k:0.8+rnd()*0.4});
+            gph:rnd()*6.28318, emiss:1, k:2.6+rnd()*1.0});
       }
     for(let i2=35;i2<nPts-10;i2+=Math.floor(32+rnd()*20)){
       if(inTunnel[i2]) continue;

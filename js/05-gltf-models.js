@@ -263,8 +263,9 @@ const GLCRE={};
 function updBuildTag(){
   const el=document.getElementById('buildTag'); if(!el) return;
   const st=(o)=>o&&o.ready?'ok':'--';
-  el.textContent='build 21 - rider '+(GLTFR.ready?'ok':'--')
-    +' - stag '+st(GLCRE.stag)+' - jelly '+st(GLCRE.jelly)+' - bird '+st(GLCRE.bird);
+  el.textContent='build 22 - rider '+(GLTFR.ready?'ok':'--')
+    +' - stag '+st(GLCRE.stag)+' - jelly '+st(GLCRE.jelly)+' - bird '+st(GLCRE.bird)
+    +' - gull '+st(GLCRE.bird2)+' - cat '+st(GLCRE.cat)+' - dfly '+st(GLCRE.dfly);
 }
 async function loadGLTFCreature(key,file,opts){
   try{
