@@ -7,8 +7,15 @@
    procedural riders carry on unchanged. */
 const GLTFR={ready:false,N:32,pos:[],nrm:[],col:[],limbB:null,idxB:null,count:0};
 async function loadGLTFRider(){
+  /* prefer his pro rider when the file exists; the old model is the fallback */
+  let gjPro=null;
   try{
-    const gj=await (await fetch('assets/models/rigged_cyclist.gltf')).json();
+    const r=await fetch('assets/models/rider_pro.gltf');
+    if(r.ok){ const j=await r.json(); if(j&&j.skins&&j.skins.length) gjPro=j; }
+  }catch(e){}
+  try{
+    const PRO=!!gjPro;
+    const gj=PRO?gjPro:await (await fetch('assets/models/rigged_cyclist.gltf')).json();
     const uri=gj.buffers[0].uri;
     const bin=Uint8Array.from(atob(uri.slice(uri.indexOf(',')+1)),c=>c.charCodeAt(0)).buffer;
     const CT={5120:Int8Array,5121:Uint8Array,5122:Int16Array,5123:Uint16Array,5125:Uint32Array,5126:Float32Array};
@@ -17,20 +24,40 @@ async function loadGLTFRider(){
       const a=gj.accessors[i], bv=gj.bufferViews[a.bufferView];
       return new CT[a.componentType](bin,(bv.byteOffset||0)+(a.byteOffset||0),a.count*NC[a.type]);
     };
-    const prim=gj.meshes[0].primitives[0];
-    const POS=acc(prim.attributes.POSITION), NRM=acc(prim.attributes.NORMAL);
-    const JNT=acc(prim.attributes.JOINTS_0), WGT=acc(prim.attributes.WEIGHTS_0);
-    const IDX=acc(prim.indices), IBM=acc(gj.skins[0].inverseBindMatrices);
-    const hprim=gj.meshes[2].primitives[0];
-    const HPOS=acc(hprim.attributes.POSITION), HNRM=acc(hprim.attributes.NORMAL), HIDX=acc(hprim.indices);
+    const IBM=acc(gj.skins[0].inverseBindMatrices);
     const joints=gj.skins[0].joints;
     const byName={}; gj.nodes.forEach((n,i)=>byName[n.name]=i);
     const parent={}; gj.nodes.forEach((n,i)=>(n.children||[]).forEach(c=>parent[c]=i));
+    let P2,N2,J2,W2,I2,HPOS,HNRM,HIDX,matOf=null;
+    const faceCol={};
+    if(PRO){
+      /* every primitive carries a real material; no synthetic face needed */
+      P2=[];N2=[];J2=[];W2=[];I2=[];matOf=[];
+      for(const mesh of gj.meshes) for(const pr of mesh.primitives){
+        const base=P2.length/3;
+        const POSp=acc(pr.attributes.POSITION), NRMp=acc(pr.attributes.NORMAL);
+        const Jp=acc(pr.attributes.JOINTS_0), Wp=acc(pr.attributes.WEIGHTS_0);
+        const Ip=acc(pr.indices);
+        for(let v=0;v<POSp.length;v++){ P2.push(POSp[v]); N2.push(NRMp[v]); }
+        for(let v=0;v<Jp.length;v++){ J2.push(Jp[v]); W2.push(Wp[v]); }
+        const mt=gj.materials[pr.material]||{};
+        const mc=((mt.pbrMetallicRoughness||{}).baseColorFactor)||[0.6,0.6,0.6,1];
+        const nverts=POSp.length/3;
+        for(let v=0;v<nverts;v++) matOf.push({n:mt.name||'',c:mc});
+        for(let v=0;v<Ip.length;v++) I2.push(base+Ip[v]);
+      }
+      HPOS=new Float32Array(0); HNRM=HPOS; HIDX=new Uint32Array(0);
+    }else{
+    const prim=gj.meshes[0].primitives[0];
+    const POS=acc(prim.attributes.POSITION), NRM=acc(prim.attributes.NORMAL);
+    const JNT=acc(prim.attributes.JOINTS_0), WGT=acc(prim.attributes.WEIGHTS_0);
+    const IDX=acc(prim.indices);
+    const hprim=gj.meshes[2].primitives[0];
+    HPOS=acc(hprim.attributes.POSITION); HNRM=acc(hprim.attributes.NORMAL); HIDX=acc(hprim.indices);
     /* ---- the face the model never had: eyes, brows, nose, mouth as real
        geometry, weighted 100% to the Head bone so it skins with the head ---- */
-    const P2=Array.from(POS), N2=Array.from(NRM),
-          J2=Array.from(JNT), W2=Array.from(WGT), I2=Array.from(IDX);
-    const faceCol={};
+    P2=Array.from(POS); N2=Array.from(NRM);
+    J2=Array.from(JNT); W2=Array.from(WGT); I2=Array.from(IDX);
     const headK=gj.skins[0].joints.indexOf(byName.Head);
     const addEll=(cx,cy,cz,rx2,ry2,rz2,col)=>{
       const lon=6,lat=4,base=P2.length/3;
@@ -60,6 +87,7 @@ async function loadGLTFRider(){
     }
     addEll(0,1.930,0.475,0.020,0.031,0.023,null);            /* nose, skin tone */
     addEll(0,1.885,0.460,0.030,0.0065,0.011,LIP);            /* mouth */
+    }
     const NB=P2.length/3, NH=HPOS.length/3, NV=NB+NH;
 
     /* planar helpers: angle 0 = straight down, positive = toward +z */
@@ -189,7 +217,17 @@ async function loadGLTFRider(){
                  Knee_L:'skin',Knee_R:'skin',Ankle_L:'jersey2',Ankle_R:'jersey2'};
       const col=new Float32Array(NV*4);
       for(let v=0;v<NB;v++){
-        const c=faceCol[v]||C[REG[domJoint[v]]||'jersey'];
+        let c;
+        if(matOf){
+          const m=matOf[v];
+          c= m.n==='jersey'?C.jersey
+           : m.n==='helmet'?C.helmet
+           : m.n==='shorts'?C.dark
+           : m.n==='skin'?C.skin
+           : m.n==='shoe'?C.jersey2
+           : m.n==='glove'?C.dark
+           : m.c;
+        } else c=faceCol[v]||C[REG[domJoint[v]]||'jersey'];
         col[v*4]=c[0];col[v*4+1]=c[1];col[v*4+2]=c[2];col[v*4+3]=0;
       }
       for(let v=0;v<NH;v++){
