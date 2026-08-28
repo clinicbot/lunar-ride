@@ -458,7 +458,9 @@ function buildWorld(scene,onProgress){
     return Math.min(dA,dB)>25;
   };
   if(RD.tunnels)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&landY[i]-ry[i]>15,70,RD.tunnels)) tunnels.push(r);
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&landY[i]-ry[i]>15
+      /* the climb of an epic route stays in the open: its views ARE the ride */
+      &&!(scene.road.epic&&Math.abs(grade[i])>3.5),70,RD.tunnels)) tunnels.push(r);
   if(RD.bridges)
     for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>9,45,RD.bridges)) bridges.push(r);
 
