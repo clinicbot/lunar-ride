@@ -1087,20 +1087,25 @@ function buildWorld(scene,onProgress){
           const side=rnd()<.5?-1:1;
           const off=(hw+6)+Math.pow(rnd(),1.4)*16;
           const x=rx[i]-tz[i]*off*side, z=rz[i]+tx[i]*off*side;
-          if(Math.abs(meshH(x,z)-ry[i])<3.0) return {x,z,off};
+          if(Math.abs(meshH(x,z)-ry[i])<3.0)
+            return {x,z,off,rpx:rx[i],rpz:rz[i]};
         }
       }
       return null;
     };
     const groundAtSpot=(type,gcre,sp,n,k0)=>{
       const meta=CREATURE[type];
+      const ad=Math.hypot(sp.x-sp.rpx,sp.z-sp.rpz)||1;
+      const awx=(sp.x-sp.rpx)/ad, awz=(sp.z-sp.rpz)/ad;
       for(let m2=0;m2<n;m2++){
         const hx0=sp.x+(rnd()*2-1)*10, hz0=sp.z+(rnd()*2-1)*10;
+        const wr=Math.max(1.2,Math.min(2.5+rnd()*7, sp.off-(hw+4.0)));
         actors.push({type, meta, gcre, hx:hx0, hz:hz0,
           px:hx0, py:0, pz:hz0, yaw:rnd()*6.28318,
-          wr:Math.max(1.2,Math.min(2.5+rnd()*7, sp.off-(hw+4.0))),
-          wander:rnd()*6.28318, wr2:0,
-          wspd:(rnd()<.5?-1:1)*(0.025+rnd()*0.055),
+          wr, wander:rnd()*6.28318, wr2:0,
+          /* a real walking pace: the circle speed scales with its radius */
+          wspd:(rnd()<.5?-1:1)*(0.45+rnd()*0.45)/Math.max(wr,1.5),
+          rdx:sp.rpx, rdz:sp.rpz, awayX:awx, awayZ:awz,
           gait:meta.gait*(0.85+rnd()*0.3), ph:rnd()*6.28318,
           alert:0, headYaw:0, headPitch:meta.rest, swing:0, emiss:1,
           gph:rnd()*6.28318, k:(k0||0.9)+rnd()*0.35});
@@ -1149,10 +1154,13 @@ function buildWorld(scene,onProgress){
         if(Math.abs(meshH(hx0,hz0)-ry[idx])<2.0) break;
       }
       const meta=CREATURE[type];
+      const ad2=Math.hypot(hx0-rx[idx],hz0-rz[idx])||1;
       actors.push({type, meta, gcre, hx:hx0, hz:hz0,
         px:hx0, py:0, pz:hz0, yaw:rnd()*6.28318,
         wr:1.5, wander:rnd()*6.28318, wr2:0,
-        wspd:(rnd()<.5?-1:1)*0.05,
+        wspd:(rnd()<.5?-1:1)*0.35,
+        rdx:rx[idx], rdz:rz[idx],
+        awayX:(hx0-rx[idx])/ad2, awayZ:(hz0-rz[idx])/ad2,
         gait:meta.gait, ph:rnd()*6.28318,
         alert:0, headYaw:0, headPitch:meta.rest, swing:0, emiss:1,
         gph:rnd()*6.28318, k:1.15});
@@ -1171,8 +1179,10 @@ function buildWorld(scene,onProgress){
       const flock=2+(rnd()<0.4?1:0);
       const R=22+rnd()*40, w2=(rnd()<.5?-1:1)*(0.08+rnd()*0.07);
       const bY=ry[i2]+8+rnd()*12;        /* above the ROAD here, not the map mean */
+      const BK=['bird','bird2','bird3','bird4'].filter(k=>GLCRE[k]&&GLCRE[k].ready);
+      const bkind=BK.length?BK[Math.floor(rnd()*BK.length)]:'bird';
       for(let b2=0;b2<flock;b2++)
-        actors.push({type:'gbird', gcre:'bird', cx:cx0, cz:cz0,
+        actors.push({type:'gbird', gcre:bkind, cx:cx0, cz:cz0,
           R:R*(0.9+rnd()*0.2), circ:rnd()*6.28318, w:w2,
           baseY:bY+b2*2.5, px:cx0, py:0, pz:cz0, yaw:0,
           flap:true, flapT:1+rnd()*2, gph:rnd()*6.28318,

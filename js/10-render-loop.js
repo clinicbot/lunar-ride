@@ -480,14 +480,43 @@ function updateActors(dt){
       const notice=clamp(1-(dist-40)/70,0,1);
       a.alert=lerp(a.alert,notice,1-Math.pow(0.05,dt));
 
-      /* it stops moving as it becomes interested in you */
-      const move=1-a.alert;
+      /* -- flee: an animal may stray onto the tarmac, but not with a rider
+            bearing down on it: it trots straight off the road, then turns
+            to watch like the rest of the herd -- */
+      if(!M.float&&a.rdx!==undefined&&!a.flee){
+        const rdd=Math.hypot(a.px-a.rdx,a.pz-a.rdz);
+        if(dist<30&&rdd<(world.scene.road.halfWidth||5)+2.5) a.flee=1;
+      }
+      if(a.flee){
+        a.hx+=a.awayX*3.6*dt; a.hz+=a.awayZ*3.6*dt;
+        a.gph=(a.gph||0)+dt*(a.gait||3)*3.2;      /* legs at a run */
+        a.px=a.hx+Math.cos(a.wander)*a.wr;
+        a.pz=a.hz+Math.sin(a.wander)*a.wr;
+        a.yaw=angLerp(a.yaw,Math.atan2(a.awayX,a.awayZ),1-Math.pow(0.02,dt));
+        if(Math.hypot(a.hx-a.rdx,a.hz-a.rdz)>(world.scene.road.halfWidth||5)+8||dist>50)
+          a.flee=0;
+      }
+
+      /* -- grazing: between strolls it puts its head down in the grass -- */
+      if(!M.float&&M.gait>0&&a.alert<0.35&&!a.flee){
+        a.grzT=(a.grzT===undefined?Math.random()*6:a.grzT)-dt;
+        if(a.grzT<=0){
+          a.grazing=!a.grazing;
+          a.grzT=a.grazing?2.5+Math.random()*3.5:4+Math.random()*5;
+        }
+      }else a.grazing=false;
+
+      /* it stops moving as it becomes interested in you, or to graze */
+      const move=a.flee?0:(1-a.alert)*(a.grazing?0:1);
       a.wander+=dt*a.wspd*move;
-      a.px=a.hx+Math.cos(a.wander)*a.wr;
-      a.pz=a.hz+Math.sin(a.wander)*a.wr;
+      if(!a.flee){
+        a.px=a.hx+Math.cos(a.wander)*a.wr;
+        a.pz=a.hz+Math.sin(a.wander)*a.wr;
+      }
 
       const toRider=Math.atan2(dx,dz);
-      if(move>0.3){
+      if(a.flee){ /* heading handled above */ }
+      else if(move>0.3){
         const wy=Math.atan2(-Math.sin(a.wander)*a.wspd, Math.cos(a.wander)*a.wspd);
         a.yaw=angLerp(a.yaw,wy,1-Math.pow(0.25,dt));
       }else if(a.alert>0.55 && Math.abs(wrapAng(toRider-a.yaw))>M.turn*0.75){
@@ -500,7 +529,8 @@ function updateActors(dt){
       a.headYaw=angLerp(a.headYaw,want,1-Math.pow(0.015,dt));
       const pitchAt=-Math.atan2(eyeY-(a.py+M.eye*a.k),Math.max(dist,2));
       a.headPitch=lerp(a.headPitch,
-        lerp(M.rest,clamp(pitchAt,-0.8,0.8),a.alert), 1-Math.pow(0.04,dt));
+        lerp(a.grazing?0.85:M.rest,clamp(pitchAt,-0.8,0.8),a.alert),
+        1-Math.pow(0.04,dt));
 
       a.swing=Math.sin(t*a.gait+a.ph)*0.5*move;
       a.gph=(a.gph||0)+dt*(a.gait||3)*1.45*move;
