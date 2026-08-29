@@ -1,14 +1,10 @@
 "use strict";
 
-/* Verdant Rift v116 — imported nature biomes ------------------------------
-   Uses the external-buffer/textured glTF nature pack uploaded to assets/models.
-   The existing renderer stays unchanged: material textures are sampled once
-   while the menu is visible, colours are baked per triangle, and a controlled
-   amount of geometry is merged into the normal props mesh.
-
-   v116 expands the proven v113 pilot across the full 25 km, but deliberately
-   varies density and species by route section.  A hard triangle budget prevents
-   an unexpectedly heavy source model from freezing the browser. */
+/* Verdant Rift v117 — imported nature instance source ---------------------
+   External glTF models are parsed once while the menu is visible.  Textures
+   are sampled into per-vertex colours, but models are NOT duplicated into the
+   world's props mesh.  buildWorld() now creates only compact transform lists;
+   js/28 uploads one GPU copy per species and streams nearby instances. */
 (function(){
   const STORE={};
   const IMG_CACHE=new Map();
@@ -91,6 +87,13 @@
     return[d[k]/255,d[k+1]/255,d[k+2]/255,d[k+3]/255];
   }
 
+  function faceNormal(P,ia,ib,ic){
+    const ax=P[ib]-P[ia],ay=P[ib+1]-P[ia+1],az=P[ib+2]-P[ia+2];
+    const bx=P[ic]-P[ia],by=P[ic+1]-P[ia+1],bz=P[ic+2]-P[ia+2];
+    let nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
+    const l=Math.hypot(nx,ny,nz)||1;return[nx/l,ny/l,nz/l];
+  }
+
   async function loadModel(key,file){
     try{
       const r=await fetch(file);if(!r.ok)throw new Error('gltf HTTP '+r.status);
@@ -106,11 +109,12 @@
         if(im&&im.uri)try{pixelBySource[src]=await imagePixels(resolveUrl(im.uri,file));}catch(e){}
       }));
 
-      const prims=[];let visibleTriangles=0;
+      const outP=[],outN=[],outC=[];let visibleTriangles=0;
       for(const mesh of(gj.meshes||[]))for(const pr of(mesh.primitives||[])){
         if(pr.attributes.POSITION===undefined||pr.indices===undefined)continue;
         const P=accessor(gj,buffers,pr.attributes.POSITION).data;
         const I=accessor(gj,buffers,pr.indices).data;
+        const NA=pr.attributes.NORMAL!==undefined?accessor(gj,buffers,pr.attributes.NORMAL):null;
         const UVA=pr.attributes.TEXCOORD_0!==undefined?accessor(gj,buffers,pr.attributes.TEXCOORD_0):null;
         const CA=pr.attributes.COLOR_0!==undefined?accessor(gj,buffers,pr.attributes.COLOR_0):null;
         const mat=(gj.materials&&gj.materials[pr.material])||{};
@@ -118,10 +122,9 @@
         const ti=(pbr.baseColorTexture||{}).index;
         const src=ti!==undefined&&gj.textures&&gj.textures[ti]?gj.textures[ti].source:undefined;
         const px=src!==undefined?pixelBySource[src]:null;
-        const ntri=Math.floor(I.length/3),triCol=new Float32Array(ntri*3),visible=new Uint8Array(ntri);
         const cut=mat.alphaCutoff===undefined?.5:mat.alphaCutoff;
-        for(let t=0;t<ntri;t++){
-          const a=I[t*3],b=I[t*3+1],c=I[t*3+2];
+        for(let t=0;t+2<I.length;t+=3){
+          const a=I[t],b=I[t+1],c=I[t+2];
           let tc=[1,1,1,1];
           if(px&&UVA){
             const U=UVA.data,nc=UVA.nc;
@@ -136,17 +139,23 @@
             if(nc>3)va=(C[a*nc+3]+C[b*nc+3]+C[c*nc+3])/3;
           }
           const alpha=tc[3]*fac[3]*va;
-          const vis=(mat.alphaMode==='MASK'&&alpha<cut)?0:1;
-          visible[t]=vis;if(vis)visibleTriangles++;
-          triCol[t*3]=tc[0]*fac[0]*vr;
-          triCol[t*3+1]=tc[1]*fac[1]*vg;
-          triCol[t*3+2]=tc[2]*fac[2]*vb;
+          if(mat.alphaMode==='MASK'&&alpha<cut)continue;
+          const col=[tc[0]*fac[0]*vr,tc[1]*fac[1]*vg,tc[2]*fac[2]*vb];
+          const ia=a*3,ib=b*3,ic=c*3,fn=faceNormal(P,ia,ib,ic);
+          for(const vi of [a,b,c]){
+            const p=vi*3;outP.push(P[p],P[p+1],P[p+2]);
+            if(NA){const n=vi*NA.nc;outN.push(NA.data[n],NA.data[n+1],NA.data[n+2]);}
+            else outN.push(fn[0],fn[1],fn[2]);
+            outC.push(col[0],col[1],col[2]);
+          }
+          visibleTriangles++;
         }
-        prims.push({pos:P,idx:I,triCol,visible});
       }
-      if(!prims.length)throw new Error('no mesh primitives');
-      STORE[key]={prims,triangles:visibleTriangles,file};
-      console.log('Verdant nature ready:',key,'triangles',visibleTriangles);
+      if(!outP.length)throw new Error('no visible mesh triangles');
+      STORE[key]={pos:new Float32Array(outP),nrm:new Float32Array(outN),
+                  col:new Float32Array(outC),count:outP.length/3,
+                  triangles:visibleTriangles,file};
+      console.log('Verdant instanced nature ready:',key,'triangles',visibleTriangles);
       return true;
     }catch(e){
       console.warn('Verdant nature unavailable:',key,e.message);
@@ -156,56 +165,15 @@
 
   function startLoads(){
     if(started)return;started=true;
-    /* Core species first so the rider can enter the world quickly. */
-    const core=[
-      loadModel('common1','assets/models/CommonTree_1.gltf'),
-      loadModel('twisted1','assets/models/TwistedTree_1.gltf'),
-      loadModel('pine1','assets/models/Pine_1.gltf'),
-      loadModel('bush','assets/models/Bush_Common.gltf'),
-      loadModel('fern','assets/models/Fern_1.gltf')
-    ];
-    /* Variants start only after the core requests settle. They share texture
-       cache entries, so the extra visual variety is relatively cheap. */
-    Promise.allSettled(core).then(()=>Promise.allSettled([
-      loadModel('common3','assets/models/CommonTree_3.gltf'),
-      loadModel('common5','assets/models/CommonTree_5.gltf'),
-      loadModel('twisted3','assets/models/TwistedTree_3.gltf'),
-      loadModel('pine3','assets/models/Pine_3.gltf'),
-      loadModel('pine5','assets/models/Pine_5.gltf'),
-      loadModel('dead2','assets/models/DeadTree_2.gltf'),
-      loadModel('bushFlowers','assets/models/Bush_Common_Flowers.gltf'),
-      loadModel('flower4','assets/models/Flower_4_Group.gltf'),
-      loadModel('mushroom','assets/models/Mushroom_Common.gltf'),
-      loadModel('rock1','assets/models/Rock_Medium_1.gltf'),
-      loadModel('rock2','assets/models/Rock_Medium_2.gltf')
-    ]));
-  }
-
-  function appendModel(mb,m){
-    if(!m)return;
-    for(const pr of m.prims){
-      const P=pr.pos,I=pr.idx,C=pr.triCol,V=pr.visible;
-      for(let t=0,ti=0;t+2<I.length;t+=3,ti++){
-        if(!V[ti])continue;
-        const i0=I[t]*3,i1=I[t+1]*3,i2=I[t+2]*3;
-        const A=mb.P(P[i0],P[i0+1],P[i0+2]);
-        const B=mb.P(P[i1],P[i1+1],P[i1+2]);
-        const D=mb.P(P[i2],P[i2+1],P[i2+2]);
-        mb.tri(A,B,D,[C[ti*3],C[ti*3+1],C[ti*3+2]],0.01);
-      }
-    }
-  }
-  function mergeProps(w,mb){
-    if(!mb.idx.length)return 0;
-    const op=w.props||{pos:new Float32Array(0),nrm:new Float32Array(0),col:new Float32Array(0),idx:new Uint32Array(0)};
-    const p=new Float32Array(op.pos.length+mb.pos.length);p.set(op.pos);p.set(mb.pos,op.pos.length);
-    const n=new Float32Array(op.nrm.length+mb.nrm.length);n.set(op.nrm);n.set(mb.nrm,op.nrm.length);
-    const c=new Float32Array(op.col.length+mb.col.length);c.set(op.col);c.set(mb.col,op.col.length);
-    const ix=new Uint32Array(op.idx.length+mb.idx.length);ix.set(op.idx);
-    const base=op.pos.length/3;
-    for(let i=0;i<mb.idx.length;i++)ix[op.idx.length+i]=mb.idx[i]+base;
-    w.props={pos:p,nrm:n,col:c,idx:ix};
-    return mb.idx.length/3;
+    const files={
+      common1:'CommonTree_1.gltf',common3:'CommonTree_3.gltf',common5:'CommonTree_5.gltf',
+      twisted1:'TwistedTree_1.gltf',twisted3:'TwistedTree_3.gltf',
+      pine1:'Pine_1.gltf',pine3:'Pine_3.gltf',pine5:'Pine_5.gltf',dead2:'DeadTree_2.gltf',
+      bush:'Bush_Common.gltf',bushFlowers:'Bush_Common_Flowers.gltf',fern:'Fern_1.gltf',
+      flower4:'Flower_4_Group.gltf',mushroom:'Mushroom_Common.gltf',
+      rock1:'Rock_Medium_1.gltf',rock2:'Rock_Medium_2.gltf'
+    };
+    for(const k in files)loadModel(k,'assets/models/'+files[k]);
   }
 
   if(typeof window!=='undefined'&&typeof fetch==='function')startLoads();
@@ -217,71 +185,86 @@
     const w=previousBuild(sc,onProgress);
     if(!w||!sc||sc.id!=='verdant'||!w.verdant)return w;
 
-    const coreReady=!!(STORE.common1&&STORE.twisted1&&STORE.pine1&&STORE.bush&&STORE.fern);
-    if(!coreReady){
-      w.__realNature={ready:false,loading:true};
-      return w;
-    }
+    /* If the rider enters immediately before the core models are ready, keep
+       the old billboard vegetation rather than producing an empty world. */
+    const coreReady=!!(STORE.common1&&STORE.bush&&STORE.fern);
+    if(!coreReady){w.__realNature={ready:false,loading:true};return w;}
 
-    const mb=new MeshB(),rr=mulberry32(sc.seed+913),n=w.nMain;
-    const MAX_NEW_TRIS=430000;
-    const stats={trees:0,bushes:0,ferns:0,flowers:0,mushrooms:0,rocks:0,skippedBudget:0};
-    const available=keys=>keys.map(k=>STORE[k]).filter(Boolean);
-    const pick=keys=>{const a=available(keys);return a.length?a[Math.floor(rr()*a.length)]:null;};
-    const at=(km,off,model,scale,kind)=>{
-      if(!model)return false;
-      const now=mb.idx.length/3;
-      if(now+(model.triangles||0)>MAX_NEW_TRIS){stats.skippedBudget++;return false;}
+    const rr=mulberry32(sc.seed+11713),n=w.nMain,routeKm=n*ROUTE_STEP/1000;
+    const groups={},models={};
+    const stats={trees:0,bushes:0,ferns:0,flowers:0,mushrooms:0,rocks:0,total:0};
+    const ranges={trees:1.45,bushes:.90,ferns:.68,flowers:.58,mushrooms:.46,rocks:1.08};
+
+    const available=keys=>keys.filter(k=>STORE[k]);
+    const pickKey=(keys,fallback)=>{
+      const a=available(keys);if(a.length)return a[Math.floor(rr()*a.length)];
+      return STORE[fallback]?fallback:null;
+    };
+    const add=(km,off,key,scale,kind)=>{
+      if(!key||!STORE[key])return false;
+      km=((km%routeKm)+routeKm)%routeKm;
       const i=Math.max(0,Math.min(n-1,Math.floor(km*1000/ROUTE_STEP)));
       const side=off<0?-1:1,o=Math.abs(off);
       const x=w.rx[i]-w.tz[i]*o*side,z=w.rz[i]+w.tx[i]*o*side;
-      mb.setTF(x,w.meshH(x,z)-.06,z,rr()*6.28318,scale);
-      appendModel(mb,model);
-      if(kind&&stats[kind]!==undefined)stats[kind]++;
-      return true;
+      const y=w.meshH(x,z)-.06;
+      if(!groups[key])groups[key]={kind,range:ranges[kind]||1,instances:[]};
+      groups[key].instances.push(km,x,y,z,rr()*6.283185,scale);
+      models[key]=STORE[key];
+      stats[kind]++;stats.total++;return true;
     };
-    const scatter=(k0,k1,step,pool,offMin,offMax,sMin,sMax,kind)=>{
-      let j=0;
-      for(let km=k0+step*.4;km<k1;km+=step*(.88+rr()*.24),j++){
-        const side=(j&1)?1:-1;
-        const off=side*(offMin+rr()*(offMax-offMin));
-        at(km,off,pick(pool),sMin+rr()*(sMax-sMin),kind);
+    const scatterBoth=(k0,k1,step,pool,offMin,offMax,sMin,sMax,kind,chance,cluster)=>{
+      chance=chance===undefined?1:chance;cluster=cluster||0;
+      let km=k0+rr()*step;
+      while(km<k1){
+        for(const side of [-1,1]){
+          if(rr()>chance)continue;
+          const off=side*(offMin+rr()*(offMax-offMin));
+          const key=pickKey(pool,kind==='trees'?'common1':kind==='ferns'?'fern':'bush');
+          add(km+(rr()-.5)*step*.35,off,key,sMin+rr()*(sMax-sMin),kind);
+          if(cluster&&rr()<cluster){
+            const off2=off+side*(2+rr()*6);
+            add(km+(rr()-.5)*step*.55,off2,key,(sMin+rr()*(sMax-sMin))*.88,kind);
+          }
+        }
+        km+=step*(.82+rr()*.36);
       }
     };
 
-    /* 0-4 km — open green forest / meadow. */
-    scatter(0,4,.27,['common1','common3','common5'],11,38,.72,1.08,'trees');
-    scatter(0,4,.25,['bush','bushFlowers'],6,24,.58,.98,'bushes');
+    /* 0-4 km — lush open woodland: frequent trees plus lower undergrowth. */
+    scatterBoth(0,4,.070,['common1','common3','common5'],8,34,.70,1.08,'trees',.92,.24);
+    scatterBoth(0,4,.036,['bush','bushFlowers'],5,22,.48,.90,'bushes',.90,.18);
+    scatterBoth(0,4,.070,['fern'],5,18,.12,.22,'ferns',.72,.08);
 
-    /* 4-9 km — denser mixed woodland with twisted trees. */
-    scatter(4,9,.29,['common1','common3','twisted1','twisted3'],8,31,.58,.94,'trees');
-    scatter(4,9,.27,['bush','bushFlowers','fern'],5,20,.34,.78,'bushes');
+    /* 4-9 km — denser mixed woodland. */
+    scatterBoth(4,9,.058,['common1','common3','twisted1','twisted3'],7,30,.58,.96,'trees',.94,.30);
+    scatterBoth(4,9,.031,['bush','bushFlowers'],4.8,20,.42,.82,'bushes',.93,.22);
+    scatterBoth(4,9,.046,['fern'],4.5,17,.12,.24,'ferns',.86,.12);
 
-    /* 9-14 km — wet jungle: fewer big trunks, much richer undergrowth. */
-    scatter(9,14,.47,['twisted1','twisted3','common5'],9,28,.52,.84,'trees');
-    scatter(9,14,.24,['fern'],4.5,17,.14,.28,'ferns');
-    scatter(9,14,.44,['bushFlowers','flower4'],5,19,.34,.72,'flowers');
-    scatter(9,14,.62,['mushroom'],4.5,15,.28,.50,'mushrooms');
+    /* 9-14 km — wet jungle with rich low vegetation. */
+    scatterBoth(9,14,.078,['twisted1','twisted3','common5'],7,26,.52,.88,'trees',.88,.28);
+    scatterBoth(9,14,.022,['fern'],4,16,.11,.23,'ferns',.95,.20);
+    scatterBoth(9,14,.050,['bush','bushFlowers'],4.5,18,.38,.78,'bushes',.90,.20);
+    scatterBoth(9,14,.066,['flower4'],4.5,16,.22,.42,'flowers',.72,.10);
+    scatterBoth(9,14,.095,['mushroom'],4,13,.22,.42,'mushrooms',.60,.08);
 
-    /* 14-19 km — exposed rocky / dead-wood section. */
-    scatter(14,19,.72,['dead2','twisted1'],11,35,.45,.72,'trees');
-    scatter(14,19,.43,['rock1','rock2'],6,27,.55,1.20,'rocks');
-    scatter(14,19,.68,['bush'],8,24,.42,.72,'bushes');
+    /* 14-19 km — rocky / dead-wood exposure. */
+    scatterBoth(14,19,.125,['dead2','twisted1'],9,32,.44,.74,'trees',.72,.10);
+    scatterBoth(14,19,.047,['rock1','rock2'],5,25,.48,1.10,'rocks',.90,.16);
+    scatterBoth(14,19,.070,['bush'],6,22,.38,.68,'bushes',.74,.08);
 
     /* 19-23 km — alpine pine forest. */
-    scatter(19,23,.30,['pine1','pine3','pine5'],8,32,.58,.94,'trees');
-    scatter(19,23,.48,['rock1','rock2'],7,24,.55,1.05,'rocks');
-    scatter(19,23,.58,['fern','bush'],6,19,.28,.60,'ferns');
+    scatterBoth(19,23,.055,['pine1','pine3','pine5'],7,30,.56,.96,'trees',.95,.30);
+    scatterBoth(19,23,.052,['fern','bush'],4.5,18,.18,.48,'ferns',.82,.12);
+    scatterBoth(19,23,.085,['rock1','rock2'],6,23,.50,1.05,'rocks',.68,.08);
 
-    /* 23-25 km — mixed return, blending species from earlier biomes. */
-    scatter(23,25,.31,['common1','common5','pine5','twisted1'],9,30,.58,.92,'trees');
-    scatter(23,25,.29,['bush','bushFlowers','fern'],5,18,.30,.70,'bushes');
-    scatter(23,25,.55,['flower4'],5,16,.30,.58,'flowers');
+    /* 23-25 km — mixed return. */
+    scatterBoth(23,25,.065,['common1','common5','pine5','twisted1'],7,28,.58,.96,'trees',.94,.28);
+    scatterBoth(23,25,.034,['bush','bushFlowers'],4.5,18,.38,.78,'bushes',.92,.18);
+    scatterBoth(23,25,.070,['fern','flower4'],4,15,.16,.38,'flowers',.72,.08);
 
-    mb.setTF(0,0,0,0,1);
-    const tris=mergeProps(w,mb);
-    w.__realNature={ready:true,triangles:tris,budget:MAX_NEW_TRIS,stats};
-    console.log('Verdant v116 imported nature:',w.__realNature);
+    w.instNature={ready:true,routeKm,models,groups,stats};
+    w.__realNature={ready:true,mode:'gpu-instanced',stats};
+    console.log('Verdant v117 instance plan:',stats,'groups',Object.keys(groups).length);
     return w;
   };
 })();
