@@ -19,10 +19,17 @@ jobs:
           node --check js/18-verdant-weather.js
           node --check js/19-verdant-assets.js
       - name: Verdant generated-world smoke test
-        run: node tests/verdant-smoke.js
+        id: verdant
+        shell: bash
+        run: |
+          set +e
+          node tests/verdant-smoke.js 2>&1 | tee verdant-test.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: Validate new glTF files
         run: |
-          node - <<'NODE'
+          node - <<'NODE' 2>&1 | tee gltf-test.log
           const fs=require('fs');
           for(const f of [
             'assets/models/verdant_bear.gltf',
@@ -36,3 +43,14 @@ jobs:
             console.log('ok',f);
           }
           NODE
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdant-check-output
+          path: |
+            verdant-test.log
+            gltf-test.log
+      - name: Fail if generated-world test failed
+        if: steps.verdant.outputs.exit_code != '0'
+        run: exit 1
