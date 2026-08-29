@@ -100,7 +100,7 @@ function buildWorld(scene,onProgress){
   }
 
   /* walk it finely, then resample at an even 4 m spacing */
-  let fine=[], dupRange=null, epicKeep=null;
+  let fine=[], dupRange=null, epicKeep=null, dupTwinRef=null;
   const FN=6000;
   for(let i=0;i<=FN;i++){
     const th=i/FN*Math.PI*2, r=rAt(th);
@@ -155,14 +155,25 @@ function buildWorld(scene,onProgress){
     const phTop=ph0+dirS*T*6.28318;
     const RS1=RMIN+160;               /* the spiral lets go of the mountain here */
     const spine=[],SN=900;
-    /* the stem out of the loop starts 120 m before the spiral's outer
-       turn - the gap back to the loop is covered by the foot fork's
-       rounded fillets, so km 6.3 is a plain turn, not a kink */
+    /* the stem runs from the foot fillets' tangency straight in, then a
+       gentle sweep turns it onto the spiral tangentially - the same move
+       the summit end makes, so the spiral has no square corner at either
+       end */
+    const RTs=(CLEAR-52)*Math.cos(Math.asin(52/(CLEAR-52)));
     for(let k2=0;k2<=34;k2++)
-      spine.push(sp(ph0, (R0+120)-120*k2/34));
-    for(let k2=1;k2<=SN;k2++){
-      const t=k2/SN;
-      spine.push(sp(ph0+dirS*t*T*6.28318, R0+(RS1-R0)*t));
+      spine.push(sp(ph0, RTs-(RTs-(R0+90))*k2/34));
+    const spF=t=>sp(ph0+dirS*t*T*6.28318, R0+(RS1-R0)*t);
+    {
+      const t0=0.0127;
+      const pA=spF(t0), pB=spF(t0+0.002);
+      const tl2=Math.hypot(pB[0]-pA[0],pB[1]-pA[1])||1;
+      for(const q of bez(sp(ph0,R0+90), [-Math.cos(ph0),-Math.sin(ph0)],
+        pA, [(pB[0]-pA[0])/tl2,(pB[1]-pA[1])/tl2], 40)) spine.push(q);
+      spine.push(pA);
+      for(let k2=1;k2<=SN;k2++){
+        const t=t0+(1-t0)*k2/SN;
+        spine.push(spF(t));
+      }
     }
     /* the summit approach: sweep out of the spiral into a straight stem
        aimed at the peak. The crown is then entered and left through two
@@ -196,26 +207,64 @@ function buildWorld(scene,onProgress){
        onto the climb at A, and on return finish the remaining stretch */
     const arc1=[],arc2=[];
     const spanStart=1.9;             /* the lap's wrap point sits away from A */
-    const N1=Math.max(600,Math.round((6.28318-spanStart)/6.28318*FN));
+    /* the climb LEAVES the loop a little before the stem and REJOINS a
+       little after - two mouths joined to the stem by exact circular
+       fillets (tangent to both the skirt and the stem, so they cannot
+       kink). CAREFUL WITH FRAMES: the loop's parameter th is the angle
+       around the WORLD ORIGIN, but the skirt circle and the stem live
+       around the PEAK - the mouths are placed in the peak frame and
+       mapped back to loop angles numerically. */
+    const RFI=52, DLT=Math.asin(RFI/(CLEAR-RFI));
+    const RT=(CLEAR-RFI)*Math.cos(DLT);
+    const tanA2=[-Math.sin(thA),Math.cos(thA)];
+    const sgnM=((A[0]-pk.x)*tanA2[1]-(A[1]-pk.z)*tanA2[0])>0?1:-1;
+    /* push() moves a raw loop point along its PEAK ray, so the loop
+       parameter of each mouth is solved for: the th whose pushed point
+       sits at the mouth's peak angle */
+    const pkAng=th=>{const P2=[Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)];
+      return Math.atan2(P2[1]-pk.z,P2[0]-pk.x);};
+    const solveTh=(target,side)=>{
+      let best=thA, bd=1e9;
+      for(let k2=1;k2<=800;k2++){
+        const th=thA+side*k2/800*0.5;
+        let d=pkAng(th)-target; while(d>3.14159)d-=6.28318; while(d<-3.14159)d+=6.28318;
+        d=Math.abs(d);
+        if(d<bd){bd=d;best=th;}
+      }
+      return best;
+    };
+    const thEnt=solveTh(ph0-sgnM*DLT,-1), thExit=solveTh(ph0+sgnM*DLT,1);
+    const wrapA=v=>{ while(v<0)v+=6.28318; while(v>=6.28318)v-=6.28318; return v; };
+    const span1=wrapA(thEnt-(thA+spanStart));
+    const N1=Math.max(600,Math.round(span1/6.28318*FN));
     for(let k2=0;k2<=N1;k2++){
-      const th=thA+spanStart+(6.28318-spanStart)*k2/N1;
+      const th=thA+spanStart+span1*k2/N1;
       arc1.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
     }
-    const N2b=Math.max(200,Math.round(spanStart/6.28318*FN));
+    const span2=wrapA((thA+spanStart)-thExit);
+    const N2b=Math.max(200,Math.round(span2/6.28318*FN));
     for(let k2=0;k2<=N2b;k2++){
-      const th=thA+spanStart*k2/N2b;
+      const th=thExit+span2*k2/N2b;
       arc2.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
     }
-    /* the foot of the climb is a Y-fork like the summit: a rounded turn
-       off the loop onto the stem, and a rounded turn back onto the loop */
-    const eA=arc1[arc1.length-1], eA2=arc1[arc1.length-2];
-    const alF=Math.hypot(eA[0]-eA2[0],eA[1]-eA2[1])||1;
-    const inwF=[-Math.cos(ph0),-Math.sin(ph0)];
-    const outwF=[Math.cos(ph0),Math.sin(ph0)];
-    const bezIn=bez(eA,[(eA[0]-eA2[0])/alF,(eA[1]-eA2[1])/alF],spine[0],inwF,18);
-    const a2s=arc2[0], a2s2=arc2[1];
-    const blF=Math.hypot(a2s2[0]-a2s[0],a2s2[1]-a2s[1])||1;
-    const bezOut=bez(spine[0],outwF,a2s,[(a2s2[0]-a2s[0])/blF,(a2s2[1]-a2s[1])/blF],18);
+    /* the foot fillets: arcs of radius RFI tangent to the skirt circle
+       and to the radial stem, all in the PEAK frame - kink-free */
+    const filArc=side=>{
+      const thC=ph0+side*sgnM*DLT;
+      const C2=[pk.x+Math.cos(thC)*(CLEAR-RFI), pk.z+Math.sin(thC)*(CLEAR-RFI)];
+      const Pl=[pk.x+Math.cos(thC)*CLEAR, pk.z+Math.sin(thC)*CLEAR];
+      const Ps=[pk.x+Math.cos(ph0)*RT, pk.z+Math.sin(ph0)*RT];
+      const a0=Math.atan2(Pl[1]-C2[1],Pl[0]-C2[0]);
+      let da=Math.atan2(Ps[1]-C2[1],Ps[0]-C2[0])-a0;
+      while(da>Math.PI)da-=6.28318; while(da<-Math.PI)da+=6.28318;
+      const out=[];
+      for(let k2=1;k2<14;k2++){
+        const a3=a0+da*k2/14;
+        out.push([C2[0]+Math.cos(a3)*RFI, C2[1]+Math.sin(a3)*RFI]);
+      }
+      return out;
+    };
+    const bezIn=filArc(-1), bezOut=filArc(1).reverse();
     fine=arc1
       .concat(bezIn)
       .concat(up)
@@ -223,15 +272,95 @@ function buildWorld(scene,onProgress){
       .concat(down)
       .concat(bezOut)
       .concat(arc2);
-    const plen=q=>{let L2=0;for(let k2=1;k2<q.length;k2++)L2+=Math.hypot(q[k2][0]-q[k2-1][0],q[k2][1]-q[k2-1][1]);return L2|0;};
-    const LA=plen(arc1)+plen(bezIn);
-    dupRange=[LA+plen(up)+plen(crown), LA+plen(up)+plen(crown)+plen(down)];
-    /* no tunnels or bridges near the forks: the turns live on honest ground */
-    epicKeep=[[plen(arc1)-60, LA+80],
-              [LA+plen(up)-100, LA+plen(up)+100],
-              [dupRange[1]-60, dupRange[1]+plen(bezOut)+80]];
-    try{window.__epic={pk:[pk.x|0,pk.z|0,+(landAt(pk.x,pk.z)|0)],R0:R0|0,RMIN,T,
-      arc:plen(arc1)+plen(arc2),up:plen(up),crown:plen(crown),dup:dupRange.map(v=>v|0)};}catch(e){}
+    /* piece boundaries as POINT indices - they ride through the
+       monotonize/dedupe/blur below, and all metre bookkeeping is read
+       off the FINAL geometry (measuring the raw pieces lies once the
+       path has been smoothed) */
+    let cutsP=[];
+    {
+      let acc=0;
+      for(const q of [arc1,bezIn,up,crown,down,bezOut,arc2]){ acc+=q.length; cutsP.push(acc); }
+    }
+    /* the hard pushout can fold the loop back on itself where the raw
+       loop wiggles across the CLEAR boundary - rewrite each on-skirt run
+       as a clean monotone arc around the peak (long runs only at their
+       ends; their middles are already exact arcs) */
+    {
+      const pkA=q=>Math.atan2(q[1]-pk.z,q[0]-pk.x);
+      const pkR=q=>Math.hypot(q[0]-pk.x,q[1]-pk.z);
+      /* make each on-skirt run strictly monotone in peak angle: unwrap
+         the angles, clamp them to running max/min, keep every point's
+         own radius - folds die, everything else barely moves */
+      const mono=(i0,i1)=>{
+        const angs=[pkA(fine[i0])];
+        for(let k2=1;k2<=i1-i0;k2++){
+          let d=pkA(fine[i0+k2])-pkA(fine[i0+k2-1]);
+          while(d>3.14159)d-=6.28318; while(d<-3.14159)d+=6.28318;
+          angs.push(angs[k2-1]+d);
+        }
+        const sgn=angs[angs.length-1]>=angs[0]?1:-1;
+        let m=angs[0];
+        for(let k2=1;k2<=i1-i0;k2++){
+          m=sgn>0?Math.max(m,angs[k2]):Math.min(m,angs[k2]);
+          const rr=pkR(fine[i0+k2]);
+          fine[i0+k2]=[pk.x+Math.cos(m)*rr, pk.z+Math.sin(m)*rr];
+        }
+      };
+      let i0=-1;
+      for(let i=0;i<=fine.length;i++){
+        const on=i<fine.length&&pkR(fine[i])>CLEAR-28&&pkR(fine[i])<CLEAR+60;
+        if(on&&i0<0) i0=i;
+        if((!on||i===fine.length)&&i0>=0){
+          const i1=Math.min(i-1,fine.length-1);
+          if(i1-i0>=4) mono(i0,i1);
+          i0=-1;
+        }
+      }
+    }
+    /* the monotonize clamps folds into plateaus of coincident points -
+       drop them, or they collapse into sharp corners at resampling */
+    {
+      const ded=[fine[0]], keptBelow=new Int32Array(fine.length+1);
+      let kept=1;
+      keptBelow[0]=0; keptBelow[1]=1;
+      for(let i=1;i<fine.length;i++){
+        const q=ded[ded.length-1];
+        if(Math.hypot(fine[i][0]-q[0],fine[i][1]-q[1])>=0.3){ ded.push(fine[i]); kept++; }
+        keptBelow[i+1]=kept;
+      }
+      cutsP=cutsP.map(c=>keptBelow[Math.min(c,fine.length)]);
+      fine=ded;
+    }
+    /* round every corner of the assembled path BEFORE any length is
+       measured, so dupRange and the keep zones see final geometry */
+    {
+      const FLn=fine.length, Wb=18;
+      for(let pass2=0;pass2<4;pass2++){
+        const sx=new Float64Array(FLn+1), sz=new Float64Array(FLn+1);
+        for(let i=0;i<FLn;i++){ sx[i+1]=sx[i]+fine[i][0]; sz[i+1]=sz[i]+fine[i][1]; }
+        for(let i=Wb;i<FLn-Wb;i++){
+          const c=2*Wb+1;
+          fine[i]=[(sx[i+Wb+1]-sx[i-Wb])/c,(sz[i+Wb+1]-sz[i-Wb])/c];
+        }
+      }
+    }
+    {
+      const cumF=[0];
+      for(let i=1;i<fine.length;i++)
+        cumF.push(cumF[i-1]+Math.hypot(fine[i][0]-fine[i-1][0],fine[i][1]-fine[i-1][1]));
+      const mAt=c=>cumF[Math.max(0,Math.min(c-1,fine.length-1))];
+      const endArc1=mAt(cutsP[0]), endBezIn=mAt(cutsP[1]), endUp=mAt(cutsP[2]);
+      const endCrown=mAt(cutsP[3]), endDown=mAt(cutsP[4]), endBezOut=mAt(cutsP[5]);
+      dupRange=[endCrown, endDown];
+      dupTwinRef=[Math.round(endCrown/ROUTE_STEP), Math.round(endUp/ROUTE_STEP)];
+      /* no tunnels or bridges near the forks: the turns live on honest ground */
+      epicKeep=[[endArc1-60, endBezIn+80],
+                [endUp-100, endUp+100],
+                [endDown-60, endBezOut+80]];
+      try{window.__epic={pk:[pk.x|0,pk.z|0,+(landAt(pk.x,pk.z)|0)],R0:R0|0,RMIN,T,
+        up:(endUp-endBezIn)|0,crown:(endCrown-endUp)|0,dup:dupRange.map(v=>v|0),
+        lapF:cumF[fine.length-1]|0};}catch(e){}
+    }
   }
   const FL=fine.length-1;           /* the epic assembly changes the count */
   let total=0; const cum=[0];
@@ -370,14 +499,17 @@ function buildWorld(scene,onProgress){
         for(let i=0;i<nPts;i++) if(dupRoad[i]){ if(sA<0)sA=i; sB=i; }
         const oldA=sA>=0?ry[sA]:0, oldB=sB>=0?ry[sB]:0;
         for(let i=sA;i>=0&&i<=sB;i++){
-          let bj=-1,bd=16*16;
+          let bj=-1,bd=3*3;
+          /* the twin is the mirror-index sample on the ascent - matching
+             by distance alone grabs the other fork branch near the tips
+             and saws the heights */
+          const jPr=dupTwinRef?dupTwinRef[1]-(i-dupTwinRef[0]):-1e9;
           const cx2=Math.floor(rx[i]/cellW), cz2=Math.floor(rz[i]/cellW);
           for(let a2=-1;a2<=1;a2++)for(let b2=-1;b2<=1;b2++){
             const lst=hmap.get((cx2+a2)+':'+(cz2+b2)); if(!lst) continue;
             for(const j of lst){
               if(dupRoad[j]) continue;
-              const dj=Math.min(Math.abs(i-j), nPts-Math.abs(i-j));
-              if(dj<150) continue;
+              if(Math.abs(j-jPr)>40) continue;
               const d=(rx[i]-rx[j])*(rx[i]-rx[j])+(rz[i]-rz[j])*(rz[i]-rz[j]);
               if(d<bd){bd=d;bj=j;}
             }
@@ -808,6 +940,10 @@ function buildWorld(scene,onProgress){
          Near portals keep the narrow band so head walls survive. */
       if(nr2&&!inTunnel[nr2.i]&&h>ry[nr2.i]-0.2&&
          nr2.d<(tunNear[nr2.i]?hwG:hwG+STEP*1.45)) h=ry[nr2.i]-0.3;
+      /* ...and the mirror guarantee: a shallow dip under the roadway is
+         filled up to the deck (bridges excepted - they get real decks) */
+      else if(nr2&&!inTunnel[nr2.i]&&!inBridge[nr2.i]&&h<ry[nr2.i]-0.2&&
+         nr2.d<hwG+STEP*1.45) h=ry[nr2.i]-0.3;
       hgt[j*NV+i]=h;
     }
     if((j&31)===0) onProgress&&onProgress(0.3+0.45*j/NV);
