@@ -28,15 +28,15 @@ jobs:
           const fs=require('fs'),vm=require('vm');
           global.document={querySelector:()=>null};
           global.window={};
-          /* Browser builds may have optional glTF libraries already loaded.
-             World generation must also work when those optional assets are not
-             present, so the topology test supplies empty asset registries. */
+          /* Browser builds may have optional glTF libraries and UI config
+             already loaded. The geometry test supplies neutral stand-ins. */
           const nil=new Proxy({}, {get:()=>null});
           global.GLTREES=nil;
           global.GLCRE=nil;
           global.GLCITY=nil;
           global.GLSTATION=nil;
           global.GLBIKES=nil;
+          global.cfg=new Proxy({}, {get:()=>0});
           const files=[
             'js/01-scenes.js','js/02-core-geometry.js','js/03-world-generation.js',
             'js/16-scenic-route.js','js/17-scenic-surface.js','js/17-scenic-life.js',
