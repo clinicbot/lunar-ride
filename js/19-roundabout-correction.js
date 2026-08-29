@@ -12,8 +12,6 @@
   const dArc=(a,b,dir)=>dir>0?((b-a+TAU)%TAU):((a-b+TAU)%TAU);
   const aDist=(a,b)=>Math.min(dArc(a,b,1),dArc(a,b,-1));
 
-  /* Put the side-road entrance inside the sector where it naturally arrives,
-     but never let it overlap a main-road entrance. */
   function separatedCutAngle(prevAng,nextAng,rawAng,minSep){
     const cand=[];
     for(const dir of [1,-1]){
@@ -45,12 +43,11 @@
     function makeRound(which,jn){
       const cx=w.rx[jn],cz=w.rz[jn],cy=w.ry[jn]+.12;
 
-      /* Try increasingly distant tie-in points.  Feasibility is tested with
-         straight X/Z distance from each tie-in to its circle entry.  A Bezier
-         connector is never shorter than that chord, so this is conservative:
-         if these three height intervals overlap, the final curved approaches
-         can also reach one common flat height within maxGrade. */
-      const maxKs=Math.max(4,Math.min(28,w.nCut-2,Math.floor(w.nMain/5)));
+      /* Search as far as 100 route samples (~400 m in the current world) if
+         needed. Most junctions settle much sooner. Each candidate uses a
+         conservative straight-line connector length, so a candidate accepted
+         here will also be feasible on the slightly longer final Bezier. */
+      const maxKs=Math.max(4,Math.min(100,w.nCut-2,Math.floor(w.nMain/5)));
       let chosen=null,last=null;
       for(let tryKs=4;tryKs<=maxKs;tryKs++){
         const prevI=wrap(jn-tryKs,w.nMain),nextI=wrap(jn+tryKs,w.nMain);
@@ -92,12 +89,9 @@
         previewLevelRange:[chosen.lo,chosen.hi],previewLevelFeasible:chosen.feasible};
       const entry=(a)=>[cx+Math.cos(a)*R,cy,cz+Math.sin(a)*R];
 
-      /* Cubic connector with the real road tangent at its outer end and a
-         radial tangent at the circle, so a forced entrance angle curves in
-         smoothly instead of making a kink. */
       const bezier=(P0,P3,sx,sz,ea)=>{
         [sx,sz]=norm(sx,sz);
-        const ex=-Math.cos(ea),ez=-Math.sin(ea); // travel direction into circle
+        const ex=-Math.cos(ea),ez=-Math.sin(ea);
         const L=Math.hypot(P3[0]-P0[0],P3[2]-P0[2])||1;
         const c=clamp(L*.38,8,42),n=20,pts=[];
         const P1=[P0[0]+sx*c,lerp(P0[1],P3[1],.28),P0[2]+sz*c];
@@ -124,11 +118,6 @@
     }
     rounds.push(makeRound('A',w.jnA),makeRound('B',w.jnB));
 
-    /* Remove any original road triangle that reaches into the construction
-       disc. Testing vertices as well as the centroid prevents thin old-road
-       slivers from surviving under the rebuilt arms. A later flat-level pass
-       also performs an X/Z-only cleanup so roads at a different Y cannot leak
-       through the circle. */
     {
       const pos=w.road.pos,idx=w.road.idx,keep=[];
       for(let q=0;q<idx.length;q+=3){
