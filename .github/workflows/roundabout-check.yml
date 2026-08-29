@@ -67,6 +67,9 @@ jobs:
               }
               const aa=[r.prevAng,r.cutAng,r.nextAng];let minSep=Infinity;
               for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)minSep=Math.min(minSep,ad(aa[i],aa[j]));
+              const starts=Object.fromEntries(arms.map(n=>[n,+r.arms[n].points[0][1].toFixed(2)]));
+              const lens=Object.fromEntries(arms.map(n=>{const p=r.arms[n].points;let L=0;for(let k=1;k<p.length;k++)L+=Math.hypot(p[k][0]-p[k-1][0],p[k][2]-p[k-1][2]);return [n,+L.toFixed(1)];}));
+              console.log('ROUNDABOUT_DIAG',JSON.stringify({which:r.which,span:r.span,ks:r.ks,starts,lens,previewRange:r.previewLevelRange,actualRange:r.levelRange,flatY:r.flatY,grades:r.armMaxGrade,feasible:r.levelFeasible,minSepDeg:minSep*180/Math.PI}));
               if(minSep<40*Math.PI/180)throw new Error(r.which+' has overlapping arms: '+(minSep*180/Math.PI).toFixed(1)+' deg');
               if(!r.levelFeasible)throw new Error(r.which+' has no common flat elevation within grade limit');
               const worst=Math.max(r.armMaxGrade.prev,r.armMaxGrade.next,r.armMaxGrade.cut);
