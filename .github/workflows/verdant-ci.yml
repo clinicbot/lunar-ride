@@ -66,7 +66,15 @@ jobs:
         run: |
           node - <<'NODE' 2>&1 | tee nature-assets.log
           const fs=require('fs'),path=require('path');
-          const files=['CommonTree_1.gltf','TwistedTree_1.gltf','Bush_Common.gltf','Fern_1.gltf'];
+          const files=[
+            'CommonTree_1.gltf','CommonTree_3.gltf','CommonTree_5.gltf',
+            'TwistedTree_1.gltf','TwistedTree_3.gltf',
+            'Pine_1.gltf','Pine_3.gltf','Pine_5.gltf','DeadTree_2.gltf',
+            'Bush_Common.gltf','Bush_Common_Flowers.gltf','Fern_1.gltf',
+            'Flower_4_Group.gltf','Mushroom_Common.gltf',
+            'Rock_Medium_1.gltf','Rock_Medium_2.gltf'
+          ];
+          let total=0;
           for(const name of files){
             const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
             if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid glTF '+name);
@@ -80,8 +88,10 @@ jobs:
             const tris=(j.meshes||[]).flatMap(m=>m.primitives||[]).reduce((s,p)=>{
               const a=j.accessors[p.indices];return s+(a?Math.floor(a.count/3):0);
             },0);
+            total+=tris;
             console.log('ok',name,'triangles',tris,'dependencies',refs.length);
           }
+          console.log('source asset triangles',total);
           NODE
       - name: Upload diagnostics
         if: always()
