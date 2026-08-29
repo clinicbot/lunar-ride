@@ -285,6 +285,49 @@ function buildWorld(scene,onProgress){
       const j=(i+1)%nPts;
       if(ry[i]>ry[j]+mg) ry[i]=ry[j]+mg;
     }
+    /* the twin carriageways of an epic climb are ONE road: the 1-D height
+       smoothing treats them as distant stretches of the path and gives the
+       same physical place two different heights. Weld them: wherever two
+       far-apart samples sit side by side in the world, both take the mean,
+       then blend and re-limit the grade. Two rounds converge. */
+    if(scene.road.epic){
+      const cellW=24, hmap=new Map();
+      const hk=(x,z)=>Math.floor(x/cellW)+':'+Math.floor(z/cellW);
+      for(let i=0;i<nPts;i++){
+        const k2=hk(rx[i],rz[i]);
+        if(!hmap.has(k2)) hmap.set(k2,[]);
+        hmap.get(k2).push(i);
+      }
+      for(let pass=0;pass<5;pass++){
+        for(let i=0;i<nPts;i++){
+          let bj=-1,bd=16*16;
+          const cx2=Math.floor(rx[i]/cellW), cz2=Math.floor(rz[i]/cellW);
+          for(let a2=-1;a2<=1;a2++)for(let b2=-1;b2<=1;b2++){
+            const lst=hmap.get((cx2+a2)+':'+(cz2+b2)); if(!lst) continue;
+            for(const j of lst){
+              const dj=Math.min(Math.abs(i-j), nPts-Math.abs(i-j));
+              if(dj<150) continue;
+              const d=(rx[i]-rx[j])*(rx[i]-rx[j])+(rz[i]-rz[j])*(rz[i]-rz[j]);
+              if(d<bd){bd=d;bj=j;}
+            }
+          }
+          if(bj>=0){ const m=(ry[i]+ry[bj])/2; ry[i]=m; ry[bj]=m; }
+        }
+        for(let r2=0;r2<2;r2++)
+          for(let i=0;i<nPts;i++){
+            const a2=ry[(i-1+nPts)%nPts], b2=ry[(i+1)%nPts];
+            ry[i]=(a2+b2+2*ry[i])/4;
+          }
+        for(let i=0;i<nPts;i++){
+          const j=(i+1)%nPts;
+          if(ry[j]>ry[i]+mg) ry[j]=ry[i]+mg;
+        }
+        for(let i=nPts-1;i>=0;i--){
+          const j=(i+1)%nPts;
+          if(ry[i]>ry[j]+mg) ry[i]=ry[j]+mg;
+        }
+      }
+    }
   }else if(maxG>scene.road.maxGrade){
     const k=scene.road.maxGrade/maxG;
     for(let i=0;i<nPts;i++) ry[i]=mean+(ry[i]-mean)*k;
