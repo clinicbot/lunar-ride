@@ -152,22 +152,42 @@ function buildWorld(scene,onProgress){
        spiral, linearly tapered so every turn is evenly spaced. Both
        carriageways are lateral offsets of this single line, so no part
        of the climb can ever collide with any other part. */
+    const phTop=ph0+dirS*T*6.28318;
+    const RS1=RMIN+160;               /* the spiral lets go of the mountain here */
     const spine=[],SN=900;
     for(let k2=0;k2<=60;k2++)
       spine.push(sp(ph0, CLEAR-(CLEAR-R0)*k2/60));
     for(let k2=1;k2<=SN;k2++){
       const t=k2/SN;
-      spine.push(sp(ph0+dirS*t*T*6.28318, R0+(RMIN-R0)*t));
+      spine.push(sp(ph0+dirS*t*T*6.28318, R0+(RS1-R0)*t));
+    }
+    /* the summit approach: sweep out of the spiral into a straight stem
+       aimed at the peak. The crown is then entered and left through two
+       plain rounded turns at a Y-fork - never a U-turn */
+    const phStem=phTop+dirS*0.35, RF=RMIN+18;
+    {
+      const e=spine[spine.length-1], e2=spine[spine.length-2];
+      let tx2=e[0]-e2[0], tz2=e[1]-e2[1]; const tl=Math.hypot(tx2,tz2)||1;
+      for(const q of bez(e,[tx2/tl,tz2/tl], sp(phStem,RMIN+100),
+        [-Math.cos(phStem),-Math.sin(phStem)], 26)) spine.push(q);
+      for(let k2=1;k2<=20;k2++)
+        spine.push(sp(phStem, (RMIN+100)+(RF-(RMIN+100))*k2/20));
     }
     /* ONE road: the descent retraces the very same line, so up and down
        share a single two-lane ribbon - up on the right, down on the left,
        like everywhere else in the game. The retraced stretch is remembered
        and skipped when drawing, so nothing is built twice. */
     const up=spine;
-    const phTop=ph0+dirS*T*6.28318;
-    const crown=[];                          /* a full lap of the summit */
-    for(let k2=1;k2<140;k2++)
-      crown.push(sp(phTop+dirS*k2/140*6.28318, RMIN));
+    const AM=0.55;                    /* the fork's mouth on the crown */
+    const Fk=sp(phStem,RF);
+    const inw2=[-Math.cos(phStem),-Math.sin(phStem)];
+    const outw2=[Math.cos(phStem),Math.sin(phStem)];
+    const cAng2=k=>phStem+dirS*(AM+(6.28318-2*AM)*k);
+    const tanC2=a2=>[-dirS*Math.sin(a2),dirS*Math.cos(a2)];
+    const crown=[];                   /* fillet in, lap the peak, fillet out */
+    for(const q of bez(Fk,inw2,sp(cAng2(0),RMIN),tanC2(cAng2(0)),16)) crown.push(q);
+    for(let k2=0;k2<=118;k2++) crown.push(sp(cAng2(k2/118),RMIN));
+    for(const q of bez(sp(cAng2(1),RMIN),tanC2(cAng2(1)),Fk,outw2,16)) crown.push(q);
     const down=spine.slice(0,spine.length-1).reverse();
     /* the base loop, split at the junction: ride most of the loop, turn
        onto the climb at A, and on return finish the remaining stretch */
@@ -601,9 +621,37 @@ function buildWorld(scene,onProgress){
     }
   };
   mergeRuns(tunnels); mergeRuns(bridges);
+  /* decks reach a touch past their span, so the road never hangs bare
+     for a few metres at an abutment */
+  for(const r of bridges){ r[0]=Math.max(0,r[0]-2); r[1]=Math.min(nPts-1,r[1]+2); r[2]=r[1]-r[0]; }
 
   for(const r of tunnels) markRun(r,inTunnel,0);
   for(const r of bridges) markRun(r,inBridge,3);
+
+  /* the retraced climb IS the ascent road: every retrace sample inherits
+     its coincident twin's engineering, so tunnels, bridges and the carve
+     treat the shared stretch as one road (and the rider gets tunnel
+     darkness on the way down too) */
+  if(dupRange){
+    const cellW2=24, hm2=new Map(), key2=(x,z)=>Math.floor(x/cellW2)+':'+Math.floor(z/cellW2);
+    for(let i=0;i<nPts;i++) if(!dupRoad[i]){
+      const k2=key2(rx[i],rz[i]);
+      if(!hm2.has(k2)) hm2.set(k2,[]);
+      hm2.get(k2).push(i);
+    }
+    for(let i=0;i<nPts;i++) if(dupRoad[i]){
+      const cx2=Math.floor(rx[i]/cellW2), cz2=Math.floor(rz[i]/cellW2);
+      let bj=-1,bd=144;
+      for(let a2=-1;a2<=1;a2++)for(let b2=-1;b2<=1;b2++){
+        const lst=hm2.get((cx2+a2)+':'+(cz2+b2)); if(!lst) continue;
+        for(const j of lst){
+          const d2=(rx[i]-rx[j])*(rx[i]-rx[j])+(rz[i]-rz[j])*(rz[i]-rz[j]);
+          if(d2<bd){bd=d2;bj=j;}
+        }
+      }
+      if(bj>=0){ inTunnel[i]=inTunnel[bj]; inBridge[i]=inBridge[bj]; carve[i]=carve[bj]; }
+    }
+  }
 
   /* metres from each tunnel sample to its nearest portal - around the wrap,
      so the bore that crosses the start line reads as one tunnel */
@@ -675,6 +723,14 @@ function buildWorld(scene,onProgress){
   /* --- terrain mesh --- */
   const NV=NG+1;
   const hgt=new Float32Array(NV*NV);
+  /* tunnel-adjacent samples: the portal face sheets belong to samples just
+     outside the runs, and they must fall to darkness with the rest */
+  const tunNear=new Uint8Array(nPts);
+  for(let i=0;i<nPts;i++) if(inTunnel[i])
+    for(let d2=-4;d2<=4;d2++){
+      const q=i<nMain?((i+d2)%nMain+nMain)%nMain:clamp(i+d2,nMain,nPts-1);
+      tunNear[q]=1;
+    }
   const hwG=scene.road.halfWidth+2.6;
   for(let j=0;j<NV;j++){
     const z=-HALF+j*STEP;
@@ -684,7 +740,12 @@ function buildWorld(scene,onProgress){
       /* the roadbed guarantee: within the roadway the ground never rises
          above the deck (tunnels excepted - their bores handle it) */
       const nr2=roadNear(x,z);
-      if(nr2&&!inTunnel[nr2.i]&&nr2.d<hwG&&h>ry[nr2.i]-0.2) h=ry[nr2.i]-0.3;
+      /* the clamp must reach a full grid cell past the roadway: a triangle
+         whose vertices all sit OUTSIDE the road can still span right across
+         it, so any vertex able to touch a roadway cell is pulled down.
+         Near portals keep the narrow band so head walls survive. */
+      if(nr2&&!inTunnel[nr2.i]&&h>ry[nr2.i]-0.2&&
+         nr2.d<(tunNear[nr2.i]?hwG:hwG+STEP*1.45)) h=ry[nr2.i]-0.3;
       hgt[j*NV+i]=h;
     }
     if((j&31)===0) onProgress&&onProgress(0.3+0.45*j/NV);
@@ -702,15 +763,6 @@ function buildWorld(scene,onProgress){
     const h01=hgt[(j0+1)*NV+i0], h11=hgt[(j0+1)*NV+i0+1];
     return (h00*(1-u)+h10*u)*(1-v)+(h01*(1-u)+h11*u)*v;
   };
-
-  /* tunnel-adjacent samples: the portal face sheets belong to samples just
-     outside the runs, and they must fall to darkness with the rest */
-  const tunNear=new Uint8Array(nPts);
-  for(let i=0;i<nPts;i++) if(inTunnel[i])
-    for(let d2=-4;d2<=4;d2++){
-      const q=i<nMain?((i+d2)%nMain+nMain)%nMain:clamp(i+d2,nMain,nPts-1);
-      tunNear[q]=1;
-    }
 
   const cHigh=hx(scene.col.high), cLow=hx(scene.col.low);
   const tPos=new Float32Array(NV*NV*3);
