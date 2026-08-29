@@ -331,17 +331,26 @@ function buildWorld(scene,onProgress){
       cutsP=cutsP.map(c=>keptBelow[Math.min(c,fine.length)]);
       fine=ded;
     }
-    /* round every corner of the assembled path BEFORE any length is
-       measured, so dupRange and the keep zones see final geometry */
+    /* round the corners of the LOOP arcs (where the clamp kinks live),
+       BEFORE any length is measured. The climb pieces are tangent-smooth
+       by construction and must NOT be blurred: the shared spine is
+       traversed twice, and blurring would pull the two copies toward
+       their different fork fillets - the descent would leave the drawn
+       road and ride on grass */
     {
       const FLn=fine.length, Wb=18;
       for(let pass2=0;pass2<4;pass2++){
         const sx=new Float64Array(FLn+1), sz=new Float64Array(FLn+1);
         for(let i=0;i<FLn;i++){ sx[i+1]=sx[i]+fine[i][0]; sz[i+1]=sz[i]+fine[i][1]; }
-        for(let i=Wb;i<FLn-Wb;i++){
-          const c=2*Wb+1;
-          fine[i]=[(sx[i+Wb+1]-sx[i-Wb])/c,(sz[i+Wb+1]-sz[i-Wb])/c];
-        }
+        /* the window tapers to zero at each range end, so the blurred
+           stretch meets the untouched fillet points without a step */
+        for(const rg of [[0, cutsP[0]], [cutsP[5], FLn]])
+          for(let i=rg[0]+1;i<rg[1]-1;i++){
+            const w2=Math.min(Wb, i-rg[0], rg[1]-1-i);
+            if(w2<1) continue;
+            const c2=2*w2+1;
+            fine[i]=[(sx[i+w2+1]-sx[i-w2])/c2,(sz[i+w2+1]-sz[i-w2])/c2];
+          }
       }
     }
     {
