@@ -47,7 +47,7 @@
     }
 
     /* Stamp the new fern glTF into the jungle if it has loaded by the time
-       the rider chooses the world.  Existing procedural foliage remains as
+       the rider chooses the world. Existing procedural foliage remains as
        the fallback, so this is additive rather than a dependency. */
     if(GLTREES.vfern&&w.props&&w.verdant){
       const mb=new MeshB();
@@ -75,7 +75,7 @@
 /* Proven v106 route/terrain passes plus a lightweight richness pass. The
    expensive v110 whole-terrain visual/depth passes remain disabled. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=111"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=111"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=111"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=112"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=112"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=112"></script>');
 }
