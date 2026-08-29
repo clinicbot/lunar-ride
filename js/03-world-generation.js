@@ -100,7 +100,7 @@ function buildWorld(scene,onProgress){
   }
 
   /* walk it finely, then resample at an even 4 m spacing */
-  let fine=[], dupRange=null;
+  let fine=[], dupRange=null, epicKeep=null;
   const FN=6000;
   for(let i=0;i<=FN;i++){
     const th=i/FN*Math.PI*2, r=rAt(th);
@@ -155,8 +155,11 @@ function buildWorld(scene,onProgress){
     const phTop=ph0+dirS*T*6.28318;
     const RS1=RMIN+160;               /* the spiral lets go of the mountain here */
     const spine=[],SN=900;
-    for(let k2=0;k2<=60;k2++)
-      spine.push(sp(ph0, CLEAR-(CLEAR-R0)*k2/60));
+    /* the stem out of the loop starts 120 m before the spiral's outer
+       turn - the gap back to the loop is covered by the foot fork's
+       rounded fillets, so km 6.3 is a plain turn, not a kink */
+    for(let k2=0;k2<=34;k2++)
+      spine.push(sp(ph0, (R0+120)-120*k2/34));
     for(let k2=1;k2<=SN;k2++){
       const t=k2/SN;
       spine.push(sp(ph0+dirS*t*T*6.28318, R0+(RS1-R0)*t));
@@ -203,13 +206,30 @@ function buildWorld(scene,onProgress){
       const th=thA+spanStart*k2/N2b;
       arc2.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
     }
+    /* the foot of the climb is a Y-fork like the summit: a rounded turn
+       off the loop onto the stem, and a rounded turn back onto the loop */
+    const eA=arc1[arc1.length-1], eA2=arc1[arc1.length-2];
+    const alF=Math.hypot(eA[0]-eA2[0],eA[1]-eA2[1])||1;
+    const inwF=[-Math.cos(ph0),-Math.sin(ph0)];
+    const outwF=[Math.cos(ph0),Math.sin(ph0)];
+    const bezIn=bez(eA,[(eA[0]-eA2[0])/alF,(eA[1]-eA2[1])/alF],spine[0],inwF,18);
+    const a2s=arc2[0], a2s2=arc2[1];
+    const blF=Math.hypot(a2s2[0]-a2s[0],a2s2[1]-a2s[1])||1;
+    const bezOut=bez(spine[0],outwF,a2s,[(a2s2[0]-a2s[0])/blF,(a2s2[1]-a2s[1])/blF],18);
     fine=arc1
+      .concat(bezIn)
       .concat(up)
       .concat(crown)
       .concat(down)
+      .concat(bezOut)
       .concat(arc2);
     const plen=q=>{let L2=0;for(let k2=1;k2<q.length;k2++)L2+=Math.hypot(q[k2][0]-q[k2-1][0],q[k2][1]-q[k2-1][1]);return L2|0;};
-    dupRange=[plen(arc1)+plen(up)+plen(crown), plen(arc1)+plen(up)+plen(crown)+plen(down)];
+    const LA=plen(arc1)+plen(bezIn);
+    dupRange=[LA+plen(up)+plen(crown), LA+plen(up)+plen(crown)+plen(down)];
+    /* no tunnels or bridges near the forks: the turns live on honest ground */
+    epicKeep=[[plen(arc1)-60, LA+80],
+              [LA+plen(up)-100, LA+plen(up)+100],
+              [dupRange[1]-60, dupRange[1]+plen(bezOut)+80]];
     try{window.__epic={pk:[pk.x|0,pk.z|0,+(landAt(pk.x,pk.z)|0)],R0:R0|0,RMIN,T,
       arc:plen(arc1)+plen(arc2),up:plen(up),crown:plen(crown),dup:dupRange.map(v=>v|0)};}catch(e){}
   }
@@ -234,6 +254,12 @@ function buildWorld(scene,onProgress){
 
   /* the retraced stretch of an out-and-back climb: it exists in the route
      but is drawn and furnished only once */
+  const epicKeepAt=i=>{
+    if(!epicKeep) return false;
+    const m=i*ROUTE_STEP;
+    for(const z of epicKeep) if(m>=z[0]&&m<=z[1]) return true;
+    return false;
+  };
   const dupRoad=new Uint8Array(nPts);
   if(dupRange){
     const a0=Math.min(nPts-1,Math.ceil((dupRange[0]+12)/ROUTE_STEP));
@@ -332,6 +358,42 @@ function buildWorld(scene,onProgress){
         for(let i=nPts-1;i>=0;i--){
           const j=(i+1)%nPts;
           if(ry[i]>ry[j]+mg) ry[i]=ry[j]+mg;
+        }
+      }
+      /* the retrace IS the ascent road: after the soft weld, every
+         retraced sample takes the ascent's height outright - the grade
+         clamp can otherwise hold a stable offset near the foot fork,
+         and a road disagreeing with itself is worse than a fraction of
+         a percent of grade. The two seams are feathered smooth. */
+      if(dupRange){
+        let sA=-1,sB=-1;
+        for(let i=0;i<nPts;i++) if(dupRoad[i]){ if(sA<0)sA=i; sB=i; }
+        const oldA=sA>=0?ry[sA]:0, oldB=sB>=0?ry[sB]:0;
+        for(let i=sA;i>=0&&i<=sB;i++){
+          let bj=-1,bd=16*16;
+          const cx2=Math.floor(rx[i]/cellW), cz2=Math.floor(rz[i]/cellW);
+          for(let a2=-1;a2<=1;a2++)for(let b2=-1;b2<=1;b2++){
+            const lst=hmap.get((cx2+a2)+':'+(cz2+b2)); if(!lst) continue;
+            for(const j of lst){
+              if(dupRoad[j]) continue;
+              const dj=Math.min(Math.abs(i-j), nPts-Math.abs(i-j));
+              if(dj<150) continue;
+              const d=(rx[i]-rx[j])*(rx[i]-rx[j])+(rz[i]-rz[j])*(rz[i]-rz[j]);
+              if(d<bd){bd=d;bj=j;}
+            }
+          }
+          if(bj>=0) ry[i]=ry[bj];
+        }
+        /* each seam's step is absorbed on the one-way side of its fork
+           as a long gentle ramp - the shared stretch itself stays exact */
+        for(const [c,dir,old] of [[sA,-1,oldA],[sB,1,oldB]]){
+          if(c<0) continue;
+          const d0=ry[c]-old;
+          for(let k2=1;k2<=60;k2++){
+            const i2=((c+dir*k2)%nPts+nPts)%nPts;
+            if(dupRoad[i2]) break;
+            ry[i2]+=d0*(1-k2/60);
+          }
         }
       }
     }
@@ -592,14 +654,14 @@ function buildWorld(scene,onProgress){
     return Math.min(dA,dB)>25;
   };
   if(RD.tunnels)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&!dupRoad[i]&&landY[i]-ry[i]>15
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&!dupRoad[i]&&!epicKeepAt(i)&&landY[i]-ry[i]>15
       /* the climb of an epic route stays in the open: its views ARE the ride
          - but only where the cut is shallow; a road buried tens of metres
          inside the mountain is a tunnel however steep it is */
       &&!(scene.road.epic&&Math.abs(grade[i])>3.5&&landY[i]-ry[i]<40),
       70,RD.tunnels+(scene.road.epic?2:0))) tunnels.push(r);
   if(RD.bridges)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&!dupRoad[i]&&ry[i]-landY[i]>6,30,99)) bridges.push(r);
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&!dupRoad[i]&&!epicKeepAt(i)&&ry[i]-landY[i]>6,30,99)) bridges.push(r);
 
   const markRun=(r,flags,ramp)=>{
     for(let i=r[0];i<=r[1];i++){
