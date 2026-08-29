@@ -1,9 +1,7 @@
 /* Lunar Ride service worker.
    NETWORK-FIRST for everything: while online you always get the newest
-   deploy (no stale-version mysteries); every successful response is copied
-   into the cache, so once you have ridden with a connection, the whole game
-   works offline too. */
-const CACHE = 'lunar-ride-v116';
+   deploy; every successful response is copied into the cache for offline use. */
+const CACHE = 'lunar-ride-v117';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
@@ -16,11 +14,10 @@ const CORE = [
   'js/17-verdant-rift.js', 'js/18-verdant-weather.js', 'js/19-verdant-assets.js',
   'js/20-verdant-route-audit.js', 'js/21-verdant-terrain-polish.js',
   'js/25-verdant-lite-richness.js', 'js/26-verdant-real-nature.js',
-  'js/27-verdant-billboard-cleanup.js',
+  'js/27-verdant-billboard-cleanup.js', 'js/28-verdant-instanced-renderer.js',
   'assets/images/verdant_rift_card.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
-  'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf',
-  'assets/models/verdant_fern.gltf'
+  'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf'
 ];
 
 self.addEventListener('install', e => {
