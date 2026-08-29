@@ -26,8 +26,10 @@
 
     const radii=[3,6,10,16,24,36,52,72,96,128,168,220];
     const smoothCircular=(src,r)=>{
-      const out=new Float64Array(n),pref=new Float64Array(n*2+1);
-      for(let k=0;k<n*2;k++)pref[k+1]=pref[k]+src[k%n];
+      /* Three copies guarantee that a window centred anywhere in the middle
+         copy has both its wrapped neighbours available. */
+      const out=new Float64Array(n),pref=new Float64Array(n*3+1);
+      for(let k=0;k<n*3;k++)pref[k+1]=pref[k]+src[k%n];
       const span=r*2+1;
       for(let i=0;i<n;i++){
         const c=i+n,a=c-r,b=c+r+1;
