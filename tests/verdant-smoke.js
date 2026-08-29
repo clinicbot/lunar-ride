@@ -2,7 +2,7 @@
 
 /* Headless smoke test for Verdant Rift.  It deliberately stubs rendering
    details but executes the real custom world builder plus its Verdant-only
-   route/terrain/visual repair passes, so the generated data matches the live app. */
+   route/terrain/visual/depth passes, so generated data matches the live app. */
 const fs=require('fs'),vm=require('vm');
 
 global.SCENES=[];
@@ -31,7 +31,7 @@ global.MeshB=MeshB;
 for(const n of ['mCrystal','mFan','mBroad','mPine','mDome','mDish','mMast','mSolarFarm','mAstro','mRover','mShuttle','mDrone','mRider'])global[n]=()=>{};
 global.appendGLTF=()=>{};
 
-for(const f of ['js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js','js/22-verdant-visual-pass.js'])
+for(const f of ['js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js','js/22-verdant-visual-pass.js','js/23-verdant-depth-pass.js'])
   vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
 
 const sc=SCENES.find(s=>s.id==='verdant');
@@ -46,7 +46,7 @@ assert(finite(w.rx)&&finite(w.rz)&&finite(w.ry)&&finite(w.grade),'non-finite rou
 let maxG=0,maxI=0;for(let i=0;i<w.grade.length;i++){const g=Math.abs(w.grade[i]);if(g>maxG){maxG=g;maxI=i;}}
 const last=w.nMain-1;
 const seamXZ=Math.hypot(w.rx[0]-w.rx[last],w.rz[0]-w.rz[last]);
-console.log('route diagnostics',JSON.stringify({lapLen:w.lapLen,nMain:w.nMain,maxGrade:maxG,maxGradeKm:maxI*4/1000,seamXZ,seamY:w.ry[0]-w.ry[last],audit:w.__verdantAudit,terrainAudit:w.__verdantTerrainAudit,roadPos:w.road.pos.length,roadIdx:w.road.idx.length}));
+console.log('route diagnostics',JSON.stringify({lapLen:w.lapLen,nMain:w.nMain,maxGrade:maxG,maxGradeKm:maxI*4/1000,seamXZ,seamY:w.ry[0]-w.ry[last],audit:w.__verdantAudit,terrainAudit:w.__verdantTerrainAudit,roadPos:w.road.pos.length,roadIdx:w.road.idx.length,depth:w.__verdantDepth}));
 assert(maxG<=8.21,'grade limit exceeded: '+maxG.toFixed(3)+'% at '+(maxI*4/1000).toFixed(3)+' km');
 assert(seamXZ<8.5,'route loop does not close spatially: '+seamXZ.toFixed(2)+' m');
 assert(w.__verdantTerrainAudit&&w.__verdantTerrainAudit.maxNearTrailSlopePct<46,'near-trail terrain still too steep: '+(w.__verdantTerrainAudit&&w.__verdantTerrainAudit.maxNearTrailSlopePct));
@@ -56,11 +56,12 @@ assert(w.road.pos.length>=w.nMain*18,'trail vertex data incomplete');
 assert(w.road.idx.length>=w.nMain*6,'trail surface incomplete');
 assert(w.veg&&w.veg.count>100000,'vegetation field too sparse');
 const count=t=>w.actors.filter(a=>a.type===t).length;
-assert(count('bear')===4,'bear population wrong');
+assert(count('bear')===6,'bear population wrong after depth pass: '+count('bear'));
 assert(count('frog')===12,'frog population wrong');
 assert(count('monkey')===14,'monkey population wrong');
 assert(count('insect')===36,'insect population wrong');
 assert(count('shuttle')>=9,'sky traffic missing');
 assert(w.verdant&&w.verdant.zoneAt(0)===0,'Verdant zone metadata missing');
 assert(w.__verdantVisual,'visual richness pass did not run');
-console.log(JSON.stringify({ok:true,lapKm:(w.lapLen/1000).toFixed(2),maxGrade:maxG.toFixed(2),maxNearTrailSlope:w.__verdantTerrainAudit.maxNearTrailSlopePct.toFixed(2),maxRoadGroundGap:w.__verdantTerrainAudit.maxRoadGroundGap.toFixed(3),terrainTriangles:w.terrain.idx.length/3,trailTriangles:w.road.idx.length/3,vegetationQuads:w.veg.count/6,actors:w.actors.length},null,2));
+assert(w.__verdantDepth&&w.__verdantDepth.ponds===2&&w.__verdantDepth.earlyBears===2,'v108 depth pass did not run');
+console.log(JSON.stringify({ok:true,lapKm:(w.lapLen/1000).toFixed(2),maxGrade:maxG.toFixed(2),maxNearTrailSlope:w.__verdantTerrainAudit.maxNearTrailSlopePct.toFixed(2),maxRoadGroundGap:w.__verdantTerrainAudit.maxRoadGroundGap.toFixed(3),terrainTriangles:w.terrain.idx.length/3,trailTriangles:w.road.idx.length/3,vegetationQuads:w.veg.count/6,actors:w.actors.length,depth:w.__verdantDepth},null,2));
