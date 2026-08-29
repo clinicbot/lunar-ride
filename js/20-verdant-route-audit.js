@@ -16,7 +16,11 @@
     const n=w.nMain,lim=(sc.road.maxGrade||8)/100*ROUTE_STEP;
     const oldRy=new Float32Array(w.ry);
     let passes=0,maxDh=Infinity;
-    for(;passes<600;passes++){
+    /* A single seam error must diffuse around enough samples to satisfy the
+       same grade limit on both sides.  600 passes was visibly insufficient;
+       this still costs only a few tens of millions of simple operations for
+       a 6250-sample route and runs only when the world is built. */
+    for(;passes<6000;passes++){
       maxDh=0;
       for(let i=0;i<n;i++){
         const j=(i+1)%n,dh=w.ry[j]-w.ry[i],ad=Math.abs(dh);
