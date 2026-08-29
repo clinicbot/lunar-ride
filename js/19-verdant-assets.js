@@ -72,9 +72,10 @@
   };
 })();
 
-/* Parser-time loading keeps the two Verdant-only repair passes isolated from
-   every existing world while still making them part of the normal preview. */
+/* Proven v106 route/terrain passes plus a lightweight richness pass. The
+   expensive v110 whole-terrain visual/depth passes remain disabled. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=106"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=106"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=111"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=111"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=111"></script>');
 }
