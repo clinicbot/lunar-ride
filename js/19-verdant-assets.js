@@ -72,9 +72,11 @@
   };
 })();
 
-/* Parser-time loading keeps the two Verdant-only repair passes isolated from
-   every existing world while still making them part of the normal preview. */
+/* Parser-time loading keeps Verdant-only post-processing isolated from every
+   existing world. Order matters: route repair -> terrain polish -> visual
+   richness, all before the normal ride/app code starts. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=106"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=106"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=107"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=107"></script>');
+  document.write('<script src="js/22-verdant-visual-pass.js?b=107"></script>');
 }
