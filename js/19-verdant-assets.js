@@ -73,11 +73,11 @@
 })();
 
 /* Stable route/terrain first, then wildlife, imported real nature, and last
-   the v114 cleanup that hides the legacy billboard clumps in the pilot area. */
+   the v115 fast cleanup that disables the legacy billboard vegetation. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=114"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=114"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=114"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=114"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=114"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=115"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=115"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=115"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=115"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=115"></script>');
 }
