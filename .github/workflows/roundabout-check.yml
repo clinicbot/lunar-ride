@@ -1,0 +1,66 @@
+name: Roundabout topology check
+
+on:
+  push:
+    branches: [fixes-build-90]
+    paths:
+      - 'js/01-scenes.js'
+      - 'js/02-core-geometry.js'
+      - 'js/03-world-generation.js'
+      - 'js/16-scenic-route.js'
+      - 'js/17-scenic-surface.js'
+      - 'js/17-scenic-life.js'
+      - 'js/16-junction-cleanup.js'
+      - 'js/19-roundabout-correction.js'
+      - '.github/workflows/roundabout-check.yml'
+
+jobs:
+  topology:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate Copernicus and validate both roundabouts
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          global.document={querySelector:()=>null};
+          global.window={};
+          const files=[
+            'js/01-scenes.js','js/02-core-geometry.js','js/03-world-generation.js',
+            'js/16-scenic-route.js','js/17-scenic-surface.js','js/17-scenic-life.js',
+            'js/16-junction-cleanup.js','js/19-roundabout-correction.js'
+          ];
+          let src=files.map(f=>fs.readFileSync(f,'utf8')).join('\n');
+          src+=`\n(function(){
+            const sc=SCENES.find(s=>s.id==='copernicus');
+            const w=buildWorld(sc,()=>{});
+            if(!w.roundabouts||w.roundabouts.length!==2)throw new Error('Expected exactly two roundabouts');
+            const TAU=Math.PI*2,ad=(a,b)=>{let d=Math.abs(a-b)%TAU;return Math.min(d,TAU-d);};
+            const report=[];
+            for(const r of w.roundabouts){
+              const arms=['prev','cut','next'];
+              const ends={};
+              for(const n of arms){
+                const pts=r.arms[n].points,p=pts[pts.length-1];
+                const d=Math.hypot(p[0]-r.cx,p[2]-r.cz);
+                if(Math.abs(d-r.R)>.02)throw new Error(r.which+' '+n+' does not terminate on circle: '+d);
+                const start=pts[0],sd=Math.hypot(start[0]-r.cx,start[2]-r.cz);
+                if(sd<r.clipR+2)throw new Error(r.which+' '+n+' connector starts inside clipped zone: '+sd);
+                ends[n]=d;
+              }
+              const aa=[r.prevAng,r.cutAng,r.nextAng];
+              let minSep=Infinity;
+              for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)minSep=Math.min(minSep,ad(aa[i],aa[j]));
+              if(minSep<20*Math.PI/180)throw new Error(r.which+' has overlapping arms: '+(minSep*180/Math.PI).toFixed(1)+' deg');
+              report.push({which:r.which,km:+(r.J/1000).toFixed(2),radius:+r.R.toFixed(2),
+                armAnglesDeg:aa.map(a=>+(a*180/Math.PI).toFixed(1)),minSeparationDeg:+(minSep*180/Math.PI).toFixed(1),
+                connectorStartsOutsideClip:true,allThreeEndsOnCircle:true});
+            }
+            console.log('ROUNDABOUT_TOPOLOGY_OK');
+            console.log(JSON.stringify(report,null,2));
+          })();`;
+          vm.runInThisContext(src,{filename:'roundabout-check.bundle.js'});
+          NODE
