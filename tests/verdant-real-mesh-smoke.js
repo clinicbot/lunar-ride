@@ -11,8 +11,6 @@ var ROUTE_STEP=4;
 var cfg={riders:0};
 var GLTREES={oak:null,pine:null,vfern:null};
 var GLCRE={};
-var RIDER_KITS=[];
-var RIDER_META={};
 var buildWorld=function(){throw new Error('unexpected legacy world builder');};
 var appendGLTF=function(){};
 `;
