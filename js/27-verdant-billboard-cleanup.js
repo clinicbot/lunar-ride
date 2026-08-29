@@ -1,27 +1,19 @@
 "use strict";
 
-/* Verdant Rift v116 — fast legacy billboard cleanup -----------------------
-   Imported glTF nature is the visual baseline. The old upright vegetation
-   sprites are disabled with one cheap linear pass over their size fields.
-   No road lookup and no build-label observer are used here. */
+/* Verdant Rift v117 — remove legacy billboard vegetation -----------------
+   Once the imported instanced nature plan is ready, the old 26k sprite layer
+   is not uploaded at all.  This saves both CPU work and GPU memory instead of
+   uploading the sprites and then hiding them. */
 (function(){
   const previousBuild=buildWorld;
   buildWorld=function(sc,onProgress){
     const w=previousBuild(sc,onProgress);
-    if(!w||!sc||sc.id!=='verdant'||!w.veg||!w.veg.dat)return w;
-    if(!w.__realNature||!w.__realNature.ready)return w;
-
-    const dat=w.veg.dat;
-    let hidden=0;
-    for(let db=0;db+14<dat.length;db+=16){
-      dat[db+2]=0;
-      dat[db+6]=0;
-      dat[db+10]=0;
-      dat[db+14]=0;
-      hidden++;
-    }
-    w.__billboardCleanup={hidden,mode:'global-fast'};
-    console.log('Verdant v116: hidden legacy billboards:',hidden);
+    if(!w||!sc||sc.id!=='verdant')return w;
+    if(!w.instNature||!w.instNature.ready)return w;
+    const oldCount=w.veg&&w.veg.count?w.veg.count:0;
+    w.veg=null;
+    w.__billboardCleanup={removed:true,oldIndexCount:oldCount,mode:'no-upload'};
+    console.log('Verdant v117: legacy billboard vegetation removed before upload');
     return w;
   };
 })();
