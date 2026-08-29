@@ -2,7 +2,7 @@
 
 /* Verdant Rift lightweight richness pass ---------------------------------
    Keeps the proven v106 route/terrain and avoids the expensive v110 visual
-   pass.  Reuses the existing 26k billboard plants instead of appending large
+   pass. Reuses the existing 26k billboard plants instead of appending large
    real-geometry forests, and puts visible wildlife near the start. */
 (function(){
   /* The vegetation atlas is 1536x256 (NPOT). WebGL 1 cannot use mipmapped
@@ -66,21 +66,24 @@
       }
     }
 
-    /* Put unmistakable life inside the initial camera range. These reuse the
-       existing low-poly actor meshes; no new models or geometry are loaded. */
-    const putAnimal=(type,km,off,k)=>{
-      if(!w.actors||!w.actorMeshes||!w.actorMeshes[type]) return;
+    /* New animals must have the SAME runtime fields as actors initialized by
+       js/19. The v111 bears did not; updateActors() then threw before the first
+       render frame, producing a black world with only the weather overlay. */
+    const BEAR_META={float:0,gait:2.8,turn:.75,rest:0,eye:1.28,hip:.72,sh:1.12,headY:1.25,headZ:.48};
+    const putBear=(km,off,k)=>{
+      if(!w.actors||!w.actorMeshes||!w.actorMeshes.bear) return;
       const i=Math.max(0,Math.min(w.nMain-1,Math.floor(km*1000/ROUTE_STEP)));
       const side=off<0?-1:1,o=Math.abs(off);
       const x=w.rx[i]-w.tz[i]*o*side,z=w.rz[i]+w.tx[i]*o*side;
-      w.actors.push({type,px:x,py:w.meshH(x,z),pz:z,yaw:hash(i)*6.28318,k:k||1,emiss:1});
+      const ph=hash(i+17001)*6.28318;
+      w.actors.push({type:'bear',px:x,py:w.meshH(x,z),pz:z,yaw:hash(i)*6.28318,k:k||1,emiss:1,
+        meta:BEAR_META,ph,hx:x,hz:z,wr:2.2,wander:ph,wspd:(i&1?-1:1)*.05,
+        alert:0,headYaw:0,headPitch:0,swing:0,gph:ph});
     };
-    putAnimal('bear',.22,-20,1.15);
-    putAnimal('bear',2.72,24,1.25);
+    putBear(.22,-20,1.15);
+    putBear(2.72,24,1.25);
 
-    /* A small flock circles near the start. If the glTF birds are already
-       ready they are used; otherwise the normal bird fallback will take over
-       when available. */
+    /* A small flock circles near the start. */
     if(w.actors){
       const birdKeys=['bird','bird2','bird3','bird4'].filter(k=>GLCRE[k]&&GLCRE[k].ready);
       [0.06,0.14,0.28,0.46].forEach((km,j)=>{
@@ -97,19 +100,24 @@
     return w;
   };
 
-  /* Visible test marker so the user can immediately tell this safe pass is
-     active without relying on cached script names. */
-  const RELEASE='111';
+  /* Visible release marker. Observe sceneName because startRide writes the
+     shared APP_STAMP only after the world has been built. */
+  const RELEASE='112';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
     const e=document.getElementById('sceneName');
-    if(e&&e.textContent&&e.textContent.indexOf('Verdant Rift')>=0)
+    if(e&&e.textContent&&e.textContent.indexOf('Verdant Rift')>=0&&!e.textContent.endsWith('v'+RELEASE))
       e.textContent=e.textContent.replace(/\s·\sv\d+\s*$/,'')+' · v'+RELEASE;
   };
   if(typeof document!=='undefined'){
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',label,{once:true});
-    else label();
-    [100,350,800].forEach(ms=>setTimeout(label,ms));
+    const install=()=>{
+      label();
+      const e=document.getElementById('sceneName');
+      if(e)new MutationObserver(()=>label()).observe(e,{childList:true,characterData:true,subtree:true});
+      [100,350,800,1500].forEach(ms=>setTimeout(label,ms));
+    };
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+    else install();
   }
 })();
