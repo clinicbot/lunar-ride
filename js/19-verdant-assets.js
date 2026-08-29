@@ -72,10 +72,11 @@
   };
 })();
 
-/* Proven v106 route/terrain passes plus a lightweight richness pass. The
-   expensive v110 whole-terrain visual/depth passes remain disabled. */
+/* Stable route/terrain first, then the lightweight wildlife pass, then the
+   v113 real-textured nature pilot. The old heavy v110 depth pass stays off. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=112"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=112"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=112"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=113"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=113"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=113"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=113"></script>');
 }
