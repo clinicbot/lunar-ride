@@ -3,7 +3,7 @@
    deploy (no stale-version mysteries); every successful response is copied
    into the cache, so once you have ridden with a connection, the whole game
    works offline too. */
-const CACHE = 'lunar-ride-v111';
+const CACHE = 'lunar-ride-v112';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
