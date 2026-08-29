@@ -28,9 +28,15 @@ jobs:
           const fs=require('fs'),vm=require('vm');
           global.document={querySelector:()=>null};
           global.window={};
-          /* World generation may optionally use already-loaded glTF props in a
-             browser. The topology check intentionally runs without GPU assets. */
-          global.GLTREES={};
+          /* Browser builds may have optional glTF libraries already loaded.
+             World generation must also work when those optional assets are not
+             present, so the topology test supplies empty asset registries. */
+          const nil=new Proxy({}, {get:()=>null});
+          global.GLTREES=nil;
+          global.GLCRE=nil;
+          global.GLCITY=nil;
+          global.GLSTATION=nil;
+          global.GLBIKES=nil;
           const files=[
             'js/01-scenes.js','js/02-core-geometry.js','js/03-world-generation.js',
             'js/16-scenic-route.js','js/17-scenic-surface.js','js/17-scenic-life.js',
