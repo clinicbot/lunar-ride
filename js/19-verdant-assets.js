@@ -46,9 +46,9 @@
       if(a.type==='shuttle') a.gcre='vship';
     }
 
-    /* Stamp the new fern glTF into the jungle if it has loaded by the time
-       the rider chooses the world. Existing procedural foliage remains as
-       the fallback, so this is additive rather than a dependency. */
+    /* Keep the original small self-contained fern fallback in the jungle.
+       The imported nature layer in js/26 is additive and independently
+       budgeted; this fallback remains useful if external assets load slowly. */
     if(GLTREES.vfern&&w.props&&w.verdant){
       const mb=new MeshB();
       mb.pos=Array.from(w.props.pos); mb.nrm=Array.from(w.props.nrm);
@@ -73,11 +73,11 @@
 })();
 
 /* Stable route/terrain first, then wildlife, imported real nature, and last
-   the v115 fast cleanup that disables the legacy billboard vegetation. */
+   the fast cleanup that disables the legacy billboard vegetation. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=115"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=115"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=115"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=115"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=115"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=116"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=116"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=116"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=116"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=116"></script>');
 }
