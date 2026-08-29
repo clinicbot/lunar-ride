@@ -6,8 +6,7 @@
    tens of metres apart vertically and force the terrain into a cliff.  Fit
    the road primarily to the natural height field under its X/Z path instead,
    then circularly smooth only as much as necessary to satisfy the 8% riding
-   grade.  This keeps nearby folds naturally compatible while retaining real
-   climbs where the landscape itself rises. */
+   grade. */
 (function(){
   const oldBuild=buildWorld;
   buildWorld=function(sc,onProgress){
@@ -26,8 +25,6 @@
 
     const radii=[3,6,10,16,24,36,52,72,96,128,168,220];
     const smoothCircular=(src,r)=>{
-      /* Three copies guarantee that a window centred anywhere in the middle
-         copy has both its wrapped neighbours available. */
       const out=new Float64Array(n),pref=new Float64Array(n*3+1);
       for(let k=0;k<n*3;k++)pref[k+1]=pref[k]+src[k%n];
       const span=r*2+1;
@@ -52,19 +49,26 @@
       if(mg[0]<=(sc.road.maxGrade||8)+.02)break;
     }
 
+    /* The filtered profile is already smooth; this projection only trims the
+       residual peaks.  Let it truly converge rather than stopping after an
+       arbitrary 240 iterations. */
     const lim=(sc.road.maxGrade||8)/100*ROUTE_STEP;
-    for(let pass=0;pass<240&&mg[0]>(sc.road.maxGrade||8)+.02;pass++){
+    let projectPasses=0;
+    for(;projectPasses<5000&&mg[0]>(sc.road.maxGrade||8)+.005;projectPasses++){
       let changed=false;
-      for(let i=0;i<n;i++){
-        const j=(i+1)%n,dh=fitted[j]-fitted[i],ad=Math.abs(dh);
-        if(ad>lim){
+      const forward=(projectPasses&1)===0;
+      for(let kk=0;kk<n;kk++){
+        const i=forward?kk:(n-1-kk),j=(i+1)%n;
+        const dh=fitted[j]-fitted[i],ad=Math.abs(dh);
+        if(ad>lim+.000001){
           const s=dh>0?1:-1,ex=(ad-lim)*.5;
           fitted[i]+=s*ex;fitted[j]-=s*ex;changed=true;
         }
       }
-      mg=maxGradeOf(fitted);
       if(!changed)break;
+      if((projectPasses&15)===15)mg=maxGradeOf(fitted);
     }
+    mg=maxGradeOf(fitted);
 
     for(let i=0;i<n;i++)w.ry[i]=fitted[i];
     const delta=new Float32Array(n);
@@ -78,10 +82,6 @@
     w.meanY=mean/n;
 
     const near=(x,z)=>w._dbg&&w._dbg.roadNear?w._dbg.roadNear(x,z):null;
-
-    /* Only the road ribbon is moved here.  The next Verdant-only pass rebuilds
-       the terrain from the natural field and then realigns every prop, actor,
-       water feature and vegetation instance exactly once. */
     if(w.road&&w.road.pos){
       const p=w.road.pos;
       for(let k=0;k<p.length;k+=3){
@@ -93,7 +93,7 @@
     const seamXZ=Math.hypot(w.rx[0]-w.rx[n-1],w.rz[0]-w.rz[n-1]);
     w.__verdantAudit={maxGrade:maxG,maxGradeIndex:maxI,seamXZ,
       seamY:Math.abs(w.ry[0]-w.ry[n-1]),lapKm:w.lapLen/1000,
-      terrainFitRadius:chosenRadius,maxRoadLandOffset:maxRoadLand};
+      terrainFitRadius:chosenRadius,projectPasses,maxRoadLandOffset:maxRoadLand};
     if(maxG>(sc.road.maxGrade||8)+.21||seamXZ>8.5)
       console.warn('Verdant route invariant failed',w.__verdantAudit);
     else console.log('Verdant route audit',w.__verdantAudit);
