@@ -41,8 +41,12 @@ assert(w.nCut===0,'Verdant must remain a single route with no shortcut');
 assert(Math.abs(w.lapLen-25000)<120,'lap length is '+w.lapLen+' m, expected ~25 km');
 assert(w.nMain>6000&&w.nMain<6500,'unexpected route sample count '+w.nMain);
 assert(finite(w.rx)&&finite(w.rz)&&finite(w.ry)&&finite(w.grade),'non-finite route values');
-let maxG=0;for(const g of w.grade)maxG=Math.max(maxG,Math.abs(g));
-assert(maxG<=8.21,'grade limit exceeded: '+maxG.toFixed(3)+'%');
+let maxG=0,maxI=0;for(let i=0;i<w.grade.length;i++){const g=Math.abs(w.grade[i]);if(g>maxG){maxG=g;maxI=i;}}
+const last=w.nMain-1;
+const seamXZ=Math.hypot(w.rx[0]-w.rx[last],w.rz[0]-w.rz[last]);
+console.log('route diagnostics',JSON.stringify({lapLen:w.lapLen,nMain:w.nMain,maxGrade:maxG,maxGradeKm:maxI*4/1000,seamXZ,seamY:w.ry[0]-w.ry[last],first:[w.rx[0],w.ry[0],w.rz[0]],last:[w.rx[last],w.ry[last],w.rz[last]]}));
+assert(maxG<=8.21,'grade limit exceeded: '+maxG.toFixed(3)+'% at '+(maxI*4/1000).toFixed(3)+' km');
+assert(seamXZ<8.5,'route loop does not close spatially: '+seamXZ.toFixed(2)+' m');
 assert(w.terrain.pos.length>100000&&w.terrain.idx.length>100000,'terrain mesh missing');
 assert(w.road.pos.length>100000&&w.road.idx.length>100000,'trail mesh missing');
 assert(w.veg&&w.veg.count>100000,'vegetation field too sparse');
