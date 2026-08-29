@@ -7,8 +7,6 @@
   const oldInit=initGL;
   initGL=function(){
     const r=oldInit();
-    /* gl exists after the normal init; these loaders are deliberately not
-       awaited, exactly like the existing optional rider/tree/creature loads. */
     loadGLTFCreature('vbear','assets/models/verdant_bear.gltf',{});
     loadGLTFCreature('vfrog','assets/models/verdant_frog.gltf',{});
     loadGLTFCreature('vmonkey','assets/models/verdant_monkey.gltf',{});
@@ -46,39 +44,36 @@
       if(a.type==='shuttle') a.gcre='vship';
     }
 
-    /* Stamp the new fern glTF into the jungle if it has loaded by the time
-       the rider chooses the world.  Existing procedural foliage remains as
-       the fallback, so this is additive rather than a dependency. */
+    /* Optional fern upgrade. This older path can still be expensive if the
+       fern model is large, so it remains limited to the jungle only. */
     if(GLTREES.vfern&&w.props&&w.verdant){
-      const mb=new MeshB();
-      mb.pos=Array.from(w.props.pos); mb.nrm=Array.from(w.props.nrm);
-      mb.col=Array.from(w.props.col); mb.idx=Array.from(w.props.idx); mb.limb=[];
-      const n=w.nMain, i0=Math.floor(n*9/25), i1=Math.floor(n*13/25);
-      const rr=mulberry32(sc.seed+441);
-      for(let i=i0;i<i1;i+=12+Math.floor(rr()*13)){
+      const extra=new MeshB();
+      const n=w.nMain,i0=Math.floor(n*9/25),i1=Math.floor(n*13/25),rr=mulberry32(sc.seed+441);
+      for(let i=i0;i<i1;i+=28+Math.floor(rr()*20)){
         for(let q=0;q<2;q++){
-          const side=(q?1:-1),off=3.3+rr()*8.0;
-          const x=w.rx[i]-w.tz[i]*off*side,z=w.rz[i]+w.tx[i]*off*side;
-          const y=w.meshH(x,z);
-          mb.setTF(x,y-.05,z,rr()*6.28318,.55+rr()*.80);
-          appendGLTF(mb,GLTREES.vfern);
+          const side=q?1:-1,off=3.3+rr()*8.0;
+          const x=w.rx[i]-w.tz[i]*off*side,z=w.rz[i]+w.tx[i]*off*side,y=w.meshH(x,z);
+          extra.setTF(x,y-.05,z,rr()*6.28318,.55+rr()*.70);appendGLTF(extra,GLTREES.vfern);
         }
       }
-      mb.setTF(0,0,0,0,1);
-      w.props={pos:new Float32Array(mb.pos),nrm:new Float32Array(mb.nrm),
-               col:new Float32Array(mb.col),idx:new Uint32Array(mb.idx)};
+      if(extra.idx.length){
+        const nv=(w.props.pos.length/3)|0;
+        const pos=new Float32Array(w.props.pos.length+extra.pos.length);pos.set(w.props.pos);pos.set(extra.pos,w.props.pos.length);
+        const nrm=new Float32Array(w.props.nrm.length+extra.nrm.length);nrm.set(w.props.nrm);nrm.set(extra.nrm,w.props.nrm.length);
+        const col=new Float32Array(w.props.col.length+extra.col.length);col.set(w.props.col);col.set(extra.col,w.props.col.length);
+        const idx=new Uint32Array(w.props.idx.length+extra.idx.length);idx.set(w.props.idx);for(let k=0;k<extra.idx.length;k++)idx[w.props.idx.length+k]=extra.idx[k]+nv;
+        w.props={pos,nrm,col,idx};
+      }
     }
     return w;
   };
 })();
 
-/* Parser-time loading keeps Verdant-only post-processing isolated from every
-   existing world. Order matters: route repair -> terrain polish -> visual
-   richness -> foreground depth -> release label. */
+/* Verdant-only post-processing. Order matters. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=108"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=108"></script>');
-  document.write('<script src="js/22-verdant-visual-pass.js?b=108"></script>');
-  document.write('<script src="js/23-verdant-depth-pass.js?b=108"></script>');
-  document.write('<script src="js/24-verdant-release.js?b=108"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=109"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=109"></script>');
+  document.write('<script src="js/22-verdant-visual-pass.js?b=109"></script>');
+  document.write('<script src="js/23-verdant-depth-pass.js?b=109"></script>');
+  document.write('<script src="js/24-verdant-release.js?b=109"></script>');
 }
