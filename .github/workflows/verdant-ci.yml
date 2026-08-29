@@ -32,6 +32,15 @@ jobs:
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
+      - name: Verdant real geometry load test
+        id: realmesh
+        shell: bash
+        run: |
+          set +e
+          timeout 35s node tests/verdant-real-mesh-smoke.js 2>&1 | tee verdant-real-mesh.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: Validate new glTF files
         run: |
           node - <<'NODE' 2>&1 | tee gltf-test.log
@@ -55,7 +64,8 @@ jobs:
           name: verdant-check-output
           path: |
             verdant-test.log
+            verdant-real-mesh.log
             gltf-test.log
       - name: Fail if generated-world test failed
-        if: steps.verdant.outputs.exit_code != '0'
+        if: steps.verdant.outputs.exit_code != '0' || steps.realmesh.outputs.exit_code != '0'
         run: exit 1
