@@ -2,7 +2,7 @@
 
 /* Headless smoke test for Verdant Rift.  It deliberately stubs rendering
    details but executes the real custom world builder plus its Verdant-only
-   route/terrain repair passes, so the generated data matches the live app. */
+   route/terrain/visual repair passes, so the generated data matches the live app. */
 const fs=require('fs'),vm=require('vm');
 
 global.SCENES=[];
@@ -31,7 +31,7 @@ global.MeshB=MeshB;
 for(const n of ['mCrystal','mFan','mBroad','mPine','mDome','mDish','mMast','mSolarFarm','mAstro','mRover','mShuttle','mDrone','mRider'])global[n]=()=>{};
 global.appendGLTF=()=>{};
 
-for(const f of ['js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js'])
+for(const f of ['js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js','js/22-verdant-visual-pass.js'])
   vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
 
 const sc=SCENES.find(s=>s.id==='verdant');
@@ -52,10 +52,6 @@ assert(seamXZ<8.5,'route loop does not close spatially: '+seamXZ.toFixed(2)+' m'
 assert(w.__verdantTerrainAudit&&w.__verdantTerrainAudit.maxNearTrailSlopePct<46,'near-trail terrain still too steep: '+(w.__verdantTerrainAudit&&w.__verdantTerrainAudit.maxNearTrailSlopePct));
 assert(w.__verdantTerrainAudit&&w.__verdantTerrainAudit.maxRoadGroundGap<0.75,'terrain does not support trail closely enough: '+(w.__verdantTerrainAudit&&w.__verdantTerrainAudit.maxRoadGroundGap));
 assert(w.terrain.pos.length>100000&&w.terrain.idx.length>100000,'terrain mesh missing');
-/* MeshB duplicates vertices per triangle, so position count is large, while
-   one guaranteed surface quad contributes exactly six indices per route
-   sample.  Test against the actual topology contract rather than an arbitrary
-   100k index threshold. */
 assert(w.road.pos.length>=w.nMain*18,'trail vertex data incomplete');
 assert(w.road.idx.length>=w.nMain*6,'trail surface incomplete');
 assert(w.veg&&w.veg.count>100000,'vegetation field too sparse');
@@ -66,4 +62,5 @@ assert(count('monkey')===14,'monkey population wrong');
 assert(count('insect')===36,'insect population wrong');
 assert(count('shuttle')>=9,'sky traffic missing');
 assert(w.verdant&&w.verdant.zoneAt(0)===0,'Verdant zone metadata missing');
+assert(w.__verdantVisual,'visual richness pass did not run');
 console.log(JSON.stringify({ok:true,lapKm:(w.lapLen/1000).toFixed(2),maxGrade:maxG.toFixed(2),maxNearTrailSlope:w.__verdantTerrainAudit.maxNearTrailSlopePct.toFixed(2),maxRoadGroundGap:w.__verdantTerrainAudit.maxRoadGroundGap.toFixed(3),terrainTriangles:w.terrain.idx.length/3,trailTriangles:w.road.idx.length/3,vegetationQuads:w.veg.count/6,actors:w.actors.length},null,2));
