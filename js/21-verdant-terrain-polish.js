@@ -2,9 +2,9 @@
 
 /* Verdant terrain / vegetation polish -------------------------------------
    Rebuild the terrain from the untouched natural height field and blend it
-   broadly toward the fitted road.  This replaces v105's narrow trench carve.
-   A final neighbour relaxation explicitly prevents near-vertical terrain
-   faces around the rider. */
+   broadly toward the fitted road.  The terrain grid is 16 m, while some
+   Verdant trails are only a few metres wide, so the roadbed itself must be
+   wider than one grid cell or terrain triangles can poke through the trail. */
 (function(){
   const oldBuild=buildWorld;
   buildWorld=function(sc,onProgress){
@@ -26,19 +26,21 @@
     const stepZ=Math.abs(pos[NV*3+2]-pos[2])||stepX;
     const H=new Float32Array(nVert),dist=new Float32Array(nVert),ri=new Int32Array(nVert),pin=new Uint8Array(nVert);
 
-    /* Start over from the natural land surface.  The road fit in js/20 now
-       follows this same field, so only modest shaping is required. */
+    /* Start over from natural land.  Use a broad, nearly-flat support shelf
+       beneath the trail so every 16 m terrain triangle adjacent to the narrow
+       path stays below it.  The shelf then eases back into natural terrain. */
     for(let v=0;v<nVert;v++){
       const k=v*3,x=pos[k],z=pos[k+2],q=near(x,z);
       const natural=landAt?landAt(x,z):pos[k+1];
       let y=natural;
       ri[v]=q&&q.i<w.nMain?q.i:-1;
       dist[v]=q?q.d:1e6;
-      if(q&&q.i<w.nMain&&q.d<240){
+      if(q&&q.i<w.nMain&&q.d<260){
         const zone=w.verdant.zoneAt(q.i),ww=w.verdant.widthAt(q.i);
-        const roadY=w.ry[q.i]-.22;
-        const flat=ww+3.5;
-        const blend=(zone===3?125:(zone===6||zone===7?170:150));
+        const roadY=w.ry[q.i]-.30;
+        /* At least one full terrain-cell radius on either side. */
+        const flat=Math.max(20,ww+10);
+        const blend=(zone===3?135:(zone===6||zone===7?185:165));
         const f=q.d<=flat?1:1-smoothstep(clamp((q.d-flat)/(blend-flat),0,1));
         y=lerp(natural,roadY,f);
         if(q.d<=flat)pin[v]=1;
@@ -46,11 +48,8 @@
       H[v]=y;
     }
 
-    /* Explicit terrain-face limiter.  The route-fitting pass has already
-       removed major altitude conflicts, so this relaxation is now shaping
-       shoulders rather than trying to reconcile incompatible roads. */
     const MAX_SIDE=.38,maxDx=MAX_SIDE*stepX,maxDz=MAX_SIDE*stepZ;
-    const active=v=>dist[v]<205;
+    const active=v=>dist[v]<220;
     const relax=(a,b,maxDh)=>{
       if(!(active(a)||active(b)))return false;
       const dh=H[b]-H[a],ad=Math.abs(dh);
@@ -58,11 +57,16 @@
       const s=dh>0?1:-1,ex=ad-maxDh;
       if(pin[a]&&!pin[b])H[b]-=s*ex;
       else if(pin[b]&&!pin[a])H[a]+=s*ex;
-      else {H[a]+=s*ex*.5;H[b]-=s*ex*.5;}
+      else if(!pin[a]&&!pin[b]){H[a]+=s*ex*.5;H[b]-=s*ex*.5;}
+      else {
+        /* Both are roadbed cells.  Keep the lower one from becoming a wall
+           but split the small reconciliation between them. */
+        H[a]+=s*ex*.5;H[b]-=s*ex*.5;
+      }
       return true;
     };
     let terrainPasses=0;
-    for(;terrainPasses<320;terrainPasses++){
+    for(;terrainPasses<420;terrainPasses++){
       let changed=false;
       if((terrainPasses&1)===0){
         for(let j=0;j<NV;j++)for(let i=0;i<NV;i++){
@@ -100,8 +104,6 @@
     w.meshH=gridH;w.groundAt=gridH;
     const deltaAt=(x,z)=>gridH(x,z)-oldGround(x,z);
 
-    /* The scenery was baked against the old v105 terrain.  Move it exactly
-       once onto the rebuilt surface. */
     if(w.props&&w.props.pos){
       const p=w.props.pos;for(let k=0;k<p.length;k+=3)p[k+1]+=deltaAt(p[k],p[k+2]);
     }
@@ -109,9 +111,8 @@
       const p=w.water.pos;for(let k=0;k<p.length;k+=3)p[k+1]+=deltaAt(p[k],p[k+2]);
     }
 
-    /* Remove the obvious rectangular vegetation cards from the rider's near
-       field.  They remain farther away for inexpensive forest density; close
-       scenery is supplied by real mesh trees, props and Verdant glTF ferns. */
+    /* v105's yellow rectangles were billboard vegetation.  Remove these from
+       the rider's near field; real geometry/glTF plants carry the close view. */
     if(w.veg&&w.veg.ctr&&w.veg.dat&&w.veg.uv){
       const C=w.veg.ctr,D=w.veg.dat,U=w.veg.uv;
       const plants=Math.floor(C.length/12);
@@ -159,8 +160,8 @@
       if(i<NV-1){const h0=at(i,j),h1=at(i+1,j),pct=Math.abs(h1-h0)/stepX*100;record(pct,i,j,'x',h0,h1,v+1);}
       if(j<NV-1){const h0=at(i,j),h1=at(i,j+1),pct=Math.abs(h1-h0)/stepZ*100;record(pct,i,j,'z',h0,h1,v+NV);}
     }
-    /* Sample terrain support directly under the centreline. */
-    for(let i=0;i<w.nMain;i+=8)maxRoadGap=Math.max(maxRoadGap,Math.abs(gridH(w.rx[i],w.rz[i])-(w.ry[i]-.22)));
+    for(let i=0;i<w.nMain;i+=8)
+      maxRoadGap=Math.max(maxRoadGap,Math.abs(gridH(w.rx[i],w.rz[i])-(w.ry[i]-.30)));
     w.__verdantTerrainAudit={passes:terrainPasses,maxNearTrailSlopePct:maxSide,maxRoadGroundGap:maxRoadGap,worst};
     console.log('Verdant terrain audit',w.__verdantTerrainAudit);
     return w;
