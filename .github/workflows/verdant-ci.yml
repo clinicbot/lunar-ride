@@ -20,6 +20,7 @@ jobs:
           node --check js/19-verdant-assets.js
           node --check js/20-verdant-route-audit.js
           node --check js/21-verdant-terrain-polish.js
+          node --check js/22-verdant-visual-pass.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
