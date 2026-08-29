@@ -3,7 +3,7 @@
    deploy (no stale-version mysteries); every successful response is copied
    into the cache, so once you have ridden with a connection, the whole game
    works offline too. */
-const CACHE = 'lunar-ride-v109';
+const CACHE = 'lunar-ride-v110';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
@@ -15,8 +15,7 @@ const CORE = [
   'js/14-layout-fixes.js', 'js/15-map-pan.js', 'js/16-junction-cleanup.js',
   'js/17-verdant-rift.js', 'js/18-verdant-weather.js', 'js/19-verdant-assets.js',
   'js/20-verdant-route-audit.js', 'js/21-verdant-terrain-polish.js',
-  'js/22-verdant-visual-pass.js', 'js/23-verdant-depth-pass.js',
-  'js/24-verdant-release.js',
+  'js/22-verdant-visual-pass.js', 'js/24-verdant-release.js',
   'assets/images/verdant_rift_card.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
   'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf',
