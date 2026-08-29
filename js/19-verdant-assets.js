@@ -74,9 +74,11 @@
 
 /* Parser-time loading keeps Verdant-only post-processing isolated from every
    existing world. Order matters: route repair -> terrain polish -> visual
-   richness, all before the normal ride/app code starts. */
+   richness -> foreground depth -> release label. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=107"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=107"></script>');
-  document.write('<script src="js/22-verdant-visual-pass.js?b=107"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=108"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=108"></script>');
+  document.write('<script src="js/22-verdant-visual-pass.js?b=108"></script>');
+  document.write('<script src="js/23-verdant-depth-pass.js?b=108"></script>');
+  document.write('<script src="js/24-verdant-release.js?b=108"></script>');
 }
