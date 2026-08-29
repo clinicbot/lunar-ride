@@ -111,7 +111,7 @@ function makeDraggable(id,key){
   el.classList.add('drag');
   let down=false,sx=0,sy=0,ox=0,oy=0;
   el.addEventListener('pointerdown',e=>{
-    if(e.target.closest('button,input,select')) return;
+    if(e.target.closest('button,input,select,#miniMap')) return;
     const r=el.getBoundingClientRect();
     placePanel(el,r.left,r.top);
     down=true; sx=e.clientX; sy=e.clientY; ox=r.left; oy=r.top;
