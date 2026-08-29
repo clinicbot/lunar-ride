@@ -2,10 +2,9 @@
 
 /* Verdant preview release label.  The shared application is deliberately
    left on its conservative stamp, while Verdant carries its own visible
-   release number.  A MutationObserver makes the label reliable even when the
-   normal app code rewrites sceneName after this parser-loaded module runs. */
+   release number. */
 (function(){
-  const RELEASE='109';
+  const RELEASE='110';
   const apply=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
@@ -14,7 +13,6 @@
       e.textContent=e.textContent.replace(/\s·\sv\d+\s*$/,'')+' · v'+RELEASE;
     }
   };
-
   apply();
   const install=()=>{
     apply();
