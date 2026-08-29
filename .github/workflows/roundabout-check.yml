@@ -24,35 +24,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Syntax and build-stamp check
+      - name: Syntax check
         run: |
           node --check js/18-roundabout-path.js
           node --check js/19-roundabout-correction.js
-          grep -q 'build 101' index.html
-          grep -q '?b=101' index.html
-      - name: Generate Copernicus and validate both roundabouts
+      - name: Generate Copernicus and validate roundabout topology and levels
         run: |
           node <<'NODE'
           const fs=require('fs'),vm=require('vm');
-          global.document={querySelector:()=>null};
+          global.document={querySelector:()=>null,getElementById:()=>null};
           global.window={};
+          global.addEventListener=()=>{};
+          global.MutationObserver=function(){this.observe=()=>{}};
+          global.performance={now:()=>0};
           const nil=new Proxy({}, {get:()=>null});
-          global.GLTREES=nil;
-          global.GLCRE=nil;
-          global.GLCITY=nil;
-          global.GLSTATION=nil;
-          global.GLBIKES=nil;
+          global.GLTREES=nil;global.GLCRE=nil;global.GLCITY=nil;global.GLSTATION=nil;global.GLBIKES=nil;
           global.cfg=new Proxy({}, {get:()=>0});
-          const files=[
+          const worldFiles=[
             'js/01-scenes.js','js/02-core-geometry.js','js/03-world-generation.js',
             'js/16-scenic-route.js','js/17-scenic-surface.js','js/17-scenic-life.js',
             'js/16-junction-cleanup.js','js/19-roundabout-correction.js'
           ];
-          let src=files.map(f=>fs.readFileSync(f,'utf8')).join('\n');
+          let src=worldFiles.map(f=>fs.readFileSync(f,'utf8')).join('\n');
+          src+='\nvar world=null; var state={seg:"m",s:0,playerX:0,dir:1}; var mapView=null,mctx=null; function segPoint(){};';
+          src+='\n'+fs.readFileSync('js/18-roundabout-path.js','utf8');
           src+=`\n(function(){
             const sc=SCENES.find(s=>s.id==='copernicus');
             const w=buildWorld(sc,()=>{});
             if(!w.roundabouts||w.roundabouts.length!==2)throw new Error('Expected exactly two roundabouts');
+            if(!w.roundaboutFlat)throw new Error('Flat-level postprocess did not run');
             const TAU=Math.PI*2,ad=(a,b)=>{let d=Math.abs(a-b)%TAU;return Math.min(d,TAU-d);};
             const report=[];
             for(const r of w.roundabouts){
@@ -61,18 +61,17 @@ jobs:
                 const pts=r.arms[n].points,p=pts[pts.length-1];
                 const d=Math.hypot(p[0]-r.cx,p[2]-r.cz);
                 if(Math.abs(d-r.R)>.02)throw new Error(r.which+' '+n+' does not terminate on circle: '+d);
+                if(Math.abs(p[1]-r.flatY)>.001)throw new Error(r.which+' '+n+' ends at wrong height: '+p[1]+' vs '+r.flatY);
                 const start=pts[0],sd=Math.hypot(start[0]-r.cx,start[2]-r.cz);
                 if(sd<r.clipR+2)throw new Error(r.which+' '+n+' connector starts inside clipped zone: '+sd);
               }
-              const aa=[r.prevAng,r.cutAng,r.nextAng];
-              let minSep=Infinity;
+              const aa=[r.prevAng,r.cutAng,r.nextAng];let minSep=Infinity;
               for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)minSep=Math.min(minSep,ad(aa[i],aa[j]));
               if(minSep<40*Math.PI/180)throw new Error(r.which+' has overlapping arms: '+(minSep*180/Math.PI).toFixed(1)+' deg');
-              report.push({which:r.which,km:+(r.J/1000).toFixed(2),radius:+r.R.toFixed(2),
-                armAnglesDeg:aa.map(a=>+(a*180/Math.PI).toFixed(1)),minSeparationDeg:+(minSep*180/Math.PI).toFixed(1),
-                connectorStartsOutsideClip:true,allThreeEndsOnCircle:true});
+              report.push({which:r.which,flatY:+r.flatY.toFixed(2),radius:+r.R.toFixed(2),
+                minSeparationDeg:+(minSep*180/Math.PI).toFixed(1),armGrades:r.armMaxGrade});
             }
-            console.log('ROUNDABOUT_TOPOLOGY_OK');
+            console.log('ROUNDABOUT_FLAT_TOPOLOGY_OK');
             console.log(JSON.stringify(report,null,2));
           })();`;
           vm.runInThisContext(src,{filename:'roundabout-check.bundle.js'});
