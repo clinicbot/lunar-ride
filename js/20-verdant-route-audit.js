@@ -18,18 +18,12 @@
     const landAt=w._dbg&&typeof w._dbg.landAt==='function'?w._dbg.landAt:null;
     const raw=new Float64Array(n);
 
-    /* Keep only a small fraction of the old artistic profile as local flavour.
-       The large-scale height comes from the actual terrain, so a folded route
-       cannot arbitrarily be 100 m above the ground next to another section. */
     for(let i=0;i<n;i++){
       const land=landAt?landAt(w.rx[i],w.rz[i]):oldRy[i];
       const oldOff=oldRy[i]-land;
       raw[i]=land+clamp(oldOff*.10,-5,12);
     }
 
-    /* Circular box filter.  Try progressively wider windows and choose the
-       narrowest one that makes every sample legal.  Circular averaging has no
-       privileged seam, unlike the old forward/backward clamp. */
     const radii=[3,6,10,16,24,36,52,72,96,128,168,220];
     const smoothCircular=(src,r)=>{
       const out=new Float64Array(n),pref=new Float64Array(n*2+1);
@@ -56,9 +50,6 @@
       if(mg[0]<=(sc.road.maxGrade||8)+.02)break;
     }
 
-    /* Rare residuals after the widest useful filter are projected locally.
-       This symmetric pass starts from an already smooth profile, so it
-       converges quickly and does not spread one seam error around the lap. */
     const lim=(sc.road.maxGrade||8)/100*ROUTE_STEP;
     for(let pass=0;pass<240&&mg[0]>(sc.road.maxGrade||8)+.02;pass++){
       let changed=false;
@@ -85,36 +76,17 @@
     w.meanY=mean/n;
 
     const near=(x,z)=>w._dbg&&w._dbg.roadNear?w._dbg.roadNear(x,z):null;
-    const corr=(x,z,reach,soft)=>{
-      const q=near(x,z);if(!q||q.i>=n||q.d>=reach)return 0;
-      const f=q.d<=soft?1:1-smoothstep((q.d-soft)/Math.max(.001,reach-soft));
-      return delta[q.i]*f;
-    };
 
-    /* Shift the already-baked road to the fitted centreline.  js/21 rebuilds
-       the surrounding terrain from the natural land field afterwards. */
+    /* Only the road ribbon is moved here.  The next Verdant-only pass rebuilds
+       the terrain from the natural field and then realigns every prop, actor,
+       water feature and vegetation instance exactly once. */
     if(w.road&&w.road.pos){
       const p=w.road.pos;
-      for(let k=0;k<p.length;k+=3){const q=near(p[k],p[k+2]);if(q&&q.i<n)p[k+1]+=delta[q.i];}
+      for(let k=0;k<p.length;k+=3){
+        const q=near(p[k],p[k+2]);
+        if(q&&q.i<n)p[k+1]+=delta[q.i];
+      }
     }
-    if(w.props&&w.props.pos){
-      const p=w.props.pos;for(let k=0;k<p.length;k+=3)p[k+1]+=corr(p[k],p[k+2],150,110);
-    }
-    if(w.veg&&w.veg.ctr){
-      const p=w.veg.ctr;for(let k=0;k<p.length;k+=3)p[k+1]+=corr(p[k],p[k+2],220,180);
-    }
-
-    for(const a of (w.actors||[])){
-      if(!Number.isFinite(a.px)||!Number.isFinite(a.pz))continue;
-      const d=corr(a.px,a.pz,220,180);
-      if(Number.isFinite(a.py))a.py+=d;
-      if(Number.isFinite(a.gy))a.gy+=d;
-      if(Number.isFinite(a.baseY))a.baseY+=d;
-      if(Number.isFinite(a.pinY))a.pinY+=d;
-      if(Number.isFinite(a.pinAlt))a.pinAlt+=d;
-      if(Number.isFinite(a.baseRoadY))a.baseRoadY+=d;
-    }
-    for(const b of (w.bases||[]))if(Number.isFinite(b.y))b.y+=corr(b.x,b.z,220,180);
 
     const seamXZ=Math.hypot(w.rx[0]-w.rx[n-1],w.rz[0]-w.rz[n-1]);
     w.__verdantAudit={maxGrade:maxG,maxGradeIndex:maxI,seamXZ,
