@@ -68,7 +68,10 @@ jobs:
               const aa=[r.prevAng,r.cutAng,r.nextAng];let minSep=Infinity;
               for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)minSep=Math.min(minSep,ad(aa[i],aa[j]));
               if(minSep<40*Math.PI/180)throw new Error(r.which+' has overlapping arms: '+(minSep*180/Math.PI).toFixed(1)+' deg');
-              report.push({which:r.which,flatY:+r.flatY.toFixed(2),radius:+r.R.toFixed(2),
+              if(!r.levelFeasible)throw new Error(r.which+' has no common flat elevation within grade limit');
+              const worst=Math.max(r.armMaxGrade.prev,r.armMaxGrade.next,r.armMaxGrade.cut);
+              if(worst>sc.road.maxGrade+.05)throw new Error(r.which+' approach exceeds '+sc.road.maxGrade+'%: '+worst.toFixed(2)+'%');
+              report.push({which:r.which,flatY:+r.flatY.toFixed(2),range:r.levelRange.map(v=>+v.toFixed(2)),radius:+r.R.toFixed(2),
                 minSeparationDeg:+(minSep*180/Math.PI).toFixed(1),armGrades:r.armMaxGrade});
             }
             console.log('ROUNDABOUT_FLAT_TOPOLOGY_OK');
