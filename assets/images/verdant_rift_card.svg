@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#4f92b8"/><stop offset=".55" stop-color="#b8d7c7"/><stop offset="1" stop-color="#e9d7a9"/></linearGradient><linearGradient id="hill" x2="0" y2="1"><stop stop-color="#477b4e"/><stop offset="1" stop-color="#183c2b"/></linearGradient><filter id="mist"><feGaussianBlur stdDeviation="18"/></filter></defs>
+<rect width="1200" height="675" fill="url(#sky)"/>
+<path d="M0 360 Q150 210 300 340T620 300T900 270T1200 330V675H0Z" fill="#5a775b"/>
+<path d="M0 430 Q140 300 290 420T610 350T900 360T1200 390V675H0Z" fill="url(#hill)"/>
+<path d="M0 520 C180 460 310 500 430 455S700 390 840 445S1050 520 1200 470V675H0Z" fill="#244b35"/>
+<path d="M60 620 C170 540 235 560 330 520S510 430 620 470S780 560 900 520S1040 430 1180 470" fill="none" stroke="#72593d" stroke-width="34" stroke-linecap="round"/>
+<path d="M60 620 C170 540 235 560 330 520S510 430 620 470S780 560 900 520S1040 430 1180 470" fill="none" stroke="#a58a5e" stroke-width="5" stroke-dasharray="22 18"/>
+<g fill="#173b28"><path d="M115 500l38-140 38 140h-24l35 85h-100l35-85z"/><path d="M250 470l34-125 34 125h-20l31 78h-90l31-78z"/><path d="M930 450l42-155 42 155h-25l38 92H915l39-92z"/><path d="M1050 470l35-132 36 132h-22l33 82h-95l33-82z"/></g>
+<ellipse cx="710" cy="505" rx="95" ry="24" fill="#44b7ba" opacity=".85"/><ellipse cx="710" cy="493" rx="70" ry="12" fill="#a4eee0" opacity=".8"/>
+<g fill="#8fffe0" opacity=".9"><circle cx="565" cy="400" r="8"/><circle cx="590" cy="380" r="5"/><circle cx="610" cy="414" r="6"/></g>
+<g transform="translate(835 145) rotate(-8)"><path d="M0 35L125 0l75 25-72 18-28 42z" fill="#d8e1df"/><path d="M100 42l85-8-42 30z" fill="#4b6f7d"/><circle cx="40" cy="43" r="7" fill="#83ffe6"/></g>
+<g fill="#22382a"><ellipse cx="410" cy="555" rx="34" ry="18"/><circle cx="441" cy="545" r="15"/><rect x="390" y="568" width="9" height="28"/><rect x="420" y="568" width="9" height="28"/></g>
+<g stroke="#273d2d" stroke-width="10" fill="none"><path d="M515 520q-35-65-70-20q-15 20-2 55"/><path d="M535 518q36-62 72-18q14 19 0 50"/></g>
+<text x="55" y="95" font-family="system-ui,sans-serif" font-weight="700" font-size="58" fill="#f8fff7">VERDANT RIFT</text><text x="58" y="140" font-family="system-ui,sans-serif" font-size="24" fill="#e6f7ec">Monsoon Grand Tour · 25 km</text>
+<g opacity=".24" filter="url(#mist)" fill="#fff"><ellipse cx="600" cy="335" rx="380" ry="55"/><ellipse cx="970" cy="300" rx="210" ry="42"/></g>
+</svg>
