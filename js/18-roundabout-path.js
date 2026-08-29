@@ -4,13 +4,6 @@
 (function(){
   if(typeof segPoint!=='function')return;
 
-  /* -----------------------------------------------------------------------
-     Flat roundabout elevation pass.
-     js/19 appends its generated vertices after the original road mesh in a
-     deterministic order. We use that ordering to level only the replacement
-     geometry, while deleting any surviving ORIGINAL triangles in the junction
-     disc regardless of their previous Y height.
-     ----------------------------------------------------------------------- */
   if(typeof buildWorld==='function'){
     const levelBaseBuildWorld=buildWorld;
     buildWorld=function(scene,onProgress){
@@ -27,6 +20,9 @@
       const addedVerts=w.roundabouts.reduce((s,r)=>s+addedFor(r),0);
       const originalVerts=Math.max(0,totalVerts-addedVerts);
       const pos=w.road.pos;
+      const hw=(scene.road&&scene.road.halfWidth)||3.2;
+      const maxAllowed=(scene.road&&scene.road.maxGrade)||9;
+      const maxGrade=maxAllowed/100;
 
       /* Old road at another elevation must not survive through a roundabout.
          Keep all newly generated roundabout triangles, but remove ORIGINAL road
@@ -71,42 +67,44 @@
         w.props.idx=new Uint32Array(keep);
       }
 
-      /* The circle's chosen level is the original main-road junction height
-         (r.cy). All three replacement approaches are then brought to that
-         exact level. A linear vertical interpolation minimises the peak grade;
-         importantly there is no independent tilted circle or 0.40 m mesh step. */
+      /* Every approach says which flat elevations it can physically reach
+         without exceeding maxGrade. Intersect those three ranges and choose
+         the value closest to the original junction height. This is the key:
+         the roundabout is flat, but no single incoming road gets to dictate Y. */
       let cursor=originalVerts;
-      const maxAllowed=(scene.road&&scene.road.maxGrade)||9;
       for(const r of w.roundabouts){
-        const H=r.cy;
-        r.flatY=H;
-        r.armMaxGrade={};
-
+        const meta={};let lo=-Infinity,hi=Infinity;
         for(const nm of ['prev','next','cut']){
-          const pts=r.arms[nm].points;
-          const cum=[0];let L=0;
+          const pts=r.arms[nm].points,cum=[0];let L=0;
           for(let k=1;k<pts.length;k++){
             L+=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][2]-pts[k-1][2]);
             cum.push(L);
           }
-          const y0=pts[0][1],den=L||1;
-          let mg=0;
-          for(let k=0;k<pts.length;k++){
-            const t=cum[k]/den;
-            pts[k][1]=lerp(y0,H,t);
+          const y0=pts[0][1],allow=maxGrade*Math.max(L,1);
+          lo=Math.max(lo,y0-allow);hi=Math.min(hi,y0+allow);
+          meta[nm]={pts,cum,L,y0,allow};
+        }
+        const feasible=lo<=hi;
+        const H=feasible?clamp(r.cy,lo,hi):(lo+hi)/2;
+        r.flatY=H;r.levelRange=[lo,hi];r.levelFeasible=feasible;r.armMaxGrade={};
+
+        for(const nm of ['prev','next','cut']){
+          const m=meta[nm],den=m.L||1;let mg=0;
+          for(let k=0;k<m.pts.length;k++){
+            const t=m.cum[k]/den;
+            m.pts[k][1]=lerp(m.y0,H,t); // linear = minimum possible peak grade
             if(k){
-              const ds=cum[k]-cum[k-1],dy=pts[k][1]-pts[k-1][1];
+              const ds=m.cum[k]-m.cum[k-1],dy=m.pts[k][1]-m.pts[k-1][1];
               if(ds>1e-5)mg=Math.max(mg,Math.abs(dy/ds)*100);
             }
-            /* each centreline sample owns ten road-strip vertices */
-            for(let j=0;j<STRIPES;j++)pos[(cursor+k*STRIPES+j)*3+1]=pts[k][1];
+            for(let j=0;j<STRIPES;j++)pos[(cursor+k*STRIPES+j)*3+1]=m.pts[k][1];
           }
-          cursor+=pts.length*STRIPES;
+          cursor+=m.pts.length*STRIPES;
           r.armMaxGrade[nm]=mg;
         }
 
-        /* island, inner curb, carriageway, outer curb: one common horizontal
-           datum for the actual road, with only the island/curbs slightly raised. */
+        /* One horizontal carriageway. Only the centre island and curb strips
+           are raised a few centimetres above that common road datum. */
         for(let i=0;i<DISK_VERTS;i++)pos[(cursor+i)*3+1]=H+.34;
         cursor+=DISK_VERTS;
         for(let i=0;i<RING_VERTS;i++)pos[(cursor+i)*3+1]=H+.035;
@@ -116,10 +114,50 @@
         for(let i=0;i<RING_VERTS;i++)pos[(cursor+i)*3+1]=H+.035;
         cursor+=RING_VERTS;
 
-        r.levelWarning=Math.max(r.armMaxGrade.prev,r.armMaxGrade.next,r.armMaxGrade.cut)>maxAllowed+.25;
+        r.levelWarning=!feasible||Math.max(r.armMaxGrade.prev,r.armMaxGrade.next,r.armMaxGrade.cut)>maxAllowed+.05;
       }
+
+      /* Re-seat the terrain under the newly chosen flat elevation and under
+         each transition ramp. The older terrain pass used the pre-level Y. */
+      if(w.terrain&&w.terrain.pos){
+        const tp=w.terrain.pos,tn=w.terrain.nrm;
+        const nearest=(x,z,pts)=>{let bi=0,bd=Infinity;for(let k=0;k<pts.length;k++){const d=(x-pts[k][0])**2+(z-pts[k][2])**2;if(d<bd){bd=d;bi=k;}}return {i:bi,d:Math.sqrt(bd)};};
+        for(let v=0;v<tp.length/3;v++){
+          const x=tp[v*3],z=tp[v*3+2];
+          for(const r of w.roundabouts){
+            const d=Math.hypot(x-r.cx,z-r.cz);
+            if(d<r.outer+8){
+              const wt=d<=r.outer+2.5?1:clamp(1-(d-(r.outer+2.5))/5.5,0,1);
+              const target=r.flatY-.32;
+              tp[v*3+1]=lerp(tp[v*3+1],target,wt);break;
+            }
+            let handled=false;
+            for(const nm of ['prev','next','cut']){
+              const q=nearest(x,z,r.arms[nm].points);
+              if(q.d<hw+7){
+                const wt=q.d<=hw+2.5?1:clamp(1-(q.d-(hw+2.5))/4.5,0,1);
+                const target=r.arms[nm].points[q.i][1]-.38;
+                tp[v*3+1]=lerp(tp[v*3+1],target,wt);handled=true;break;
+              }
+            }
+            if(handled)break;
+          }
+        }
+        if(tn&&tn.length===tp.length){
+          const NV=Math.round(Math.sqrt(tp.length/3));
+          if(NV*NV===tp.length/3){
+            const step=Math.hypot(tp[3]-tp[0],tp[5]-tp[2])||1;
+            const Y=(i,j)=>tp[(j*NV+i)*3+1];
+            for(let j=0;j<NV;j++)for(let i=0;i<NV;i++){
+              let nx=Y(Math.max(0,i-1),j)-Y(Math.min(NV-1,i+1),j),ny=2*step,nz=Y(i,Math.max(0,j-1))-Y(i,Math.min(NV-1,j+1));
+              const L=Math.hypot(nx,ny,nz)||1,k=(j*NV+i)*3;tn[k]=nx/L;tn[k+1]=ny/L;tn[k+2]=nz/L;
+            }
+          }
+        }
+      }
+
       w.roundaboutFlat=true;
-      try{window.__roundaboutLevels=w.roundabouts.map(r=>({which:r.which,flatY:+r.flatY.toFixed(2),grades:Object.fromEntries(Object.entries(r.armMaxGrade).map(([k,v])=>[k,+v.toFixed(2)])),warning:r.levelWarning}));}catch(e){}
+      try{window.__roundaboutLevels=w.roundabouts.map(r=>({which:r.which,flatY:+r.flatY.toFixed(2),range:r.levelRange.map(v=>+v.toFixed(2)),feasible:r.levelFeasible,grades:Object.fromEntries(Object.entries(r.armMaxGrade).map(([k,v])=>[k,+v.toFixed(2)])),warning:r.levelWarning}));}catch(e){}
       return w;
     };
   }
