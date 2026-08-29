@@ -1,0 +1,38 @@
+name: Verdant Rift checks
+
+on:
+  push:
+    branches: [fixes-build-90]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JavaScript syntax
+        run: |
+          node --check js/17-verdant-rift.js
+          node --check js/18-verdant-weather.js
+          node --check js/19-verdant-assets.js
+      - name: Verdant generated-world smoke test
+        run: node tests/verdant-smoke.js
+      - name: Validate new glTF files
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const f of [
+            'assets/models/verdant_bear.gltf',
+            'assets/models/verdant_frog.gltf',
+            'assets/models/verdant_monkey.gltf',
+            'assets/models/verdant_ship.gltf',
+            'assets/models/verdant_fern.gltf']){
+            const j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
+              throw new Error('invalid self-contained glTF: '+f);
+            console.log('ok',f);
+          }
+          NODE
