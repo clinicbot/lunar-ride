@@ -3,7 +3,7 @@
    deploy (no stale-version mysteries); every successful response is copied
    into the cache, so once you have ridden with a connection, the whole game
    works offline too. */
-const CACHE = 'lunar-ride-v108';
+const CACHE = 'lunar-ride-v109';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
@@ -38,7 +38,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) return;   /* never touch other sites */
+  if (url.origin !== location.origin) return;
   e.respondWith(
     fetch(e.request).then(res => {
       if (res && res.ok) {
