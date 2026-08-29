@@ -1,6 +1,6 @@
 "use strict";
 
-/* ==========================================================================\n   True three-arm roundabout topology\n   --------------------------------------------------------------------------\n   Remove the original Y-junction road triangles and rebuild three independent\n   approach arms that terminate on one circular carriageway. If the scenic arm\n   arrives almost parallel to a main-road arm, its final connector is curved to\n   a properly separated entrance instead of allowing overlapping entries.\n   ========================================================================== */
+/* ==========================================================================\n   True three-arm roundabout topology\n   --------------------------------------------------------------------------\n   Remove the original Y-junction road triangles and rebuild three independent\n   approach arms that terminate on one circular carriageway. If the scenic arm\n   arrives almost parallel to a main-road arm, its final connector is curved to\n   a properly separated entrance instead of allowing overlapping entries.\n\n   Approach length is selected independently for each junction. The generator\n   moves the tie-in points farther from the circle until all three roads have a\n   common flat elevation that can be reached without exceeding maxGrade.\n   ========================================================================== */
 (function(){
   if(typeof buildWorld!=='function') return;
   const baseBuildWorld=buildWorld, TAU=Math.PI*2;
@@ -35,30 +35,61 @@
     if(!w||!w.nCut||w.nCut<5||!w.road) return w;
 
     const hw=scene.road.halfWidth||3.2;
-    const span=Math.max(48,Math.round(52/ROUTE_STEP)*ROUTE_STEP);
-    const ks=Math.max(4,Math.round(span/ROUTE_STEP));
     const R=Math.max(12.5,hw*3.9);
     const inner=Math.max(5.5,R-hw-.55), outer=R+hw+.55;
     const clipR=outer+8;
     const MIN_SEP=48*Math.PI/180;
+    const MAX_GRADE=((scene.road&&scene.road.maxGrade)||9)/100;
 
     const rounds=[];
     function makeRound(which,jn){
-      const prevI=wrap(jn-ks,w.nMain), nextI=wrap(jn+ks,w.nMain);
-      const cutK=which==='A'?Math.min(ks,w.nCut-2):Math.max(1,w.nCut-1-ks);
-      const cutI=w.nMain+cutK;
       const cx=w.rx[jn],cz=w.rz[jn],cy=w.ry[jn]+.12;
-      const [pvx,pvz]=norm(w.rx[prevI]-cx,w.rz[prevI]-cz);
-      const [nvx,nvz]=norm(w.rx[nextI]-cx,w.rz[nextI]-cz);
-      const [cvx,cvz]=norm(w.rx[cutI]-cx,w.rz[cutI]-cz);
-      const prevAng=ang(pvx,pvz),nextAng=ang(nvx,nvz),rawCutAng=ang(cvx,cvz);
-      const cutAng=separatedCutAngle(prevAng,nextAng,rawCutAng,MIN_SEP);
+
+      /* Try increasingly distant tie-in points.  Feasibility is tested with
+         straight X/Z distance from each tie-in to its circle entry.  A Bezier
+         connector is never shorter than that chord, so this is conservative:
+         if these three height intervals overlap, the final curved approaches
+         can also reach one common flat height within maxGrade. */
+      const maxKs=Math.max(4,Math.min(28,w.nCut-2,Math.floor(w.nMain/5)));
+      let chosen=null,last=null;
+      for(let tryKs=4;tryKs<=maxKs;tryKs++){
+        const prevI=wrap(jn-tryKs,w.nMain),nextI=wrap(jn+tryKs,w.nMain);
+        const cutK=which==='A'?Math.min(tryKs,w.nCut-2):Math.max(1,w.nCut-1-tryKs);
+        const cutI=w.nMain+cutK;
+        const [pvx,pvz]=norm(w.rx[prevI]-cx,w.rz[prevI]-cz);
+        const [nvx,nvz]=norm(w.rx[nextI]-cx,w.rz[nextI]-cz);
+        const [cvx,cvz]=norm(w.rx[cutI]-cx,w.rz[cutI]-cz);
+        const prevAng=ang(pvx,pvz),nextAng=ang(nvx,nvz),rawCutAng=ang(cvx,cvz);
+        const cutAng=separatedCutAngle(prevAng,nextAng,rawCutAng,MIN_SEP);
+        const specs=[
+          {name:'prev',i:prevI,a:prevAng},
+          {name:'next',i:nextI,a:nextAng},
+          {name:'cut', i:cutI, a:cutAng}
+        ];
+        let lo=-Infinity,hi=Infinity;
+        for(const s of specs){
+          const ex=cx+Math.cos(s.a)*R,ez=cz+Math.sin(s.a)*R;
+          const L=Math.hypot(w.rx[s.i]-ex,w.rz[s.i]-ez);
+          const y0=w.ry[s.i]+.11,allow=MAX_GRADE*Math.max(1,L);
+          lo=Math.max(lo,y0-allow);hi=Math.min(hi,y0+allow);
+          s.chord=L;s.y0=y0;s.allow=allow;
+        }
+        const sdMin=Math.min(...specs.map(s=>Math.hypot(w.rx[s.i]-cx,w.rz[s.i]-cz)));
+        last={ks:tryKs,prevI,nextI,cutK,cutI,prevAng,nextAng,rawCutAng,cutAng,
+              lo,hi,feasible:lo<=hi,sdMin,specs};
+        if(lo<=hi && sdMin>=clipR+2){chosen=last;break;}
+      }
+      if(!chosen)chosen=last;
+
+      const ks=chosen.ks,span=ks*ROUTE_STEP;
+      const {prevI,nextI,cutI,cutK,prevAng,nextAng,rawCutAng,cutAng}=chosen;
       const plus=dArc(prevAng,cutAng,1)+dArc(cutAng,nextAng,1);
       const minus=dArc(prevAng,cutAng,-1)+dArc(cutAng,nextAng,-1);
       const dir=plus<=minus?1:-1;
       const a1=dArc(prevAng,cutAng,dir),a2=dArc(cutAng,nextAng,dir);
       const r={which,jn,J:jn*ROUTE_STEP,cx,cz,cy,R,inner,outer,clipR,span,ks,
-        prevI,nextI,cutI,cutK,prevAng,nextAng,cutAng,rawCutAng,dir,a1,a2,arms:{}};
+        prevI,nextI,cutI,cutK,prevAng,nextAng,cutAng,rawCutAng,dir,a1,a2,arms:{},
+        previewLevelRange:[chosen.lo,chosen.hi],previewLevelFeasible:chosen.feasible};
       const entry=(a)=>[cx+Math.cos(a)*R,cy,cz+Math.sin(a)*R];
 
       /* Cubic connector with the real road tangent at its outer end and a
@@ -68,7 +99,7 @@
         [sx,sz]=norm(sx,sz);
         const ex=-Math.cos(ea),ez=-Math.sin(ea); // travel direction into circle
         const L=Math.hypot(P3[0]-P0[0],P3[2]-P0[2])||1;
-        const c=clamp(L*.38,8,23),n=20,pts=[];
+        const c=clamp(L*.38,8,42),n=20,pts=[];
         const P1=[P0[0]+sx*c,lerp(P0[1],P3[1],.28),P0[2]+sz*c];
         const P2=[P3[0]-ex*c,lerp(P0[1],P3[1],.76),P3[2]-ez*c];
         for(let k=0;k<=n;k++){
@@ -95,7 +126,9 @@
 
     /* Remove any original road triangle that reaches into the construction
        disc. Testing vertices as well as the centroid prevents thin old-road
-       slivers from surviving under the rebuilt arms. */
+       slivers from surviving under the rebuilt arms. A later flat-level pass
+       also performs an X/Z-only cleanup so roads at a different Y cannot leak
+       through the circle. */
     {
       const pos=w.road.pos,idx=w.road.idx,keep=[];
       for(let q=0;q<idx.length;q+=3){
@@ -138,7 +171,7 @@
     const V=(x,y,z,c,e=0)=>{const id=P.length/3;P.push(x,y,z);N.push(0,1,0);C.push(c[0],c[1],c[2],e);return id;};
     const stripes=[[-hw-1.1,'rum'],[-hw-.02,'rum'],[-hw,'road'],[-.26,'road'],[-.22,'lane'],[.22,'lane'],[.26,'road'],[hw,'road'],[hw+.02,'rum'],[hw+1.1,'rum']];
     function ribbon(points,fadeLane){
-      const base=P.length/3,NL=stripes.length;
+      const base=P.length/3;
       for(let k=0;k<points.length;k++){
         const a=points[Math.max(0,k-1)],b=points[Math.min(points.length-1,k+1)];
         const [tx,tz]=norm(b[0]-a[0],b[2]-a[2]),nx=-tz,nz=tx;
@@ -214,9 +247,9 @@
     }
 
     w.roundabouts=rounds;
-    try{window.__roundaboutV2=rounds.map(r=>({which:r.which,centre:[+r.cx.toFixed(1),+r.cz.toFixed(1)],R:r.R,
+    try{window.__roundaboutV2=rounds.map(r=>({which:r.which,centre:[+r.cx.toFixed(1),+r.cz.toFixed(1)],R:r.R,span:r.span,
       armAngles:[r.prevAng,r.cutAng,r.nextAng].map(a=>+(a*180/Math.PI).toFixed(1)),
-      rawCutAngle:+(r.rawCutAng*180/Math.PI).toFixed(1),minSepDeg:+Math.min(aDist(r.prevAng,r.cutAng),aDist(r.cutAng,r.nextAng),aDist(r.prevAng,r.nextAng))*180/Math.PI.toFixed?.(1)}));}catch(e){}
+      previewRange:r.previewLevelRange.map(v=>+v.toFixed(2)),previewFeasible:r.previewLevelFeasible}));}catch(e){}
     return w;
   };
 })();
