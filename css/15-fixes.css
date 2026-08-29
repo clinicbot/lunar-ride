@@ -1,0 +1,8 @@
+/* Stabilization fixes layered after the original stylesheet. */
+#hud.bare #mapPanel{display:none}
+
+#miniMap.pannable{
+  cursor:grab;
+  touch-action:none;
+}
+#miniMap.panning{cursor:grabbing}
