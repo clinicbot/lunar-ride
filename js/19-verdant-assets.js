@@ -75,6 +75,6 @@
 /* Parser-time loading keeps the two Verdant-only repair passes isolated from
    every existing world while still making them part of the normal preview. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=105"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=105"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=106"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=106"></script>');
 }
