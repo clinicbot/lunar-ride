@@ -4,6 +4,7 @@ on:
   push:
     branches: [fixes-build-90]
     paths:
+      - 'index.html'
       - 'js/01-scenes.js'
       - 'js/02-core-geometry.js'
       - 'js/03-world-generation.js'
@@ -11,6 +12,7 @@ on:
       - 'js/17-scenic-surface.js'
       - 'js/17-scenic-life.js'
       - 'js/16-junction-cleanup.js'
+      - 'js/18-roundabout-path.js'
       - 'js/19-roundabout-correction.js'
       - '.github/workflows/roundabout-check.yml'
 
@@ -22,14 +24,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Syntax and build-stamp check
+        run: |
+          node --check js/18-roundabout-path.js
+          node --check js/19-roundabout-correction.js
+          grep -q 'build 101' index.html
+          grep -q '?b=101' index.html
       - name: Generate Copernicus and validate both roundabouts
         run: |
           node <<'NODE'
           const fs=require('fs'),vm=require('vm');
           global.document={querySelector:()=>null};
           global.window={};
-          /* Browser builds may have optional glTF libraries and UI config
-             already loaded. The geometry test supplies neutral stand-ins. */
           const nil=new Proxy({}, {get:()=>null});
           global.GLTREES=nil;
           global.GLCRE=nil;
@@ -61,7 +67,7 @@ jobs:
               const aa=[r.prevAng,r.cutAng,r.nextAng];
               let minSep=Infinity;
               for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)minSep=Math.min(minSep,ad(aa[i],aa[j]));
-              if(minSep<20*Math.PI/180)throw new Error(r.which+' has overlapping arms: '+(minSep*180/Math.PI).toFixed(1)+' deg');
+              if(minSep<40*Math.PI/180)throw new Error(r.which+' has overlapping arms: '+(minSep*180/Math.PI).toFixed(1)+' deg');
               report.push({which:r.which,km:+(r.J/1000).toFixed(2),radius:+r.R.toFixed(2),
                 armAnglesDeg:aa.map(a=>+(a*180/Math.PI).toFixed(1)),minSeparationDeg:+(minSep*180/Math.PI).toFixed(1),
                 connectorStartsOutsideClip:true,allThreeEndsOnCircle:true});
