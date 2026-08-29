@@ -592,8 +592,7 @@ function buildWorld(scene,onProgress){
       &&!(scene.road.epic&&Math.abs(grade[i])>3.5&&landY[i]-ry[i]<40),
       70,RD.tunnels+(scene.road.epic?2:0))) tunnels.push(r);
   if(RD.bridges)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>9,45,
-      RD.bridges+(scene.road.epic?2:0))) bridges.push(r);
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>6,30,99)) bridges.push(r);
 
   const markRun=(r,flags,ramp)=>{
     for(let i=r[0];i<=r[1];i++){
@@ -689,9 +688,18 @@ function buildWorld(scene,onProgress){
   /* --- terrain mesh --- */
   const NV=NG+1;
   const hgt=new Float32Array(NV*NV);
+  const hwG=scene.road.halfWidth+2.6;
   for(let j=0;j<NV;j++){
     const z=-HALF+j*STEP;
-    for(let i=0;i<NV;i++) hgt[j*NV+i]=groundAt(-HALF+i*STEP,z);
+    for(let i=0;i<NV;i++){
+      const x=-HALF+i*STEP;
+      let h=groundAt(x,z);
+      /* the roadbed guarantee: within the roadway the ground never rises
+         above the deck (tunnels excepted - their bores handle it) */
+      const nr2=roadNear(x,z);
+      if(nr2&&!inTunnel[nr2.i]&&nr2.d<hwG&&h>ry[nr2.i]-0.2) h=ry[nr2.i]-0.3;
+      hgt[j*NV+i]=h;
+    }
     if((j&31)===0) onProgress&&onProgress(0.3+0.45*j/NV);
   }
 
