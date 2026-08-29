@@ -46,7 +46,7 @@ jobs:
             'js/16-junction-cleanup.js','js/19-roundabout-correction.js'
           ];
           let src=worldFiles.map(f=>fs.readFileSync(f,'utf8')).join('\n');
-          src+='\nvar world=null; var state={seg:"m",s:0,playerX:0,dir:1}; var mapView=null,mctx=null; function segPoint(){};';
+          src+='\nglobalThis.segPoint=function(){};';
           src+='\n'+fs.readFileSync('js/18-roundabout-path.js','utf8');
           src+=`\n(function(){
             const sc=SCENES.find(s=>s.id==='copernicus');
