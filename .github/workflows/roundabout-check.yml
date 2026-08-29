@@ -14,6 +14,7 @@ on:
       - 'js/16-junction-cleanup.js'
       - 'js/18-roundabout-path.js'
       - 'js/19-roundabout-correction.js'
+      - 'js/20-roundabout-corridor-cleanup.js'
       - '.github/workflows/roundabout-check.yml'
 
 jobs:
@@ -28,6 +29,7 @@ jobs:
         run: |
           node --check js/18-roundabout-path.js
           node --check js/19-roundabout-correction.js
+          node --check js/20-roundabout-corridor-cleanup.js
       - name: Generate Copernicus and validate roundabout topology and levels
         run: |
           node <<'NODE'
@@ -48,11 +50,14 @@ jobs:
           let src=worldFiles.map(f=>fs.readFileSync(f,'utf8')).join('\n');
           src+='\nglobalThis.segPoint=function(){};';
           src+='\n'+fs.readFileSync('js/18-roundabout-path.js','utf8');
+          src+='\n'+fs.readFileSync('js/20-roundabout-corridor-cleanup.js','utf8');
           src+=`\n(function(){
             const sc=SCENES.find(s=>s.id==='copernicus');
             const w=buildWorld(sc,()=>{});
             if(!w.roundabouts||w.roundabouts.length!==2)throw new Error('Expected exactly two roundabouts');
             if(!w.roundaboutFlat)throw new Error('Flat-level postprocess did not run');
+            if(!w.roundaboutCorridorCleanup)throw new Error('Obsolete-corridor cleanup did not run');
+            if(w.roundaboutCorridorCleanup.residualRoad!==0)throw new Error('Residual obsolete road triangles: '+w.roundaboutCorridorCleanup.residualRoad);
             const TAU=Math.PI*2,ad=(a,b)=>{let d=Math.abs(a-b)%TAU;return Math.min(d,TAU-d);};
             const report=[];
             for(const r of w.roundabouts){
@@ -77,6 +82,7 @@ jobs:
               report.push({which:r.which,flatY:+r.flatY.toFixed(2),range:r.levelRange.map(v=>+v.toFixed(2)),radius:+r.R.toFixed(2),
                 minSeparationDeg:+(minSep*180/Math.PI).toFixed(1),armGrades:r.armMaxGrade});
             }
+            console.log('ROUNDABOUT_CORRIDOR_CLEANUP',JSON.stringify(w.roundaboutCorridorCleanup));
             console.log('ROUNDABOUT_FLAT_TOPOLOGY_OK');
             console.log(JSON.stringify(report,null,2));
           })();`;
