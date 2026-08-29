@@ -24,6 +24,7 @@ jobs:
           node --check js/23-verdant-depth-pass.js
           node --check js/24-verdant-release.js
           node --check js/25-verdant-lite-richness.js
+          node --check js/26-verdant-real-nature.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
@@ -44,7 +45,7 @@ jobs:
           exit 0
       - name: Verdant lightweight actor runtime test
         run: node tests/verdant-lite-runtime-smoke.js 2>&1 | tee verdant-lite-runtime.log
-      - name: Validate new glTF files
+      - name: Validate self-contained Verdant glTF files
         run: |
           node - <<'NODE' 2>&1 | tee gltf-test.log
           const fs=require('fs');
@@ -60,6 +61,27 @@ jobs:
             console.log('ok',f);
           }
           NODE
+      - name: Validate external nature glTF dependencies
+        run: |
+          node - <<'NODE' 2>&1 | tee nature-assets.log
+          const fs=require('fs'),path=require('path');
+          const files=['CommonTree_1.gltf','TwistedTree_1.gltf','Bush_Common.gltf','Fern_1.gltf'];
+          for(const name of files){
+            const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid glTF '+name);
+            const refs=[];
+            for(const b of (j.buffers||[]))if(b.uri&&!b.uri.startsWith('data:'))refs.push(b.uri);
+            for(const im of (j.images||[]))if(im.uri&&!im.uri.startsWith('data:'))refs.push(im.uri);
+            for(const ref of refs){
+              const p=path.resolve(path.dirname(f),ref);
+              if(!fs.existsSync(p))throw new Error(name+' missing dependency '+ref);
+            }
+            const tris=(j.meshes||[]).flatMap(m=>m.primitives||[]).reduce((s,p)=>{
+              const a=j.accessors[p.indices];return s+(a?Math.floor(a.count/3):0);
+            },0);
+            console.log('ok',name,'triangles',tris,'dependencies',refs.length);
+          }
+          NODE
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,6 +92,7 @@ jobs:
             verdant-real-mesh.log
             verdant-lite-runtime.log
             gltf-test.log
+            nature-assets.log
       - name: Fail if generated-world test failed
         if: steps.verdant.outputs.exit_code != '0' || steps.realmesh.outputs.exit_code != '0'
         run: exit 1
