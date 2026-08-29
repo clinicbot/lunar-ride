@@ -24,7 +24,10 @@
   function loop(now){
     requestAnimationFrame(loop);
     const dt=Math.min(.05,(now-last)/1000);last=now;
-    if(!sc||!window.state||!state.scene||state.scene.id!=='verdant'){
+    /* `state` is a top-level lexical binding in the classic ride script; it
+       is deliberately not required to be a property of window. */
+    const active=typeof state!=='undefined'&&state.scene&&state.scene.id==='verdant';
+    if(!sc||!active){
       cv.style.display='none';c.clearRect(0,0,W,H);
       if(sc&&sc._clearFogDen)sc.sky.fogDen=sc._clearFogDen;
       return;
