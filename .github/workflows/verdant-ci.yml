@@ -25,6 +25,7 @@ jobs:
           node --check js/24-verdant-release.js
           node --check js/25-verdant-lite-richness.js
           node --check js/26-verdant-real-nature.js
+          node --check js/27-verdant-billboard-cleanup.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
