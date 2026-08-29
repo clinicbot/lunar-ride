@@ -1,19 +1,17 @@
 "use strict";
 
 /* Verdant Rift asset adapter ----------------------------------------------
-   New glTFs are optional upgrades over the procedural fallbacks built into
-   js/17.  The world remains rideable if any model is missing or loads late. */
+   Creature upgrades remain optional.  Imported vegetation is handled by
+   js/26 + js/28; the old baked fern fallback is intentionally gone because it
+   copied the entire props mesh and defeated the instancing architecture. */
 (function(){
   const oldInit=initGL;
   initGL=function(){
     const r=oldInit();
-    /* gl exists after the normal init; these loaders are deliberately not
-       awaited, exactly like the existing optional rider/tree/creature loads. */
     loadGLTFCreature('vbear','assets/models/verdant_bear.gltf',{});
     loadGLTFCreature('vfrog','assets/models/verdant_frog.gltf',{});
     loadGLTFCreature('vmonkey','assets/models/verdant_monkey.gltf',{});
     loadGLTFCreature('vship','assets/models/verdant_ship.gltf',{});
-    loadGLTFStatic('vfern','assets/models/verdant_fern.gltf',2.5);
     return r;
   };
 
@@ -45,39 +43,17 @@
       }
       if(a.type==='shuttle') a.gcre='vship';
     }
-
-    /* Keep the original small self-contained fern fallback in the jungle.
-       The imported nature layer in js/26 is additive and independently
-       budgeted; this fallback remains useful if external assets load slowly. */
-    if(GLTREES.vfern&&w.props&&w.verdant){
-      const mb=new MeshB();
-      mb.pos=Array.from(w.props.pos); mb.nrm=Array.from(w.props.nrm);
-      mb.col=Array.from(w.props.col); mb.idx=Array.from(w.props.idx); mb.limb=[];
-      const n=w.nMain, i0=Math.floor(n*9/25), i1=Math.floor(n*13/25);
-      const rr=mulberry32(sc.seed+441);
-      for(let i=i0;i<i1;i+=12+Math.floor(rr()*13)){
-        for(let q=0;q<2;q++){
-          const side=(q?1:-1),off=3.3+rr()*8.0;
-          const x=w.rx[i]-w.tz[i]*off*side,z=w.rz[i]+w.tx[i]*off*side;
-          const y=w.meshH(x,z);
-          mb.setTF(x,y-.05,z,rr()*6.28318,.55+rr()*.80);
-          appendGLTF(mb,GLTREES.vfern);
-        }
-      }
-      mb.setTF(0,0,0,0,1);
-      w.props={pos:new Float32Array(mb.pos),nrm:new Float32Array(mb.nrm),
-               col:new Float32Array(mb.col),idx:new Uint32Array(mb.idx)};
-    }
     return w;
   };
 })();
 
-/* Stable route/terrain first, then wildlife, imported real nature, and last
-   the fast cleanup that disables the legacy billboard vegetation. */
+/* Stable route/terrain, wildlife, imported instance plan, legacy cleanup,
+   then the dedicated GPU instance renderer. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=116"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=116"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=116"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=116"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=116"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=117"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=117"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=117"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=117"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=117"></script>');
+  document.write('<script src="js/28-verdant-instanced-renderer.js?b=117"></script>');
 }
