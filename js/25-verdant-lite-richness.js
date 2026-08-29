@@ -100,9 +100,8 @@
     return w;
   };
 
-  /* Visible release marker. Observe sceneName because startRide writes the
-     shared APP_STAMP only after the world has been built. */
-  const RELEASE='113';
+  /* Single owner of the Verdant visible release marker. */
+  const RELEASE='115';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
