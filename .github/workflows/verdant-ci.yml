@@ -21,6 +21,8 @@ jobs:
           node --check js/20-verdant-route-audit.js
           node --check js/21-verdant-terrain-polish.js
           node --check js/22-verdant-visual-pass.js
+          node --check js/23-verdant-depth-pass.js
+          node --check js/24-verdant-release.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
