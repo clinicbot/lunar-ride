@@ -1,14 +1,135 @@
 "use strict";
 
-/* ==========================================================================\n   Roundabout rider path + minimap\n   --------------------------------------------------------------------------\n   Consume the exact arm/circle geometry produced by the world builder. The\n   route-choice point (main s == J) is the scenic arm on the circle, so the\n   existing TURN logic remains valid while straight riding follows the circle.\n   ========================================================================== */
+/* ==========================================================================\n   Roundabout rider path + minimap + flat-level postprocess\n   --------------------------------------------------------------------------\n   The world builder creates the X/Z topology. This final pass makes each\n   roundabout one genuinely flat road surface even when its three source roads\n   arrive at different elevations, and removes old cross-height road/rail\n   remnants from the construction zone. The rider and minimap consume the same\n   generated arm/circle geometry.\n   ========================================================================== */
 (function(){
   if(typeof segPoint!=='function')return;
+
+  /* -----------------------------------------------------------------------
+     Flat roundabout elevation pass.
+     js/19 appends its generated vertices after the original road mesh in a
+     deterministic order. We use that ordering to level only the replacement
+     geometry, while deleting any surviving ORIGINAL triangles in the junction
+     disc regardless of their previous Y height.
+     ----------------------------------------------------------------------- */
+  if(typeof buildWorld==='function'){
+    const levelBaseBuildWorld=buildWorld;
+    buildWorld=function(scene,onProgress){
+      const w=levelBaseBuildWorld(scene,onProgress);
+      if(!w||!w.roundabouts||!w.roundabouts.length||!w.road||!w.road.pos||!w.road.idx)return w;
+
+      const STRIPES=10,RING_SEG=96;
+      const DISK_VERTS=1+RING_SEG;
+      const RING_VERTS=(RING_SEG+1)*2;
+      const addedFor=r=>
+        (r.arms.prev.points.length+r.arms.next.points.length+r.arms.cut.points.length)*STRIPES+
+        DISK_VERTS+RING_VERTS*3;
+      const totalVerts=w.road.pos.length/3;
+      const addedVerts=w.roundabouts.reduce((s,r)=>s+addedFor(r),0);
+      const originalVerts=Math.max(0,totalVerts-addedVerts);
+      const pos=w.road.pos;
+
+      /* Old road at another elevation must not survive through a roundabout.
+         Keep all newly generated roundabout triangles, but remove ORIGINAL road
+         triangles touching the construction disc based on X/Z only. */
+      {
+        const keep=[],idx=w.road.idx;
+        for(let q=0;q<idx.length;q+=3){
+          const ids=[idx[q],idx[q+1],idx[q+2]];
+          let drop=false;
+          if(ids.some(id=>id<originalVerts)){
+            for(const r of w.roundabouts){
+              const clearR=r.clipR+7;
+              if(ids.some(id=>Math.hypot(pos[id*3]-r.cx,pos[id*3+2]-r.cz)<clearR)){
+                drop=true;break;
+              }
+            }
+          }
+          if(!drop)keep.push(...ids);
+        }
+        w.road.idx=new Uint32Array(keep);
+      }
+
+      /* Rails/posts from the old high or low road were another source of the
+         floating white pieces. Remove small prop triangles in the construction
+         zone without using a Y-height test. Large vertical structures are kept. */
+      if(w.props&&w.props.pos&&w.props.idx){
+        const pp=w.props.pos,keep=[];
+        for(let q=0;q<w.props.idx.length;q+=3){
+          const ids=[w.props.idx[q],w.props.idx[q+1],w.props.idx[q+2]];
+          let drop=false;
+          const ys=ids.map(id=>pp[id*3+1]),vertical=Math.max(...ys)-Math.min(...ys);
+          if(vertical<3.5){
+            for(const r of w.roundabouts){
+              const clearR=r.clipR+9;
+              if(ids.some(id=>Math.hypot(pp[id*3]-r.cx,pp[id*3+2]-r.cz)<clearR)){
+                drop=true;break;
+              }
+            }
+          }
+          if(!drop)keep.push(...ids);
+        }
+        w.props.idx=new Uint32Array(keep);
+      }
+
+      /* The circle's chosen level is the original main-road junction height
+         (r.cy). All three replacement approaches are then brought to that
+         exact level. A linear vertical interpolation minimises the peak grade;
+         importantly there is no independent tilted circle or 0.40 m mesh step. */
+      let cursor=originalVerts;
+      const maxAllowed=(scene.road&&scene.road.maxGrade)||9;
+      for(const r of w.roundabouts){
+        const H=r.cy;
+        r.flatY=H;
+        r.armMaxGrade={};
+
+        for(const nm of ['prev','next','cut']){
+          const pts=r.arms[nm].points;
+          const cum=[0];let L=0;
+          for(let k=1;k<pts.length;k++){
+            L+=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][2]-pts[k-1][2]);
+            cum.push(L);
+          }
+          const y0=pts[0][1],den=L||1;
+          let mg=0;
+          for(let k=0;k<pts.length;k++){
+            const t=cum[k]/den;
+            pts[k][1]=lerp(y0,H,t);
+            if(k){
+              const ds=cum[k]-cum[k-1],dy=pts[k][1]-pts[k-1][1];
+              if(ds>1e-5)mg=Math.max(mg,Math.abs(dy/ds)*100);
+            }
+            /* each centreline sample owns ten road-strip vertices */
+            for(let j=0;j<STRIPES;j++)pos[(cursor+k*STRIPES+j)*3+1]=pts[k][1];
+          }
+          cursor+=pts.length*STRIPES;
+          r.armMaxGrade[nm]=mg;
+        }
+
+        /* island, inner curb, carriageway, outer curb: one common horizontal
+           datum for the actual road, with only the island/curbs slightly raised. */
+        for(let i=0;i<DISK_VERTS;i++)pos[(cursor+i)*3+1]=H+.34;
+        cursor+=DISK_VERTS;
+        for(let i=0;i<RING_VERTS;i++)pos[(cursor+i)*3+1]=H+.035;
+        cursor+=RING_VERTS;
+        for(let i=0;i<RING_VERTS;i++)pos[(cursor+i)*3+1]=H;
+        cursor+=RING_VERTS;
+        for(let i=0;i<RING_VERTS;i++)pos[(cursor+i)*3+1]=H+.035;
+        cursor+=RING_VERTS;
+
+        r.levelWarning=Math.max(r.armMaxGrade.prev,r.armMaxGrade.next,r.armMaxGrade.cut)>maxAllowed+.25;
+      }
+      w.roundaboutFlat=true;
+      try{window.__roundaboutLevels=w.roundabouts.map(r=>({which:r.which,flatY:+r.flatY.toFixed(2),grades:Object.fromEntries(Object.entries(r.armMaxGrade).map(([k,v])=>[k,+v.toFixed(2)])),warning:r.levelWarning}));}catch(e){}
+      return w;
+    };
+  }
+
   const baseSegPoint=segPoint,TAU=Math.PI*2;
   const mod=(x,m)=>((x%m)+m)%m;
   const signedMain=(s,J,L)=>mod(s-J+L/2,L)-L/2;
   const rawAt=(seg,s)=>{const q=[0,0,0];baseSegPoint(seg,s,0,q);return q;};
   const arcDist=(a,b,dir)=>dir>0?((b-a+TAU)%TAU):((a-b+TAU)%TAU);
-  const circle=(r,a)=>[r.cx+Math.cos(a)*r.R,r.cy+.40,r.cz+Math.sin(a)*r.R];
+  const circle=(r,a)=>[r.cx+Math.cos(a)*r.R,(r.flatY!==undefined?r.flatY:r.cy+.40),r.cz+Math.sin(a)*r.R];
   const polyLen=pts=>{let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1],pts[i][2]-pts[i-1][2]);return L;};
   const polyAt=(pts,t)=>{
     t=clamp(t,0,1);if(t<=0)return pts[0].slice();if(t>=1)return pts[pts.length-1].slice();
@@ -59,9 +180,9 @@
 
   addEventListener('DOMContentLoaded',()=>{
     try{
-      const bt=document.getElementById('buildTag');if(bt)bt.textContent='build 101';
+      const bt=document.getElementById('buildTag');if(bt)bt.textContent='build 102';
       const sn=document.getElementById('sceneName');if(sn){
-        const f=()=>{if(/v100\b/.test(sn.textContent))sn.textContent=sn.textContent.replace(/v100\b/,'v101');};
+        const f=()=>{if(/v10[01]\b/.test(sn.textContent))sn.textContent=sn.textContent.replace(/v10[01]\b/,'v102');};
         new MutationObserver(f).observe(sn,{childList:true,subtree:true,characterData:true});f();
       }
     }catch(e){}
