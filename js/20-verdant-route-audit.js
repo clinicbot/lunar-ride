@@ -1,12 +1,10 @@
 "use strict";
 
 /* Verdant circular elevation repair ---------------------------------------
-   The first custom builder used an in-place forward/backward limiter.  On a
-   closed loop its final backward assignment can move the last sample after
-   the previous edge has already been checked, leaving one artificial cliff.
-   This symmetric projection treats every edge equally and converges without
-   privileging a seam.  The same delta is then applied to all geometry that
-   was already baked by the custom builder. */
+   The original custom builder creates a good 25 km profile but its in-place
+   limiter can leave one artificial cliff at the loop closure.  Do not diffuse
+   that error around the whole lap: replace only a controlled window around
+   the seam with a grade-safe bridge, then run a short symmetric cleanup. */
 (function(){
   const oldBuild=buildWorld;
   buildWorld=function(sc,onProgress){
@@ -15,24 +13,36 @@
 
     const n=w.nMain,lim=(sc.road.maxGrade||8)/100*ROUTE_STEP;
     const oldRy=new Float32Array(w.ry);
+
+    /* The damaged edge is at the lap seam.  A 1.44 km bridge (720 m either
+       side) is long enough to reconcile the two elevations gently while
+       preserving the other ~23.6 km of the designed profile exactly. */
+    const W=Math.min(180,Math.floor(n/12));
+    const a=n-W,b=W,yA=oldRy[a],yB=oldRy[b],span=2*W;
+    for(let k=0;k<=span;k++){
+      const i=(a+k)%n,t=k/span;
+      w.ry[i]=lerp(yA,yB,t);
+    }
+
+    /* Safety projection for any numerical residual.  Because the seam is now
+       already a legal ramp this converges in a handful of passes instead of
+       thousands and cannot spread a visual plateau around the lap. */
     let passes=0,maxDh=Infinity;
-    /* A single seam error must diffuse around enough samples to satisfy the
-       same grade limit on both sides.  600 passes was visibly insufficient;
-       this still costs only a few tens of millions of simple operations for
-       a 6250-sample route and runs only when the world is built. */
-    for(;passes<6000;passes++){
-      maxDh=0;
+    for(;passes<120;passes++){
+      maxDh=0;let changed=false;
       for(let i=0;i<n;i++){
         const j=(i+1)%n,dh=w.ry[j]-w.ry[i],ad=Math.abs(dh);
         if(ad>maxDh)maxDh=ad;
-        if(ad>lim){
+        if(ad>lim+.00001){
           const ex=(ad-lim)*.5;
           if(dh>0){w.ry[i]+=ex;w.ry[j]-=ex;}
           else     {w.ry[i]-=ex;w.ry[j]+=ex;}
+          changed=true;
         }
       }
-      if(maxDh<=lim+.00005)break;
+      if(!changed)break;
     }
+
     const delta=new Float32Array(n);
     let mean=0,maxG=0,maxI=0;
     for(let i=0;i<n;i++){
@@ -50,12 +60,10 @@
       return delta[q.i]*f;
     };
 
-    /* trail vertices sit directly on the centre-line surface */
     if(w.road&&w.road.pos){
       const p=w.road.pos;
       for(let k=0;k<p.length;k+=3){const q=near(p[k],p[k+2]);if(q&&q.i<n)p[k+1]+=delta[q.i];}
     }
-    /* terrain corridor: full correction under the trail, feathered outward */
     if(w.terrain&&w.terrain.pos){
       const p=w.terrain.pos;
       for(let k=0;k<p.length;k+=3){
@@ -64,8 +72,6 @@
         if(q.d<reach){const f=q.d<=soft?1:1-smoothstep((q.d-soft)/(reach-soft));p[k+1]+=delta[q.i]*f;}
       }
     }
-    /* baked roadside models are rigid enough that a smooth local vertical
-       shift preserves their shape while following the repaired terrain. */
     if(w.props&&w.props.pos){
       const p=w.props.pos;
       for(let k=0;k<p.length;k+=3)p[k+1]+=corr(p[k],p[k+2],130,95);
@@ -85,23 +91,23 @@
     w.groundAt=(x,z)=>surfaceFix(oldGround,x,z);
     w.meshH=(x,z)=>surfaceFix(oldMesh,x,z);
 
-    for(const a of w.actors){
-      if(!Number.isFinite(a.px)||!Number.isFinite(a.pz))continue;
-      const d=corr(a.px,a.pz,230,190);
-      if(Number.isFinite(a.py))a.py+=d;
-      if(Number.isFinite(a.gy))a.gy+=d;
-      if(Number.isFinite(a.baseY))a.baseY+=d;
-      if(Number.isFinite(a.pinY))a.pinY+=d;
-      if(Number.isFinite(a.pinAlt))a.pinAlt+=d;
-      if(Number.isFinite(a.baseRoadY))a.baseRoadY+=d;
+    for(const a2 of w.actors){
+      if(!Number.isFinite(a2.px)||!Number.isFinite(a2.pz))continue;
+      const d=corr(a2.px,a2.pz,230,190);
+      if(Number.isFinite(a2.py))a2.py+=d;
+      if(Number.isFinite(a2.gy))a2.gy+=d;
+      if(Number.isFinite(a2.baseY))a2.baseY+=d;
+      if(Number.isFinite(a2.pinY))a2.pinY+=d;
+      if(Number.isFinite(a2.pinAlt))a2.pinAlt+=d;
+      if(Number.isFinite(a2.baseRoadY))a2.baseRoadY+=d;
     }
-    for(const b of (w.bases||[])){
-      if(Number.isFinite(b.y))b.y+=corr(b.x,b.z,230,190);
+    for(const bb of (w.bases||[])){
+      if(Number.isFinite(bb.y))bb.y+=corr(bb.x,bb.z,230,190);
     }
 
     const seamXZ=Math.hypot(w.rx[0]-w.rx[n-1],w.rz[0]-w.rz[n-1]);
     w.__verdantAudit={passes,maxGrade:maxG,maxGradeIndex:maxI,seamXZ,
-      seamY:Math.abs(w.ry[0]-w.ry[n-1]),lapKm:w.lapLen/1000};
+      seamY:Math.abs(w.ry[0]-w.ry[n-1]),lapKm:w.lapLen/1000,bridgeSamples:span};
     if(maxG>(sc.road.maxGrade||8)+.21||seamXZ>8.5)
       console.warn('Verdant route invariant failed',w.__verdantAudit);
     else console.log('Verdant route audit',w.__verdantAudit);
