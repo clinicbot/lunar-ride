@@ -3,15 +3,22 @@
    deploy (no stale-version mysteries); every successful response is copied
    into the cache, so once you have ridden with a connection, the whole game
    works offline too. */
-const CACHE = 'lunar-ride-v1';
+const CACHE = 'lunar-ride-v106';
 
 const CORE = [
-  '.', 'index.html', 'css/styles.css', 'manifest.webmanifest',
+  '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
   'js/01-scenes.js', 'js/02-core-geometry.js', 'js/03-world-generation.js',
   'js/04-webgl-shaders.js', 'js/05-gltf-models.js',
   'js/06-textures-renderer-setup.js', 'js/07-ride-physics.js',
   'js/08-audio.js', 'js/09-bluetooth.js', 'js/10-render-loop.js',
-  'js/11-hud.js', 'js/12-export-tcx.js', 'js/13-app.js'
+  'js/11-hud.js', 'js/12-export-tcx.js', 'js/13-app.js',
+  'js/14-layout-fixes.js', 'js/15-map-pan.js', 'js/16-junction-cleanup.js',
+  'js/17-verdant-rift.js', 'js/18-verdant-weather.js', 'js/19-verdant-assets.js',
+  'js/20-verdant-route-audit.js', 'js/21-verdant-terrain-polish.js',
+  'assets/images/verdant_rift_card.svg',
+  'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
+  'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf',
+  'assets/models/verdant_fern.gltf'
 ];
 
 self.addEventListener('install', e => {
