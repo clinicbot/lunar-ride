@@ -1,6 +1,6 @@
 "use strict";
 
-/* ==========================================================================\n   True three-arm roundabout topology\n   --------------------------------------------------------------------------\n   A roundabout is road geometry, not a circle stamped over a Y-junction.\n   Remove the old road mesh in a compact junction disc, then rebuild three\n   separate approach ribbons that terminate on one circular carriageway.\n   The same generated arm/arc data is later used by the rider path and map.\n   ========================================================================== */
+/* ==========================================================================\n   True three-arm roundabout topology\n   --------------------------------------------------------------------------\n   Remove the original Y-junction road triangles and rebuild three independent\n   approach arms that terminate on one circular carriageway. If the scenic arm\n   arrives almost parallel to a main-road arm, its final connector is curved to\n   a properly separated entrance instead of allowing overlapping entries.\n   ========================================================================== */
 (function(){
   if(typeof buildWorld!=='function') return;
   const baseBuildWorld=buildWorld, TAU=Math.PI*2;
@@ -10,17 +10,37 @@
   const norm=(x,z)=>{const l=Math.hypot(x,z)||1;return [x/l,z/l];};
   const ang=(x,z)=>Math.atan2(z,x);
   const dArc=(a,b,dir)=>dir>0?((b-a+TAU)%TAU):((a-b+TAU)%TAU);
+  const aDist=(a,b)=>Math.min(dArc(a,b,1),dArc(a,b,-1));
+
+  /* Put the side-road entrance inside the sector where it naturally arrives,
+     but never let it overlap a main-road entrance. */
+  function separatedCutAngle(prevAng,nextAng,rawAng,minSep){
+    const cand=[];
+    for(const dir of [1,-1]){
+      const L=dArc(prevAng,nextAng,dir);
+      if(L<=2*minSep+.01)continue;
+      const rawU=dArc(prevAng,rawAng,dir),inside=rawU<=L+.0001;
+      let u=inside?rawU:L*.5;
+      u=clamp(u,minSep,L-minSep);
+      const a=prevAng+dir*u;
+      cand.push({a,dir,inside,err:aDist(a,rawAng),L});
+    }
+    if(!cand.length)return rawAng;
+    cand.sort((A,B)=>(B.inside-A.inside)||(A.err-B.err)||(B.L-A.L));
+    return cand[0].a;
+  }
 
   buildWorld=function(scene,onProgress){
     const w=baseBuildWorld(scene,onProgress);
     if(!w||!w.nCut||w.nCut<5||!w.road) return w;
 
     const hw=scene.road.halfWidth||3.2;
-    const span=Math.max(30,Math.round(34/ROUTE_STEP)*ROUTE_STEP);
-    const ks=Math.max(3,Math.round(span/ROUTE_STEP));
+    const span=Math.max(48,Math.round(52/ROUTE_STEP)*ROUTE_STEP);
+    const ks=Math.max(4,Math.round(span/ROUTE_STEP));
     const R=Math.max(12.5,hw*3.9);
     const inner=Math.max(5.5,R-hw-.55), outer=R+hw+.55;
     const clipR=outer+8;
+    const MIN_SEP=48*Math.PI/180;
 
     const rounds=[];
     function makeRound(which,jn){
@@ -31,19 +51,26 @@
       const [pvx,pvz]=norm(w.rx[prevI]-cx,w.rz[prevI]-cz);
       const [nvx,nvz]=norm(w.rx[nextI]-cx,w.rz[nextI]-cz);
       const [cvx,cvz]=norm(w.rx[cutI]-cx,w.rz[cutI]-cz);
-      const prevAng=ang(pvx,pvz),nextAng=ang(nvx,nvz),cutAng=ang(cvx,cvz);
+      const prevAng=ang(pvx,pvz),nextAng=ang(nvx,nvz),rawCutAng=ang(cvx,cvz);
+      const cutAng=separatedCutAngle(prevAng,nextAng,rawCutAng,MIN_SEP);
       const plus=dArc(prevAng,cutAng,1)+dArc(cutAng,nextAng,1);
       const minus=dArc(prevAng,cutAng,-1)+dArc(cutAng,nextAng,-1);
       const dir=plus<=minus?1:-1;
       const a1=dArc(prevAng,cutAng,dir),a2=dArc(cutAng,nextAng,dir);
       const r={which,jn,J:jn*ROUTE_STEP,cx,cz,cy,R,inner,outer,clipR,span,ks,
-        prevI,nextI,cutI,cutK,prevAng,nextAng,cutAng,dir,a1,a2,arms:{}};
+        prevI,nextI,cutI,cutK,prevAng,nextAng,cutAng,rawCutAng,dir,a1,a2,arms:{}};
       const entry=(a)=>[cx+Math.cos(a)*R,cy,cz+Math.sin(a)*R];
-      const bezier=(P0,P3)=>{
-        const vx=P3[0]-P0[0],vz=P3[2]-P0[2],L=Math.hypot(vx,vz)||1;
-        const [tx,tz]=norm(vx,vz),n=14,pts=[];
-        const c=.34*L,P1=[P0[0]+tx*c,P0[1]+(P3[1]-P0[1])*.28,P0[2]+tz*c];
-        const P2=[P3[0]-tx*c,P3[1]-(P3[1]-P0[1])*.28,P3[2]-tz*c];
+
+      /* Cubic connector with the real road tangent at its outer end and a
+         radial tangent at the circle, so a forced entrance angle curves in
+         smoothly instead of making a kink. */
+      const bezier=(P0,P3,sx,sz,ea)=>{
+        [sx,sz]=norm(sx,sz);
+        const ex=-Math.cos(ea),ez=-Math.sin(ea); // travel direction into circle
+        const L=Math.hypot(P3[0]-P0[0],P3[2]-P0[2])||1;
+        const c=clamp(L*.38,8,23),n=20,pts=[];
+        const P1=[P0[0]+sx*c,lerp(P0[1],P3[1],.28),P0[2]+sz*c];
+        const P2=[P3[0]-ex*c,lerp(P0[1],P3[1],.76),P3[2]-ez*c];
         for(let k=0;k<=n;k++){
           const t=k/n,u=1-t;
           pts.push([
@@ -54,29 +81,35 @@
         }
         return pts;
       };
+
       const prev0=[w.rx[prevI],w.ry[prevI]+.11,w.rz[prevI]];
       const next0=[w.rx[nextI],w.ry[nextI]+.11,w.rz[nextI]];
       const cut0=[w.rx[cutI],w.ry[cutI]+.11,w.rz[cutI]];
-      r.arms.prev={ang:prevAng,points:bezier(prev0,entry(prevAng))};
-      r.arms.next={ang:nextAng,points:bezier(next0,entry(nextAng))};
-      r.arms.cut ={ang:cutAng, points:bezier(cut0, entry(cutAng ))};
+      r.arms.prev={ang:prevAng,points:bezier(prev0,entry(prevAng), w.tx[prevI], w.tz[prevI],prevAng)};
+      r.arms.next={ang:nextAng,points:bezier(next0,entry(nextAng),-w.tx[nextI],-w.tz[nextI],nextAng)};
+      const cutSign=which==='A'?-1:1;
+      r.arms.cut={ang:cutAng,points:bezier(cut0,entry(cutAng),w.tx[cutI]*cutSign,w.tz[cutI]*cutSign,cutAng)};
       return r;
     }
     rounds.push(makeRound('A',w.jnA),makeRound('B',w.jnB));
 
+    /* Remove any original road triangle that reaches into the construction
+       disc. Testing vertices as well as the centroid prevents thin old-road
+       slivers from surviving under the rebuilt arms. */
     {
       const pos=w.road.pos,idx=w.road.idx,keep=[];
       for(let q=0;q<idx.length;q+=3){
-        const ia=idx[q],ib=idx[q+1],ic=idx[q+2];
-        const mx=(pos[ia*3]+pos[ib*3]+pos[ic*3])/3;
-        const my=(pos[ia*3+1]+pos[ib*3+1]+pos[ic*3+1])/3;
-        const mz=(pos[ia*3+2]+pos[ib*3+2]+pos[ic*3+2])/3;
+        const ids=[idx[q],idx[q+1],idx[q+2]];
+        const my=(pos[ids[0]*3+1]+pos[ids[1]*3+1]+pos[ids[2]*3+1])/3;
         let cut=false;
         for(const r of rounds){
-          const d=Math.hypot(mx-r.cx,mz-r.cz);
-          if(d<r.clipR&&Math.abs(my-r.cy)<10){cut=true;break;}
+          if(Math.abs(my-r.cy)>=10)continue;
+          for(const id of ids){
+            if(Math.hypot(pos[id*3]-r.cx,pos[id*3+2]-r.cz)<r.clipR){cut=true;break;}
+          }
+          if(cut)break;
         }
-        if(!cut)keep.push(ia,ib,ic);
+        if(!cut)keep.push(...ids);
       }
       w.road.idx=new Uint32Array(keep);
     }
@@ -109,7 +142,7 @@
       for(let k=0;k<points.length;k++){
         const a=points[Math.max(0,k-1)],b=points[Math.min(points.length-1,k+1)];
         const [tx,tz]=norm(b[0]-a[0],b[2]-a[2]),nx=-tz,nz=tx;
-        const laneOn=!(fadeLane&&k>points.length-4);
+        const laneOn=!(fadeLane&&k>points.length-5);
         for(const st of stripes){
           let c=roadCol,e=0;
           if(st[1]==='rum'){c=rumCol;e=scene.beacons?.3:0;}
@@ -123,7 +156,7 @@
       }
     }
     const ringStrip=(r,r0,r1,c,lift)=>{
-      const S=88,base=P.length/3;
+      const S=96,base=P.length/3;
       for(let k=0;k<=S;k++){
         const a=k/S*TAU,ca=Math.cos(a),sa=Math.sin(a);
         for(const rr of [r0,r1])V(r.cx+ca*rr,r.cy+lift,r.cz+sa*rr,c);
@@ -131,7 +164,7 @@
       for(let k=0;k<S;k++){const a=base+k*2,b=a+1,c0=a+2,d=a+3;I.push(a,b,c0,b,d,c0);}
     };
     const disk=(r,rad,c,lift)=>{
-      const S=88,base=P.length/3,cc=V(r.cx,r.cy+lift,r.cz,c);
+      const S=96,base=P.length/3,cc=V(r.cx,r.cy+lift,r.cz,c);
       for(let k=0;k<S;k++){const a=k/S*TAU;V(r.cx+Math.cos(a)*rad,r.cy+lift,r.cz+Math.sin(a)*rad,c);}
       for(let k=0;k<S;k++)I.push(cc,base+1+k,base+1+((k+1)%S));
     };
@@ -155,8 +188,7 @@
       for(let v=0;v<pos.length/3;v++){
         const x=pos[v*3],z=pos[v*3+2];
         for(const r of rounds){
-          const d=Math.hypot(x-r.cx,z-r.cz);
-          let target=null;
+          const d=Math.hypot(x-r.cx,z-r.cz);let target=null;
           if(d<r.outer+2.5)target=r.cy-.32;
           else{
             for(const nm of ['prev','next','cut'])if(nearPolyline(x,z,r.arms[nm].points)<hw+2.8){
@@ -183,7 +215,8 @@
 
     w.roundabouts=rounds;
     try{window.__roundaboutV2=rounds.map(r=>({which:r.which,centre:[+r.cx.toFixed(1),+r.cz.toFixed(1)],R:r.R,
-      armAngles:[r.prevAng,r.cutAng,r.nextAng].map(a=>+(a*180/Math.PI).toFixed(1))}));}catch(e){}
+      armAngles:[r.prevAng,r.cutAng,r.nextAng].map(a=>+(a*180/Math.PI).toFixed(1)),
+      rawCutAngle:+(r.rawCutAng*180/Math.PI).toFixed(1),minSepDeg:+Math.min(aDist(r.prevAng,r.cutAng),aDist(r.cutAng,r.nextAng),aDist(r.prevAng,r.nextAng))*180/Math.PI.toFixed?.(1)}));}catch(e){}
     return w;
   };
 })();
