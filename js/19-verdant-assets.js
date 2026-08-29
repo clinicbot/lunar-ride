@@ -32,11 +32,12 @@
       const a=w.actors[i];
       if(META[a.type]){
         a.meta=META[a.type];
+        if(a.ph===undefined) a.ph=(i*1.713)%6.28318;
         a.hx=a.px; a.hz=a.pz;
         a.wr=a.type==='bear'?2.2:(a.type==='frog'?.35:(a.type==='monkey'?.22:.6));
-        a.wander=a.ph||Math.random()*6.28318;
+        a.wander=a.ph;
         a.wspd=(i&1?-1:1)*(a.type==='frog'?.35:(a.type==='insect'?.7:.05));
-        a.alert=0; a.headYaw=0; a.headPitch=0; a.swing=0; a.gph=a.ph||0;
+        a.alert=0; a.headYaw=0; a.headPitch=0; a.swing=0; a.gph=a.ph;
         if(a.type==='monkey'||a.type==='insect') a.pinY=a.py;
         if(a.type==='bear') a.gcre='vbear';
         else if(a.type==='frog') a.gcre='vfrog';
