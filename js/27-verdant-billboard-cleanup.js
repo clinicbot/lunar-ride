@@ -31,4 +31,23 @@
     console.log('Verdant v114: hidden legacy pilot billboards:',hidden);
     return w;
   };
+
+  const RELEASE='114';
+  const label=()=>{
+    const b=document.getElementById('buildTag');
+    if(b)b.textContent='build '+RELEASE;
+    const e=document.getElementById('sceneName');
+    if(e&&e.textContent&&e.textContent.indexOf('Verdant Rift')>=0&&!e.textContent.endsWith('v'+RELEASE))
+      e.textContent=e.textContent.replace(/\s·\sv\d+\s*$/,'')+' · v'+RELEASE;
+  };
+  if(typeof document!=='undefined'){
+    const install=()=>{
+      label();
+      const e=document.getElementById('sceneName');
+      if(e)new MutationObserver(()=>label()).observe(e,{childList:true,characterData:true,subtree:true});
+      [100,350,800,1500].forEach(ms=>setTimeout(label,ms));
+    };
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+    else install();
+  }
 })();
