@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lunar Ride</title>
-  <link rel="stylesheet" href="css/styles.css?b=67">
+  <link rel="stylesheet" href="css/styles.css?b=68">
 </head>
 <body>
 
@@ -22,6 +22,7 @@
     <div><div class="lbl">Time</div><div class="val mono" id="tTime">0:00</div></div>
     <div><div class="lbl">Distance</div><div class="val mono" id="tDist">0.00 km</div></div>
     <div><div class="lbl">Climbed</div><div class="val mono" id="tElev">0 m</div></div>
+    <div><div class="lbl">Left</div><div class="val mono" id="tLeft">&mdash;</div></div>
     <div id="sceneName"></div>
   </div>
 
@@ -109,6 +110,7 @@
     <span class="pill" id="pillHr">no HR</span>
     <button id="btnResume" class="primary" style="display:none">Resume ride</button>
     <button id="btnExport" style="display:none">Save ride (.tcx)</button>
+    <button id="btnSave" style="display:none">Save workout for later</button>
     <button id="btnEnd" style="display:none">End ride</button>
   </div>
 
@@ -117,6 +119,9 @@
     <div class="field"><label class="lbl">Bike kg</label><input id="inBike" type="number" value="8" min="4" max="25" step="0.5"></div>
     <div class="field"><label class="lbl">FTP watts</label><input id="inFtp" type="number" value="230" min="60" max="600" step="5"></div>
     <div class="field"><label class="lbl" title="AI riders on the road with you. 0 = ride alone. Applies from the next ride.">Other riders</label><input id="inRiders" type="number" value="6" min="0" max="24" step="1"></div>
+    <div class="field"><label class="lbl" title="Plan the workout by distance. The Left readout counts down to it. 0 = no target.">Goal km</label><input id="inGoalKm" type="number" value="0" min="0" max="300" step="1"></div>
+    <div class="field"><label class="lbl" title="Plan the workout by time. The clock pauses while you stand still. 0 = no target.">Goal min</label><input id="inGoalMin" type="number" value="0" min="0" max="600" step="5"></div>
+    <div class="field"><label class="lbl" title="Start the next ride this many km along the route (for testing).">Start at km</label><input id="inStartKm" type="number" value="0" min="0" max="99" step="0.1"></div>
     <div class="field" style="width:200px">
       <label class="lbl">Trainer difficulty <b id="diffVal" style="color:var(--accent)">50%</b></label>
       <input id="inDiff" type="range" min="0" max="100" step="5" value="50"
@@ -147,6 +152,7 @@
 
   <div id="update" class="hideU"><span>A newer version is ready.</span>
     <button id="btnUpdate">Update now</button></div>
+  <button id="btnContinue" class="primary" style="display:none;margin:10px 0"></button>
   <div id="msg"></div>
 
   <h3 class="sec">Choose a world</h3>
@@ -161,19 +167,19 @@
   </div>
 </div>
 
-  <script src="js/01-scenes.js?b=67"></script>
-  <script src="js/02-core-geometry.js?b=67"></script>
-  <script src="js/03-world-generation.js?b=67"></script>
-  <script src="js/04-webgl-shaders.js?b=67"></script>
-  <script src="js/05-gltf-models.js?b=67"></script>
-  <script src="js/06-textures-renderer-setup.js?b=67"></script>
-  <script src="js/07-ride-physics.js?b=67"></script>
-  <script src="js/08-audio.js?b=67"></script>
-  <script src="js/09-bluetooth.js?b=67"></script>
-  <script src="js/10-render-loop.js?b=67"></script>
-  <script src="js/11-hud.js?b=67"></script>
-  <script src="js/12-export-tcx.js?b=67"></script>
-  <script src="js/13-app.js?b=67"></script>
+  <script src="js/01-scenes.js?b=68"></script>
+  <script src="js/02-core-geometry.js?b=68"></script>
+  <script src="js/03-world-generation.js?b=68"></script>
+  <script src="js/04-webgl-shaders.js?b=68"></script>
+  <script src="js/05-gltf-models.js?b=68"></script>
+  <script src="js/06-textures-renderer-setup.js?b=68"></script>
+  <script src="js/07-ride-physics.js?b=68"></script>
+  <script src="js/08-audio.js?b=68"></script>
+  <script src="js/09-bluetooth.js?b=68"></script>
+  <script src="js/10-render-loop.js?b=68"></script>
+  <script src="js/11-hud.js?b=68"></script>
+  <script src="js/12-export-tcx.js?b=68"></script>
+  <script src="js/13-app.js?b=68"></script>
   <script>
     /* installable app: register the offline-capable service worker */
     if('serviceWorker' in navigator)

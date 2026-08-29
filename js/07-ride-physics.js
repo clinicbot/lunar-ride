@@ -8,7 +8,7 @@ const state={
   running:false, scene:null,
   s:0, seg:'m', dir:1, choice:'straight', playerX:0, speed:0,
   power:0, cad:0, hr:0,
-  dist:0, elapsed:0, elev:0, alt:0,
+  dist:0, elapsed:0, rideTime:0, elev:0, alt:0,
   pwrSum:0, pwrN:0, maxPwr:0, kj:0, lap:1,
   samples:[], sampleT:0,
   demoTarget:170, demoPhase:0,
@@ -16,7 +16,7 @@ const state={
 };
 const cfg={rider:78,bike:8,ftp:230,moonG:false,auto:true,difficulty:0.5,
            autoConnect:true, steady:false, steadyGrade:4, descentKeep:0.5,
-           sound:true, vol:0.7, riders:6};
+           sound:true, vol:0.7, riders:6, goalKm:0, goalMin:0, startKm:0};
 
 function readSetup(){
   cfg.rider=clamp(parseFloat($('inWeight').value)||78,35,180);
@@ -32,6 +32,9 @@ function readSetup(){
   cfg.descentKeep=clamp((parseFloat($('inDescent').value)||0)/100,0,1);
   cfg.vol        =clamp((parseFloat($('inVol').value)||0)/100,0,1);
   cfg.riders     =clamp(Math.round(parseFloat($('inRiders').value)||0),0,24);
+  cfg.goalKm     =clamp(parseFloat($('inGoalKm').value)||0,0,300);
+  cfg.goalMin    =clamp(parseFloat($('inGoalMin').value)||0,0,600);
+  cfg.startKm    =clamp(parseFloat($('inStartKm').value)||0,0,99);
   const pct=Math.round(cfg.difficulty*100)+'%';
   const lvl=cfg.steadyGrade.toFixed(1)+'%';
   $('diffVal').textContent=pct;
@@ -54,6 +57,9 @@ function loadSetup(){
     if(s.descentKeep!==undefined) $('inDescent').value=Math.round(s.descentKeep*100);
     if(s.vol!==undefined)         $('inVol').value=Math.round(s.vol*100);
     if(s.riders!==undefined)      $('inRiders').value=s.riders;
+    if(s.goalKm!==undefined)      $('inGoalKm').value=s.goalKm;
+    if(s.goalMin!==undefined)     $('inGoalMin').value=s.goalMin;
+    if(s.startKm!==undefined)     $('inStartKm').value=s.startKm;
     $('inMoonG').checked=!!s.moonG;
     $('inAuto').checked=s.auto!==false;
     $('inReconn').checked=s.autoConnect!==false;
@@ -292,6 +298,8 @@ function physics(dt){
   state.playerX=clamp(state.playerX,-lim,lim);
 
   state.elapsed+=dt;
+  /* the workout clock: it only runs while the bike is actually moving */
+  if(state.speed>0.15) state.rideTime+=dt;
   state.kj+=state.power*dt/1000;
   state.pwrSum+=state.power*dt; state.pwrN+=dt;
   if(state.power>state.maxPwr) state.maxPwr=state.power;
@@ -299,7 +307,7 @@ function physics(dt){
   state.sampleT+=dt;
   if(state.sampleT>=1){
     state.sampleT-=1;
-    state.samples.push({t:state.elapsed,d:state.dist,a:state.alt,
+    state.samples.push({t:state.rideTime,d:state.dist,a:state.alt,
       s:state.speed,p:Math.round(state.power),c:Math.round(state.cad),h:Math.round(state.hr)});
   }
 }

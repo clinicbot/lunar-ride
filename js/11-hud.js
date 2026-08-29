@@ -41,7 +41,7 @@ function zoneColour(p){
 }
 /* ---- the route map: the whole lap at a glance, you as the arrow ---- */
 const mcv=$('miniMap'), mctx=mcv.getContext('2d');
-let mapWorld=null, mapPts=[], mapCut=[], mapB=[0,1,0,1], mapZoom=0;
+let mapWorld=null, mapPts=[], mapCut=[], mapB=[0,1,0,1], mapZoom=0, mapView=null;
 function buildMap(){
   mapWorld=world;
   const st=Math.max(1,Math.floor(world.nMain/1400));
@@ -74,6 +74,7 @@ function drawMap(){
   const cx=mapZoom===0?(x0+x1)/2:riderPos[0];
   const cz=mapZoom===0?(z0+z1)/2:riderPos[2];
   const X=p=>w/2+(p[0]-cx)*sc, Y=p=>h/2+(p[1]-cz)*sc;
+  mapView={cx,cz,sc,w,h};
   /* the shortcut first, faint, so the main line draws over the junctions */
   if(mapCut.length>1){
     mctx.strokeStyle='rgba(127,215,255,.65)'; mctx.lineWidth=2; mctx.lineCap='round';
@@ -118,6 +119,20 @@ mcv.addEventListener('wheel',e=>{
   e.preventDefault();
   mapZoom=clamp(mapZoom+(e.deltaY<0?1:-1),0,2);
 },{passive:false});
+/* double-click the map to jump there - a debugging teleport */
+mcv.addEventListener('dblclick',e=>{
+  if(!world||!mapView) return;
+  const r=mcv.getBoundingClientRect();
+  const wx=(e.clientX-r.left-mapView.w/2)/mapView.sc+mapView.cx;
+  const wz=(e.clientY-r.top-mapView.h/2)/mapView.sc+mapView.cz;
+  let bi=0,bd=1e18;
+  for(let i=0;i<world.nMain;i+=2){
+    const d=(world.rx[i]-wx)*(world.rx[i]-wx)+(world.rz[i]-wz)*(world.rz[i]-wz);
+    if(d<bd){bd=d;bi=i;}
+  }
+  state.s=bi*ROUTE_STEP; state.seg='m';
+  state.speed=Math.min(state.speed,3);
+});
 
 let hudLast=0;
 function hudTick(t){
@@ -130,7 +145,21 @@ function hudTick(t){
     $('mapLeft').textContent=((L-done)/1000).toFixed(1)+' km';
     $('mapBar').style.width=(done/L*100).toFixed(1)+'%';
   }
-  $('tTime').textContent=fmtTime(state.elapsed);
+  $('tTime').textContent=fmtTime(state.rideTime);
+  {
+    const el=$('tLeft');
+    if(cfg.goalMin>0){
+      const left=cfg.goalMin*60-state.rideTime;
+      el.textContent=left>0?fmtTime(left):'\ud83c\udfc1 done';
+    }else if(cfg.goalKm>0){
+      const leftM=cfg.goalKm*1000-state.dist;
+      if(leftM<=0) el.textContent='\ud83c\udfc1 done';
+      else{
+        const avg=state.rideTime>30?state.dist/state.rideTime:0;
+        el.textContent=(leftM/1000).toFixed(1)+' km'+(avg>0.5?' \u00b7 ~'+fmtTime(leftM/avg):'');
+      }
+    }else el.textContent='\u2014';
+  }
   $('tDist').textContent=(state.dist/1000).toFixed(2)+' km';
   $('tElev').textContent=Math.round(state.elev)+' m';
   $('pwrVal').textContent=Math.round(state.power);
@@ -156,7 +185,7 @@ function hudTick(t){
   $('progTxt').textContent='lap '+state.lap+' · '+(world.lapLen/1000).toFixed(1)+' km';
   $('sAvg').textContent=Math.round(state.pwrN?state.pwrSum/state.pwrN:0)+' W';
   $('sMax').textContent=Math.round(state.maxPwr)+' W';
-  $('sAvgSpd').textContent=(state.elapsed>0?(state.dist/state.elapsed*3.6):0).toFixed(1);
+  $('sAvgSpd').textContent=(state.rideTime>0?(state.dist/state.rideTime*3.6):0).toFixed(1);
   $('sKj').textContent=Math.round(state.kj)+' kJ';
   $('sAlt').textContent=Math.round(state.alt)+' m';
   const live=!!BT.trainer&&(performance.now()-BT.last<4000);

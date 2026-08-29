@@ -70,7 +70,7 @@ function buildMenu(){
   });
 }
 
-function startRide(sc){
+function startRide(sc,resume){
   readSetup();
   if(cfg.sound) audioStart();   /* a click is the gesture browsers demand */
   $('menu').classList.add('hide');
@@ -92,9 +92,23 @@ function startRide(sc){
     for(let i=0;i<world.nMain;i+=stepP) profilePts.push(world.ry[i]);
 
     state.scene=sc;
-    Object.assign(state,{s:0,seg:'m',dir:1,choice:'straight',playerX:0,speed:0,dist:0,elapsed:0,elev:0,
+    Object.assign(state,{s:0,seg:'m',dir:1,choice:'straight',playerX:0,speed:0,dist:0,elapsed:0,
+      rideTime:0,elev:0,
       alt:world.ry[0],pwrSum:0,pwrN:0,maxPwr:0,kj:0,lap:1,samples:[],sampleT:0,
       startedAt:new Date()});
+    if(resume){
+      /* pick the saved workout up exactly where it stopped */
+      Object.assign(state,{s:resume.s||0,seg:resume.seg||'m',dir:resume.dir||1,
+        playerX:resume.playerX||0,dist:resume.dist||0,elapsed:resume.elapsed||0,
+        rideTime:resume.rideTime||0,elev:resume.elev||0,pwrSum:resume.pwrSum||0,
+        pwrN:resume.pwrN||0,maxPwr:resume.maxPwr||0,kj:resume.kj||0,
+        lap:resume.lap||1,samples:resume.samples||[]});
+      try{localStorage.removeItem('lr.workout');}catch(e){}
+      updContinueBtn();
+    }else if(cfg.startKm>0){
+      state.s=clamp(cfg.startKm*1000,0,world.lapLen-8);
+      state.dist=0;
+    }
     $('sceneName').textContent=sc.name+' \u00b7 v'+APP_STAMP;
     $('loading').classList.remove('on');
     $('hud').classList.add('on');
@@ -103,6 +117,7 @@ function startRide(sc){
     hintTimer=setTimeout(function(){$('hint').classList.add('fade');},15000);
     $('btnResume').style.display='';
     $('btnExport').style.display='';
+    $('btnSave').style.display='';
     $('btnEnd').style.display='';
     state.running=true;
   },60);
@@ -164,6 +179,44 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible') checkUpdate();
 });
 
+/* ---- saving a workout mid-ride, and picking it up later ---- */
+function saveWorkout(silent){
+  if(!state.scene||!world) return;
+  const w={sceneId:state.scene.id, s:state.s, seg:state.seg, dir:state.dir,
+    playerX:state.playerX, dist:state.dist, elapsed:state.elapsed,
+    rideTime:state.rideTime, elev:state.elev, pwrSum:state.pwrSum,
+    pwrN:state.pwrN, maxPwr:state.maxPwr, kj:state.kj, lap:state.lap,
+    samples:state.samples.slice(-20000), savedAt:Date.now()};
+  try{localStorage.setItem('lr.workout',JSON.stringify(w));}
+  catch(e){ if(!silent) msg('Could not save the workout: '+(e.message||e)); return; }
+  if(!silent){
+    state.running=false; releaseTrainer(); state.scene=null; world=null;
+    $('btnResume').style.display='none';
+    $('btnExport').style.display='none';
+    $('btnSave').style.display='none';
+    $('btnEnd').style.display='none';
+    $('hud').classList.remove('on');
+    gl&&gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    updContinueBtn();
+    msg('Workout saved. Continue it any time from this menu \u2014 even after closing the app.',true);
+  }
+}
+function updContinueBtn(){
+  const b=$('btnContinue'); if(!b) return;
+  let w=null; try{w=JSON.parse(localStorage.getItem('lr.workout')||'null');}catch(e){}
+  const sc=w&&SCENES.find(x=>x.id===w.sceneId);
+  if(sc){
+    b.style.display='';
+    b.textContent='\u25b6 Continue saved workout \u2014 '+sc.name+' \u00b7 '
+      +((w.dist||0)/1000).toFixed(1)+' km \u00b7 '+fmtTime(w.rideTime||w.elapsed||0);
+    b.onclick=()=>startRide(sc,w);
+  } else b.style.display='none';
+}
+/* if the app closes mid-ride, the workout survives */
+window.addEventListener('beforeunload',()=>{
+  if(state.scene&&state.dist>200) saveWorkout(true);
+});
+
 $('btnTrainer').onclick=connectTrainer;
 $('btnHr').onclick=function(){connectHr(false);};
 $('btnHrAll').onclick=function(){connectHr(true);};
@@ -180,18 +233,21 @@ $('tuTurn').onclick=function(){state.choice='turn';};
 $('cUp').onclick=function(){bumpResist(1);};
 $('cDown').onclick=function(){bumpResist(-1);};
 $('btnResume').onclick=()=>toggleMenu();
+$('btnSave').onclick=()=>saveWorkout(false);
 $('btnExport').onclick=exportTcx;
 $('btnEnd').onclick=()=>{
   state.running=false; releaseTrainer(); state.scene=null; world=null;
   $('btnResume').style.display='none';
   $('btnExport').style.display='none';
+  $('btnSave').style.display='none';
   $('btnEnd').style.display='none';
   $('hud').classList.remove('on');
   gl&&gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   msg('Ride ended. Pick a world to start another.',true);
 };
 ['inWeight','inBike','inFtp','inMoonG','inAuto','inDiff','inReconn','inSteadyOn',
- 'inSteadyLv','inDescent','inSound','inVol','inRiders'].forEach(id=>$(id).onchange=readSetup);
+ 'inSteadyLv','inDescent','inSound','inVol','inRiders',
+ 'inGoalKm','inGoalMin','inStartKm'].forEach(id=>$(id).onchange=readSetup);
 ['inDiff','inSteadyLv','inDescent','inVol'].forEach(id=>$(id).oninput=readSetup);
 
 if(!gl){
@@ -202,6 +258,7 @@ if(!gl){
   initGL();
   loadSetup();
   buildMenu();
+  updContinueBtn();
   updatePills();
   for(const p of PANELS) makeDraggable(p[0],p[1]);
   restorePanels();
