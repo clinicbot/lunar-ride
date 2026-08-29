@@ -28,6 +28,9 @@ jobs:
           const fs=require('fs'),vm=require('vm');
           global.document={querySelector:()=>null};
           global.window={};
+          /* World generation may optionally use already-loaded glTF props in a
+             browser. The topology check intentionally runs without GPU assets. */
+          global.GLTREES={};
           const files=[
             'js/01-scenes.js','js/02-core-geometry.js','js/03-world-generation.js',
             'js/16-scenic-route.js','js/17-scenic-surface.js','js/17-scenic-life.js',
@@ -42,14 +45,12 @@ jobs:
             const report=[];
             for(const r of w.roundabouts){
               const arms=['prev','cut','next'];
-              const ends={};
               for(const n of arms){
                 const pts=r.arms[n].points,p=pts[pts.length-1];
                 const d=Math.hypot(p[0]-r.cx,p[2]-r.cz);
                 if(Math.abs(d-r.R)>.02)throw new Error(r.which+' '+n+' does not terminate on circle: '+d);
                 const start=pts[0],sd=Math.hypot(start[0]-r.cx,start[2]-r.cz);
                 if(sd<r.clipR+2)throw new Error(r.which+' '+n+' connector starts inside clipped zone: '+sd);
-                ends[n]=d;
               }
               const aa=[r.prevAng,r.cutAng,r.nextAng];
               let minSep=Infinity;
