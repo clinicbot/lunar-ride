@@ -1,113 +1,128 @@
 "use strict";
 
-/* ==========================================================================\n   18. Roundabout ride path + map topology\n   --------------------------------------------------------------------------\n   The underlying route arrays still describe the three radial approaches.\n   Around a junction the rider/camera follows the circular roadway instead of\n   crossing the island, and the minimap CLIPS those radial roads at the circle\n   boundary before drawing the roundabout. This makes it a real roundabout\n   visually: three separate approaches, one circular road, no Y underneath.\n   ========================================================================== */
+/* ==========================================================================\n   Roundabout rider path + minimap\n   --------------------------------------------------------------------------\n   Consume the exact arm/circle geometry produced by the world builder. The\n   route-choice point (main s == J) is the scenic arm on the circle, so the\n   existing TURN logic remains valid while straight riding follows the circle.\n   ========================================================================== */
 (function(){
   if(typeof segPoint!=='function')return;
-  const baseSegPoint=segPoint;
-  const TAU=6.28318530718,PRE=30,POST=38;
+  const baseSegPoint=segPoint,TAU=Math.PI*2;
   const mod=(x,m)=>((x%m)+m)%m;
   const signedMain=(s,J,L)=>mod(s-J+L/2,L)-L/2;
-  const sm=t=>smoothstep(clamp(t,0,1));
-  const mixP=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
-  const baseAt=(seg,s)=>{const q=[0,0,0];baseSegPoint(seg,s,0,q);return q;};
-
-  function circleP(r,ang){
-    const x=r.cx+Math.cos(ang)*r.R,z=r.cz+Math.sin(ang)*r.R;
-    const y=r.y+r.slope*((x-r.cx)*r.tx+(z-r.cz)*r.tz)+.42;
-    return [x,y,z];
-  }
-  const anchorP=r=>circleP(r,r.anchorAng);
-  const oppositeP=r=>circleP(r,r.anchorAng+r.dir*Math.PI);
-  const branchExitP=r=>circleP(r,r.anchorAng+r.dir*(r.branchArc/r.R));
-
-  function mainAtRound(r,s){
-    const L=world.lapLen,d=signedMain(s,r.J,L),arc=r.mainArc;
-    if(r.which==='A'){
-      if(d>=-PRE&&d<0){const a=baseAt('m',r.J-PRE),b=anchorP(r);return mixP(a,b,sm((d+PRE)/PRE));}
-      if(d>=0&&d<=arc)return circleP(r,r.anchorAng+r.dir*d/r.R);
-      if(d>arc&&d<=arc+POST){const a=oppositeP(r),b=baseAt('m',r.J+arc+POST);return mixP(a,b,sm((d-arc)/POST));}
-    }else{
-      if(d>=-(arc+POST)&&d<-arc){const a=baseAt('m',r.J-arc-POST),b=oppositeP(r);return mixP(a,b,sm((d+arc+POST)/POST));}
-      if(d>=-arc&&d<=0)return circleP(r,r.anchorAng+r.dir*(-d)/r.R);
-      if(d>0&&d<=PRE){const a=anchorP(r),b=baseAt('m',r.J+PRE);return mixP(a,b,sm(d/PRE));}
+  const rawAt=(seg,s)=>{const q=[0,0,0];baseSegPoint(seg,s,0,q);return q;};
+  const arcDist=(a,b,dir)=>dir>0?((b-a+TAU)%TAU):((a-b+TAU)%TAU);
+  const circle=(r,a)=>[r.cx+Math.cos(a)*r.R,r.cy+.40,r.cz+Math.sin(a)*r.R];
+  const polyLen=pts=>{let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1],pts[i][2]-pts[i-1][2]);return L;};
+  const polyAt=(pts,t)=>{
+    t=clamp(t,0,1);if(t<=0)return pts[0].slice();if(t>=1)return pts[pts.length-1].slice();
+    const total=polyLen(pts),want=t*total;let acc=0;
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1],b=pts[i],d=Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]);
+      if(acc+d>=want){const u=(want-acc)/(d||1);return [lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u)];}
+      acc+=d;
     }
-    return null;
+    return pts[pts.length-1].slice();
+  };
+  const arcAt=(r,a0,a1,dir,t)=>{const d=arcDist(a0,a1,dir),a=a0+dir*d*clamp(t,0,1);return circle(r,a);};
+  function connArc(conn,r,a0,a1,dir,u){
+    const Lc=polyLen(conn),La=arcDist(a0,a1,dir)*r.R,T=Lc+La,q=clamp(u,0,1)*T;
+    if(q<=Lc)return polyAt(conn,q/(Lc||1));
+    return arcAt(r,a0,a1,dir,(q-Lc)/(La||1));
   }
-
-  function cutAtRound(r,s){
-    const arc=r.branchArc;
-    if(r.which==='A'){
-      if(s>=0&&s<=arc)return circleP(r,r.anchorAng+r.dir*s/r.R);
-      if(s>arc&&s<=arc+POST){const a=branchExitP(r),b=baseAt('c',arc+POST);return mixP(a,b,sm((s-arc)/POST));}
-    }else{
-      const back=world.cutLen-s;
-      if(back>=0&&back<=arc)return circleP(r,r.anchorAng+r.dir*back/r.R);
-      if(back>arc&&back<=arc+POST){const a=branchExitP(r),b=baseAt('c',world.cutLen-(arc+POST));return mixP(a,b,sm((back-arc)/POST));}
-    }
-    return null;
+  function arcConn(r,a0,a1,dir,conn,u){
+    const rev=conn.slice().reverse(),La=arcDist(a0,a1,dir)*r.R,Lc=polyLen(rev),T=La+Lc,q=clamp(u,0,1)*T;
+    if(q<=La)return arcAt(r,a0,a1,dir,q/(La||1));
+    return polyAt(rev,(q-La)/(Lc||1));
   }
 
   function centre(seg,s){
-    if(world&&world.roundabouts&&world.roundabouts.length){
-      if(seg==='m')for(const r of world.roundabouts){const p=mainAtRound(r,s);if(p)return p;}
-      else if(seg==='c')for(const r of world.roundabouts){const p=cutAtRound(r,s);if(p)return p;}
+    if(world&&world.roundabouts){
+      if(seg==='m')for(const r of world.roundabouts){
+        const d=signedMain(s,r.J,world.lapLen);
+        if(d>=-r.span&&d<=0)return connArc(r.arms.prev.points,r,r.prevAng,r.cutAng,r.dir,(d+r.span)/r.span);
+        if(d>0&&d<=r.span)return arcConn(r,r.cutAng,r.nextAng,r.dir,r.arms.next.points,d/r.span);
+      }
+      if(seg==='c')for(const r of world.roundabouts){
+        if(r.which==='A'&&s>=0&&s<=r.span)return polyAt(r.arms.cut.points,1-s/r.span);
+        if(r.which==='B'){
+          const back=world.cutLen-s;
+          if(back>=0&&back<=r.span)return polyAt(r.arms.cut.points,1-back/r.span);
+        }
+      }
     }
-    return baseAt(seg,s);
+    return rawAt(seg,s);
   }
 
   segPoint=function(seg,s,off,out){
-    const p=centre(seg,s),eps=.7;
-    let s0=s-eps,s1=s+eps;
-    if(seg==='c'){s0=clamp(s0,0,world.cutLen);s1=clamp(s1,0,world.cutLen);}
-    const a=centre(seg,s0),b=centre(seg,s1);
-    let tx=b[0]-a[0],tz=b[2]-a[2],l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;
+    const p=centre(seg,s),eps=.75;
+    let s0=s-eps,s1=s+eps;if(seg==='c'){s0=clamp(s0,0,world.cutLen);s1=clamp(s1,0,world.cutLen);}
+    const a=centre(seg,s0),b=centre(seg,s1);let tx=b[0]-a[0],tz=b[2]-a[2],l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;
     out[0]=p[0]-tz*off;out[1]=p[1];out[2]=p[2]+tx*off;return out;
   };
 
-  /* The normal map renderer draws the raw main/cut centre lines. Erase those\n     lines INSIDE each roundabout first, then draw the circular roadway. The\n     arms therefore meet the circumference at three different mouths instead\n     of all meeting at the centre. */
+  addEventListener('DOMContentLoaded',()=>{
+    try{
+      const bt=document.getElementById('buildTag');if(bt)bt.textContent='build 101';
+      const sn=document.getElementById('sceneName');if(sn){
+        const f=()=>{if(/v100\b/.test(sn.textContent))sn.textContent=sn.textContent.replace(/v100\b/,'v101');};
+        new MutationObserver(f).observe(sn,{childList:true,subtree:true,characterData:true});f();
+      }
+    }catch(e){}
+    if(typeof junctionAhead==='function')junctionAhead=function(){
+      if(!world||!world.nCut||state.seg!=='m')return null;
+      const L=world.lapLen,J=(state.dir>0?world.jnA:world.jnB)*ROUTE_STEP;
+      const d=state.dir>0?(((J-state.s)%L)+L)%L:(((state.s-J)%L)+L)%L;
+      if(d>170)return null;return {dist:d,side:state.dir>0?world.sideA:world.sideB};
+    };
+    if(typeof walkPath==='function')walkPath=function(seg,s,dir,dist,choiceTurn){
+      let lap=0,guard=0,crossedJn=false;
+      while(dist>1e-6&&guard++<6){
+        if(seg==='m'){
+          const L=world.lapLen,J=(dir>0?world.jnA:world.jnB)*ROUTE_STEP;
+          let dJ=world.nCut?(dir>0?(((J-s)%L)+L)%L:(((s-J)%L)+L)%L):Infinity;
+          if(dJ<1e-4&&!choiceTurn)dJ=L;
+          if(!choiceTurn||dist<dJ){if(dist>=dJ)crossedJn=true;const s2=s+dir*dist;if(dir>0&&s2>=L)lap++;s=((s2%L)+L)%L;dist=0;}
+          else{dist-=dJ;seg='c';s=dir>0?0:world.cutLen;choiceTurn=false;}
+        }else{
+          const s2=s+dir*dist;
+          if(s2>=0&&s2<=world.cutLen){s=s2;dist=0;}
+          else if(s2>world.cutLen){dist=s2-world.cutLen;seg='m';s=world.jnB*ROUTE_STEP;}
+          else{dist=-s2;seg='m';s=world.jnA*ROUTE_STEP;}
+        }
+      }
+      return {seg,s,dir,lap,crossedJn};
+    };
+  });
+
   if(typeof drawMap==='function'){
     const baseDrawMap=drawMap;
     drawMap=function(){
       baseDrawMap();
-      if(!world||!world.roundabouts||!world.roundabouts.length||!mapView||!mctx)return;
-      const w=mapView.w,h=mapView.h,sc=mapView.sc;
-
-      mctx.save();
-      mctx.globalCompositeOperation='destination-out';
-      for(const r of world.roundabouts){
-        const x=w/2+(r.cx-mapView.cx)*sc,y=h/2+(r.cz-mapView.cz)*sc;
-        const rr=Math.max((r.outer+.8)*sc,5.2);
-        mctx.beginPath();mctx.arc(x,y,rr,0,TAU);mctx.fill();
-      }
+      if(!world||!world.roundabouts||!mapView||!mctx)return;
+      const w=mapView.w,h=mapView.h,sc=mapView.sc,X=x=>w/2+(x-mapView.cx)*sc,Y=z=>h/2+(z-mapView.cz)*sc;
+      mctx.save();mctx.globalCompositeOperation='destination-out';
+      for(const r of world.roundabouts){mctx.beginPath();mctx.arc(X(r.cx),Y(r.cz),Math.max(5,r.clipR*sc),0,TAU);mctx.fill();}
       mctx.restore();
-
+      const drawPts=(pts,col,width=3)=>{mctx.strokeStyle=col;mctx.lineWidth=width;mctx.lineCap='round';mctx.lineJoin='round';mctx.beginPath();pts.forEach((p,i)=>i?mctx.lineTo(X(p[0]),Y(p[2])):mctx.moveTo(X(p[0]),Y(p[2])));mctx.stroke();};
       for(const r of world.roundabouts){
-        const x=w/2+(r.cx-mapView.cx)*sc,y=h/2+(r.cz-mapView.cz)*sc;
-        const rr=Math.max(r.R*sc,4.1),ir=Math.max(r.inner*sc,2.2);
-        /* circular route */
-        mctx.strokeStyle='rgba(236,241,248,.96)';
-        mctx.lineWidth=3.0;mctx.lineCap='round';
-        mctx.beginPath();mctx.arc(x,y,rr,0,TAU);mctx.stroke();
-        /* island */
-        mctx.fillStyle='rgba(62,67,66,.96)';
-        mctx.beginPath();mctx.arc(x,y,ir,0,TAU);mctx.fill();
+        drawPts(r.arms.prev.points,'rgba(236,241,248,.94)');
+        drawPts(r.arms.next.points,'rgba(236,241,248,.94)');
+        drawPts(r.arms.cut.points,world.cutColour||'rgba(255,206,0,.94)',3.1);
+        mctx.strokeStyle='rgba(236,241,248,.98)';mctx.lineWidth=3.1;mctx.beginPath();mctx.arc(X(r.cx),Y(r.cz),Math.max(4,r.R*sc),0,TAU);mctx.stroke();
+        mctx.fillStyle='rgba(63,68,66,.96)';mctx.beginPath();mctx.arc(X(r.cx),Y(r.cz),Math.max(2,r.inner*sc),0,TAU);mctx.fill();
       }
-
-      /* The base arrow can be erased while the rider is on the circle. Draw\n         it again from the ACTUAL roundabout-aware path tangent. */
-      if(state&&world){
-        const p=[0,0,0],a=[0,0,0],b=[0,0,0];
-        segPoint(state.seg,state.s,state.playerX*state.dir,p);
-        const ds=.9*state.dir;
-        let s0=state.s-ds,s1=state.s+ds;
-        if(state.seg==='c'){s0=clamp(s0,0,world.cutLen);s1=clamp(s1,0,world.cutLen);}
-        segPoint(state.seg,s0,0,a);segPoint(state.seg,s1,0,b);
-        const an=Math.atan2(b[2]-a[2],b[0]-a[0]);
-        const px=w/2+(p[0]-mapView.cx)*sc,py=h/2+(p[2]-mapView.cz)*sc;
-        mctx.save();mctx.translate(px,py);mctx.rotate(an);
-        mctx.fillStyle='#fff';mctx.beginPath();
-        mctx.moveTo(7,0);mctx.lineTo(-4.5,4.2);mctx.lineTo(-2.2,0);mctx.lineTo(-4.5,-4.2);mctx.closePath();mctx.fill();
-        mctx.restore();
-      }
+      const p=[0,0,0],a=[0,0,0],b=[0,0,0];segPoint(state.seg,state.s,state.playerX*state.dir,p);
+      let s0=state.s-.8*state.dir,s1=state.s+.8*state.dir;if(state.seg==='c'){s0=clamp(s0,0,world.cutLen);s1=clamp(s1,0,world.cutLen);}
+      segPoint(state.seg,s0,0,a);segPoint(state.seg,s1,0,b);const an=Math.atan2(b[2]-a[2],b[0]-a[0]);
+      mctx.save();mctx.translate(X(p[0]),Y(p[2]));mctx.rotate(an);mctx.fillStyle='#fff';mctx.beginPath();mctx.moveTo(7,0);mctx.lineTo(-4.5,4.2);mctx.lineTo(-2.2,0);mctx.lineTo(-4.5,-4.2);mctx.closePath();mctx.fill();mctx.restore();
     };
   }
+
+  const map=document.getElementById('miniMap');
+  if(map)map.addEventListener('dblclick',e=>{
+    if(!world||!mapView)return;if(typeof mapPanEndedAt!=='undefined'&&performance.now()-mapPanEndedAt<450)return;
+    const r=map.getBoundingClientRect(),wx=(e.clientX-r.left-mapView.w/2)/mapView.sc+mapView.cx,wz=(e.clientY-r.top-mapView.h/2)/mapView.sc+mapView.cz;
+    let bestSeg='m',bestK=0,bd=Infinity;
+    for(let i=0;i<world.nMain;i+=2){const dx=world.rx[i]-wx,dz=world.rz[i]-wz,d=dx*dx+dz*dz;if(d<bd){bd=d;bestSeg='m';bestK=i;}}
+    if(world.nCut>0)for(let k=0;k<world.nCut;k+=2){const i=world.nMain+k,dx=world.rx[i]-wx,dz=world.rz[i]-wz,d=dx*dx+dz*dz;if(d<bd){bd=d;bestSeg='c';bestK=k;}}
+    state.seg=bestSeg;state.s=bestK*ROUTE_STEP;state.choice='straight';state.cameVia=null;state.speed=Math.min(state.speed,3);state.alt=world.ry[segIdx(state.seg,state.s)];
+    if(typeof resetMapPan==='function')resetMapPan();e.preventDefault();e.stopImmediatePropagation();
+  },true);
 })();
