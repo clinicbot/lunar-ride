@@ -142,19 +142,21 @@ function buildWorld(scene,onProgress){
        summit, and come back down the other carriageway of the SAME road -
        so the way up and the way down can never collide, stack or crash
        into each other. */
-    const cwTanA=[Math.sin(thA),-Math.cos(thA)];   /* arc usually runs CW */
     {
+      const tanLoop=[-Math.sin(thA),Math.cos(thA)];
       const spinT=[-Math.sin(ph0),Math.cos(ph0)];
-      dirS=(cwTanA[0]*spinT[0]+cwTanA[1]*spinT[1])>0?1:-1;
+      dirS=(tanLoop[0]*spinT[0]+tanLoop[1]*spinT[1])>0?1:-1;
     }
-    const spine=[],SN=900,STUB=140;
-    for(let k2=0;k2<=50;k2++)
-      spine.push(sp(ph0, R0+STUB*(1-k2/50)));
+    /* ONE spine from the loop junction to the summit: a radial approach
+       stem (from A straight in to the spiral's outer turn) and then the
+       spiral, linearly tapered so every turn is evenly spaced. Both
+       carriageways are lateral offsets of this single line, so no part
+       of the climb can ever collide with any other part. */
+    const spine=[],SN=900;
+    for(let k2=0;k2<=60;k2++)
+      spine.push(sp(ph0, CLEAR-(CLEAR-R0)*k2/60));
     for(let k2=1;k2<=SN;k2++){
       const t=k2/SN;
-      /* LINEAR taper: every turn of the spiral sits the same distance from
-         the next, so the bank between turns has the same sane slope all the
-         way up - no bunching near the summit */
       spine.push(sp(ph0+dirS*t*T*6.28318, R0+(RMIN-R0)*t));
     }
     const OFF=scene.road.halfWidth*2+4.6;   /* twin carriageways, a median apart */
@@ -174,29 +176,20 @@ function buildWorld(scene,onProgress){
     for(let k2=1;k2<140;k2++)
       crown.push(sp(phTop+dirS*k2/140*6.28318, RMIN));
     const down=lane(spine,-OFF/2).reverse();
-    const S1=down[down.length-1];
-    /* rejoin the loop at the point nearest the descent's foot */
-    let thB=0,bd=1e9;
-    for(let a2=0;a2<600;a2++){
-      const th=a2/600*6.28318;
-      const P=push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]);
-      const d=Math.hypot(P[0]-S1[0],P[1]-S1[1]);
-      if(d<bd&&Math.abs(wrapAng(th-thA))>0.35){bd=d;thB=th;}
+    /* the base loop, split at the junction: ride most of the loop, turn
+       onto the climb at A, and on return finish the remaining stretch */
+    const arc1=[],arc2=[];
+    const spanStart=1.9;             /* the lap's wrap point sits away from A */
+    const N1=Math.max(600,Math.round((6.28318-spanStart)/6.28318*FN));
+    for(let k2=0;k2<=N1;k2++){
+      const th=thA+spanStart+(6.28318-spanStart)*k2/N1;
+      arc1.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
     }
-    const B=push([Math.cos(thB)*rAt(thB),Math.sin(thB)*rAt(thB)]);
-    /* assemble: main arc B->A the LONG way round, out to the climb, back */
-    let span=((thA-thB)%6.28318+6.28318)%6.28318, sgn=1;
-    if(span<3.14159){ sgn=-1; span=6.28318-span; }
-    const arc=[];
-    const AN=Math.max(600,Math.round(span/6.28318*FN));
-    for(let k2=0;k2<=AN;k2++){
-      const th=thB+sgn*span*k2/AN;
-      arc.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
+    const N2b=Math.max(200,Math.round(spanStart/6.28318*FN));
+    for(let k2=0;k2<=N2b;k2++){
+      const th=thA+spanStart*k2/N2b;
+      arc2.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
     }
-    const tanA=[-sgn*Math.sin(thA),sgn*Math.cos(thA)];
-    const tanB=[-sgn*Math.sin(thB),sgn*Math.cos(thB)];
-    const tanUp0=[-Math.cos(ph0),-Math.sin(ph0)];
-    const tanD1=[Math.cos(ph0),Math.sin(ph0)];
     /* the summit: glide from the up-lane onto the crown circle, lap the
        peak, then a tight hairpin turnaround drops you onto the down-lane */
     const tTopv=[-dirS*Math.sin(phTop),dirS*Math.cos(phTop)];
@@ -213,15 +206,14 @@ function buildWorld(scene,onProgress){
         hpin.push([C[0]+Math.cos(f)*rr, C[1]+Math.sin(f)*rr]);
       }
     }
-    fine=arc
-      .concat(bez(A,tanA,up[0],tanUp0,50))
+    fine=arc1
       .concat(up)
       .concat(bez(upEnd,tTopv,crown[0],tTopv,12))
       .concat(crown).concat(hpin).concat(down)
-      .concat(bez(S1,tanD1,B,tanB,60));
+      .concat(arc2);
     const plen=q=>{let L2=0;for(let k2=1;k2<q.length;k2++)L2+=Math.hypot(q[k2][0]-q[k2-1][0],q[k2][1]-q[k2-1][1]);return L2|0;};
     try{window.__epic={pk:[pk.x|0,pk.z|0,+(landAt(pk.x,pk.z)|0)],R0:R0|0,RMIN,T,
-      arc:plen(arc),up:plen(up),crown:plen(crown),thA:+thA.toFixed(2),thB:+thB.toFixed(2)};}catch(e){}
+      arc:plen(arc1)+plen(arc2),up:plen(up),crown:plen(crown),thA:+thA.toFixed(2)};}catch(e){}
   }
   const FL=fine.length-1;           /* the epic assembly changes the count */
   let total=0; const cum=[0];
