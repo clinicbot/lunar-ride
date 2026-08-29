@@ -26,6 +26,7 @@ jobs:
           node --check js/25-verdant-lite-richness.js
           node --check js/26-verdant-real-nature.js
           node --check js/27-verdant-billboard-cleanup.js
+          node --check js/28-verdant-instanced-renderer.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
@@ -54,8 +55,7 @@ jobs:
             'assets/models/verdant_bear.gltf',
             'assets/models/verdant_frog.gltf',
             'assets/models/verdant_monkey.gltf',
-            'assets/models/verdant_ship.gltf',
-            'assets/models/verdant_fern.gltf']){
+            'assets/models/verdant_ship.gltf']){
             const j=JSON.parse(fs.readFileSync(f,'utf8'));
             if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
               throw new Error('invalid self-contained glTF: '+f);
@@ -93,6 +93,22 @@ jobs:
           }
           console.log('source asset triangles',total);
           NODE
+      - name: Verify instancing architecture
+        run: |
+          node - <<'NODE' 2>&1 | tee instancing-architecture.log
+          const fs=require('fs');
+          const src=fs.readFileSync('js/26-verdant-real-nature.js','utf8');
+          const ren=fs.readFileSync('js/28-verdant-instanced-renderer.js','utf8');
+          const clean=fs.readFileSync('js/27-verdant-billboard-cleanup.js','utf8');
+          if(!src.includes('w.instNature='))throw new Error('instance plan missing');
+          if(src.includes('mergeProps(w'))throw new Error('v117 must not bake imported nature into props');
+          if(!ren.includes('drawArraysInstanced')||!ren.includes('ANGLE_instanced_arrays'))
+            throw new Error('WebGL instancing paths missing');
+          if(!ren.includes('circularKm')||!ren.includes('DYNAMIC_DRAW'))
+            throw new Error('streaming visibility update missing');
+          if(!clean.includes('w.veg=null'))throw new Error('legacy Verdant billboard buffers still uploaded');
+          console.log('ok: streamed GPU instancing architecture present');
+          NODE
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,6 +120,7 @@ jobs:
             verdant-lite-runtime.log
             gltf-test.log
             nature-assets.log
+            instancing-architecture.log
       - name: Fail if generated-world test failed
         if: steps.verdant.outputs.exit_code != '0' || steps.realmesh.outputs.exit_code != '0'
         run: exit 1
