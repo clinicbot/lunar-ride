@@ -70,6 +70,24 @@ function buildMenu(){
   });
 }
 
+/* Post-build invariant. The generator is allowed a tiny numerical tolerance,
+   but any real overshoot is a regression worth surfacing immediately. */
+function auditWorld(sc,w){
+  if(!w||!w.grade||!w.grade.length) return;
+  let maxAbs=0, at=0;
+  for(let i=0;i<w.grade.length;i++){
+    const a=Math.abs(w.grade[i]);
+    if(a>maxAbs){maxAbs=a;at=i;}
+  }
+  const lim=(sc.road&&sc.road.maxGrade)||99;
+  w.maxAbsGrade=maxAbs;
+  if(maxAbs>lim+0.2){
+    console.error('Lunar Ride route audit: grade exceeds limit',{
+      scene:sc.id,maxGrade:maxAbs,limit:lim,km:at*ROUTE_STEP/1000
+    });
+  }
+}
+
 function startRide(sc,resume){
   readSetup();
   if(cfg.sound) audioStart();   /* a click is the gesture browsers demand */
@@ -80,6 +98,7 @@ function startRide(sc,resume){
   setTimeout(()=>{
     try{
       world=buildWorld(sc,p=>{$('loadBar').style.width=(p*100)+'%';});
+      auditWorld(sc,world);
       uploadWorld(world);
     }catch(err){
       $('loading').classList.remove('on');
@@ -92,24 +111,33 @@ function startRide(sc,resume){
     for(let i=0;i<world.nMain;i+=stepP) profilePts.push(world.ry[i]);
 
     state.scene=sc;
-    Object.assign(state,{s:0,seg:'m',dir:1,choice:'straight',playerX:0,speed:0,dist:0,elapsed:0,
-      rideTime:0,elev:0,
-      alt:world.ry[0],pwrSum:0,pwrN:0,maxPwr:0,kj:0,lap:1,samples:[],sampleT:0,
-      startedAt:new Date()});
+    Object.assign(state,{s:0,seg:'m',dir:1,choice:'straight',cameVia:null,playerX:0,speed:0,
+      dist:0,elapsed:0,rideTime:0,elev:0,alt:world.ry[0],pwrSum:0,pwrN:0,maxPwr:0,
+      pwrEMA:0,kj:0,lap:1,samples:[],sampleT:0,startedAt:new Date()});
     if(resume){
       /* pick the saved workout up exactly where it stopped */
-      Object.assign(state,{s:resume.s||0,seg:resume.seg||'m',dir:resume.dir||1,
-        playerX:resume.playerX||0,dist:resume.dist||0,elapsed:resume.elapsed||0,
-        rideTime:resume.rideTime||0,elev:resume.elev||0,pwrSum:resume.pwrSum||0,
-        pwrN:resume.pwrN||0,maxPwr:resume.maxPwr||0,kj:resume.kj||0,
-        lap:resume.lap||1,samples:resume.samples||[]});
+      Object.assign(state,{
+        s:resume.s??0, seg:resume.seg||'m', dir:resume.dir??1,
+        choice:resume.choice||'straight', cameVia:resume.cameVia??null,
+        playerX:resume.playerX??0, dist:resume.dist??0, elapsed:resume.elapsed??0,
+        rideTime:resume.rideTime??0, elev:resume.elev??0,
+        alt:resume.alt??world.ry[segIdx(resume.seg||'m',resume.s??0)],
+        pwrSum:resume.pwrSum??0, pwrN:resume.pwrN??0, maxPwr:resume.maxPwr??0,
+        pwrEMA:resume.pwrEMA??0, kj:resume.kj??0, lap:resume.lap??1,
+        samples:Array.isArray(resume.samples)?resume.samples:[], sampleT:resume.sampleT??0,
+        startedAt:new Date(resume.startedAt||Date.now())
+      });
       try{localStorage.removeItem('lr.workout');}catch(e){}
       updContinueBtn();
     }else if(cfg.startKm>0){
       state.s=clamp(cfg.startKm*1000,0,world.lapLen-8);
+      state.alt=world.ry[segIdx('m',state.s)];
       state.dist=0;
+      /* start-at-km is a debugging aid, not a sticky workout preference */
+      cfg.startKm=0; $('inStartKm').value=0;
+      try{localStorage.setItem('lunarride',JSON.stringify(cfg));}catch(e){}
     }
-    $('sceneName').textContent=sc.name+' \u00b7 v'+APP_STAMP;
+    $('sceneName').textContent=sc.name+' · v'+APP_STAMP;
     $('loading').classList.remove('on');
     $('hud').classList.add('on');
     $('hint').classList.remove('fade');
@@ -183,9 +211,11 @@ document.addEventListener('visibilitychange',()=>{
 function saveWorkout(silent){
   if(!state.scene||!world) return;
   const w={sceneId:state.scene.id, s:state.s, seg:state.seg, dir:state.dir,
-    playerX:state.playerX, dist:state.dist, elapsed:state.elapsed,
-    rideTime:state.rideTime, elev:state.elev, pwrSum:state.pwrSum,
-    pwrN:state.pwrN, maxPwr:state.maxPwr, kj:state.kj, lap:state.lap,
+    choice:state.choice, cameVia:state.cameVia??null, playerX:state.playerX,
+    dist:state.dist, elapsed:state.elapsed, rideTime:state.rideTime, elev:state.elev,
+    alt:state.alt, pwrSum:state.pwrSum, pwrN:state.pwrN, maxPwr:state.maxPwr,
+    pwrEMA:state.pwrEMA??0, kj:state.kj, lap:state.lap, sampleT:state.sampleT,
+    startedAt:state.startedAt instanceof Date?state.startedAt.getTime():Date.now(),
     samples:state.samples.slice(-20000), savedAt:Date.now()};
   try{localStorage.setItem('lr.workout',JSON.stringify(w));}
   catch(e){ if(!silent) msg('Could not save the workout: '+(e.message||e)); return; }
@@ -198,7 +228,7 @@ function saveWorkout(silent){
     $('hud').classList.remove('on');
     gl&&gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     updContinueBtn();
-    msg('Workout saved. Continue it any time from this menu \u2014 even after closing the app.',true);
+    msg('Workout saved. Continue it any time from this menu — even after closing the app.',true);
   }
 }
 function updContinueBtn(){
@@ -207,8 +237,8 @@ function updContinueBtn(){
   const sc=w&&SCENES.find(x=>x.id===w.sceneId);
   if(sc){
     b.style.display='';
-    b.textContent='\u25b6 Continue saved workout \u2014 '+sc.name+' \u00b7 '
-      +((w.dist||0)/1000).toFixed(1)+' km \u00b7 '+fmtTime(w.rideTime||w.elapsed||0);
+    b.textContent='▶ Continue saved workout — '+sc.name+' · '
+      +((w.dist||0)/1000).toFixed(1)+' km · '+fmtTime(w.rideTime||w.elapsed||0);
     b.onclick=()=>startRide(sc,w);
   } else b.style.display='none';
 }
@@ -252,8 +282,7 @@ $('btnEnd').onclick=()=>{
 
 if(!gl){
   $('scenes').innerHTML='';
-  msg('This browser cannot do WebGL, which the 3D worlds need. Try Chrome or Edge, '+
-      'or open retro.html for the flat version.');
+  msg('This browser cannot do WebGL, which the 3D worlds need. Try Chrome or Edge.');
 }else{
   initGL();
   loadSetup();
