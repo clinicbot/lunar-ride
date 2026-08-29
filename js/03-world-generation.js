@@ -100,7 +100,7 @@ function buildWorld(scene,onProgress){
   }
 
   /* walk it finely, then resample at an even 4 m spacing */
-  let fine=[];
+  let fine=[], dupRange=null;
   const FN=6000;
   for(let i=0;i<=FN;i++){
     const th=i/FN*Math.PI*2, r=rAt(th);
@@ -159,23 +159,16 @@ function buildWorld(scene,onProgress){
       const t=k2/SN;
       spine.push(sp(ph0+dirS*t*T*6.28318, R0+(RMIN-R0)*t));
     }
-    const OFF=scene.road.halfWidth*2+4.6;   /* twin carriageways, a median apart */
-    const lane=(pts,side)=>{
-      const out=[];
-      for(let k2=0;k2<pts.length;k2++){
-        const p0=pts[Math.max(0,k2-1)], p1=pts[Math.min(pts.length-1,k2+1)];
-        let dx=p1[0]-p0[0], dz2=p1[1]-p0[1];
-        const l2=Math.hypot(dx,dz2)||1; dx/=l2; dz2/=l2;
-        out.push([pts[k2][0]-dz2*side, pts[k2][1]+dx*side]);
-      }
-      return out;
-    };
-    const up=lane(spine,OFF/2);
+    /* ONE road: the descent retraces the very same line, so up and down
+       share a single two-lane ribbon - up on the right, down on the left,
+       like everywhere else in the game. The retraced stretch is remembered
+       and skipped when drawing, so nothing is built twice. */
+    const up=spine;
     const phTop=ph0+dirS*T*6.28318;
     const crown=[];                          /* a full lap of the summit */
     for(let k2=1;k2<140;k2++)
       crown.push(sp(phTop+dirS*k2/140*6.28318, RMIN));
-    const down=lane(spine,-OFF/2).reverse();
+    const down=spine.slice(0,spine.length-1).reverse();
     /* the base loop, split at the junction: ride most of the loop, turn
        onto the climb at A, and on return finish the remaining stretch */
     const arc1=[],arc2=[];
@@ -190,30 +183,15 @@ function buildWorld(scene,onProgress){
       const th=thA+spanStart*k2/N2b;
       arc2.push(push([Math.cos(th)*rAt(th),Math.sin(th)*rAt(th)]));
     }
-    /* the summit: glide from the up-lane onto the crown circle, lap the
-       peak, then a tight hairpin turnaround drops you onto the down-lane */
-    const tTopv=[-dirS*Math.sin(phTop),dirS*Math.cos(phTop)];
-    const upEnd=up[up.length-1];
-    const hpin=[];
-    {
-      const a0=crown[crown.length-1], b0=down[0];
-      const C=[(a0[0]+b0[0])/2,(a0[1]+b0[1])/2];
-      const rr=Math.hypot(a0[0]-C[0],a0[1]-C[1])||3;
-      const f0=Math.atan2(a0[1]-C[1],a0[0]-C[0]);
-      const s1=(-Math.sin(f0)*tTopv[0]+Math.cos(f0)*tTopv[1])>=0?1:-1;
-      for(let k2=1;k2<24;k2++){
-        const f=f0+s1*k2/24*Math.PI;
-        hpin.push([C[0]+Math.cos(f)*rr, C[1]+Math.sin(f)*rr]);
-      }
-    }
     fine=arc1
       .concat(up)
-      .concat(bez(upEnd,tTopv,crown[0],tTopv,12))
-      .concat(crown).concat(hpin).concat(down)
+      .concat(crown)
+      .concat(down)
       .concat(arc2);
     const plen=q=>{let L2=0;for(let k2=1;k2<q.length;k2++)L2+=Math.hypot(q[k2][0]-q[k2-1][0],q[k2][1]-q[k2-1][1]);return L2|0;};
+    dupRange=[plen(arc1)+plen(up)+plen(crown), plen(arc1)+plen(up)+plen(crown)+plen(down)];
     try{window.__epic={pk:[pk.x|0,pk.z|0,+(landAt(pk.x,pk.z)|0)],R0:R0|0,RMIN,T,
-      arc:plen(arc1)+plen(arc2),up:plen(up),crown:plen(crown),thA:+thA.toFixed(2)};}catch(e){}
+      arc:plen(arc1)+plen(arc2),up:plen(up),crown:plen(crown),dup:dupRange.map(v=>v|0)};}catch(e){}
   }
   const FL=fine.length-1;           /* the epic assembly changes the count */
   let total=0; const cum=[0];
@@ -232,6 +210,15 @@ function buildWorld(scene,onProgress){
     const t=(target-cum[fi])/Math.max(cum[fi+1]-cum[fi],1e-6);
     rx[i]=lerp(fine[fi][0],fine[fi+1][0],t);
     rz[i]=lerp(fine[fi][1],fine[fi+1][1],t);
+  }
+
+  /* the retraced stretch of an out-and-back climb: it exists in the route
+     but is drawn and furnished only once */
+  const dupRoad=new Uint8Array(nPts);
+  if(dupRange){
+    const a0=Math.min(nPts-1,Math.ceil((dupRange[0]+12)/ROUTE_STEP));
+    const b0=Math.max(0,Math.floor((dupRange[1]-12)/ROUTE_STEP));
+    for(let i=a0;i<=b0;i++) dupRoad[i]=1;
   }
 
   onProgress&&onProgress(0.2);
@@ -585,14 +572,14 @@ function buildWorld(scene,onProgress){
     return Math.min(dA,dB)>25;
   };
   if(RD.tunnels)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&landY[i]-ry[i]>15
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&!dupRoad[i]&&landY[i]-ry[i]>15
       /* the climb of an epic route stays in the open: its views ARE the ride
          - but only where the cut is shallow; a road buried tens of metres
          inside the mountain is a tunnel however steep it is */
       &&!(scene.road.epic&&Math.abs(grade[i])>3.5&&landY[i]-ry[i]<40),
       70,RD.tunnels+(scene.road.epic?2:0))) tunnels.push(r);
   if(RD.bridges)
-    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&ry[i]-landY[i]>6,30,99)) bridges.push(r);
+    for(const r of findRuns(i=>i<nMain&&farFromJn(i)&&!dupRoad[i]&&ry[i]-landY[i]>6,30,99)) bridges.push(r);
 
   const markRun=(r,flags,ramp)=>{
     for(let i=r[0];i<=r[1];i++){
@@ -833,6 +820,7 @@ function buildWorld(scene,onProgress){
   for(let i=0;i<nPts;i++){
     if(i===nPts-1&&nCut>0) break;               /* the cut does not wrap */
     const i2=(i<nMain)?((i+1)%nMain):(i+1);
+    if(dupRoad[i]&&dupRoad[i2]) continue;       /* the retrace shares its road */
     for(let j=0;j<NL-1;j++){
       /* wound so the face points up: along-route and across-route are the
          opposite handedness to the terrain grid */
@@ -1099,7 +1087,7 @@ function buildWorld(scene,onProgress){
 
   /* ---- guard rails wherever the road runs along a drop ---- */
   for(let i=2;i<nPts-2;i+=2){
-    if(inTunnel[i]||inBridge[i]) continue;
+    if(inTunnel[i]||inBridge[i]||dupRoad[i]) continue;
     if(nearJn(i)) continue;
     if(ry[i]-landY[i]<3) continue;
     for(const s of [-1,1]){
@@ -1358,7 +1346,7 @@ function buildWorld(scene,onProgress){
         let nB=0, side=rnd()<0.5?-1:1, gateI=-1;
         for(let o=-HL;o<=HL&&nB<15;o+=STEPB+Math.floor(rnd()*3)){
           const i=ci+o;
-          if(inTunnel[i]||inBridge[i]||nearJn(i)) continue;
+          if(inTunnel[i]||inBridge[i]||nearJn(i)||dupRoad[i]) continue;
           /* the gate stands at the first straight near the centre */
           if(gateI<0&&o>=-2&&GLTREES.cGate&&flatStraight(i,4)){
             mb.setTF(rx[i],ry[i]-0.05,rz[i],yawAt(i),1);
@@ -1410,7 +1398,7 @@ function buildWorld(scene,onProgress){
   {
     const put=(i,side,w,tex)=>{
       i=((i%nPts)+nPts)%nPts;
-      if(inTunnel[i]||inBridge[i]||nearJn(i)) return;
+      if(inTunnel[i]||inBridge[i]||nearJn(i)||dupRoad[i]) return;
       const off=hw+(w>8?8.5:4.9);   /* posters stand inside the tree line */
       const x=rx[i]-tz[i]*off*side, z=rz[i]+tx[i]*off*side;
       const y=groundAt(x,z);
@@ -1674,6 +1662,7 @@ function buildWorld(scene,onProgress){
     const SC=Math.max(1,nPts/1600);   /* long routes space their life out */
     let flip=0;
     for(let i2=25;i2<nPts-10;i2+=Math.floor((28+rnd()*16)*SC)){
+      if(dupRoad[i2]) continue;
       const sp=levelSpot(i2);
       if(!sp){
         if(inTunnel[i2]){
