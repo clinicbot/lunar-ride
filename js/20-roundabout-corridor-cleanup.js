@@ -116,4 +116,14 @@
     if(residualRoad)console.warn('Roundabout obsolete-road cleanup left',residualRoad,'road triangles');
     return w;
   };
+
+  addEventListener('DOMContentLoaded',()=>{
+    try{
+      const bt=document.getElementById('buildTag');if(bt)bt.textContent='build 103';
+      const sn=document.getElementById('sceneName');if(sn){
+        const f=()=>{if(/v10[0-2]\b/.test(sn.textContent))sn.textContent=sn.textContent.replace(/v10[0-2]\b/,'v103');};
+        new MutationObserver(f).observe(sn,{childList:true,subtree:true,characterData:true});f();
+      }
+    }catch(e){}
+  });
 })();
