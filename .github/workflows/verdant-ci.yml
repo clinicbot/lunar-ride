@@ -18,6 +18,8 @@ jobs:
           node --check js/17-verdant-rift.js
           node --check js/18-verdant-weather.js
           node --check js/19-verdant-assets.js
+          node --check js/20-verdant-route-audit.js
+          node --check js/21-verdant-terrain-polish.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
