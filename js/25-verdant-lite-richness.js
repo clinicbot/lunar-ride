@@ -2,10 +2,8 @@
 
 /* Verdant Rift lightweight wildlife pass ---------------------------------
    Imported glTF nature is the visual baseline from v115 onward.  The legacy
-   26k billboard vegetation is disabled later by js/27, so this file no longer
-   spends CPU remapping those sprites.  It only keeps the proven WebGL1 texture
-   compatibility fix, adds a small amount of visible wildlife, and owns the
-   Verdant release label. */
+   billboard vegetation is removed by js/27, so this file only keeps the
+   WebGL1 compatibility fix, visible wildlife, and the Verdant release label. */
 (function(){
   const fixVegTexture=()=>{
     if(!TEX||!TEX.veg||isGL2) return;
@@ -32,8 +30,6 @@
       return ((x^(x>>>16))>>>0)/4294967296;
     };
 
-    /* New bears need the same runtime fields as the actors initialized in
-       js/19; omitting these fields caused the v111 black-screen failure. */
     const BEAR_META={float:0,gait:2.8,turn:.75,rest:0,eye:1.28,hip:.72,sh:1.12,headY:1.25,headZ:.48};
     const putBear=(km,off,k)=>{
       if(!w.actors||!w.actorMeshes||!w.actorMeshes.bear) return;
@@ -49,8 +45,6 @@
     putBear(2.72,24,1.25);
     putBear(16.8,-27,1.18);
 
-    /* Small flocks at several separated places make the world feel alive
-       without adding expensive static geometry. */
     if(w.actors){
       const birdKeys=['bird','bird2','bird3','bird4'].filter(k=>GLCRE[k]&&GLCRE[k].ready);
       const flock=(baseKm,count,seedOff)=>{
@@ -73,8 +67,7 @@
     return w;
   };
 
-  /* Single owner of the visible Verdant release marker. */
-  const RELEASE='116';
+  const RELEASE='117';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
