@@ -54,7 +54,8 @@ drawMap=function(){
   mcv.classList.toggle('pannable',mapZoom>0);
 
   if(mapCut.length>1){
-    mctx.strokeStyle='rgba(127,215,255,.65)'; mctx.lineWidth=2; mctx.lineCap='round';
+    mctx.strokeStyle=world.cutColour||'rgba(127,215,255,.65)';
+    mctx.lineWidth=world.cutColour?2.6:2; mctx.lineCap='round';
     mctx.beginPath();
     mapCut.forEach((p,i)=>{i?mctx.lineTo(X(p),Y(p)):mctx.moveTo(X(p),Y(p));});
     mctx.stroke();
