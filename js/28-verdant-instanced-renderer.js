@@ -1,6 +1,6 @@
 "use strict";
 
-/* Verdant Rift v117 — GPU-instanced imported nature -----------------------
+/* Verdant Rift v119 — GPU-instanced imported nature -----------------------
    One copy of each imported plant mesh is uploaded to the GPU. Individual
    trees/plants are compact x/y/z/yaw/scale transforms. Only transforms near
    the rider are streamed into dynamic instance buffers. */
@@ -9,12 +9,19 @@
 attribute vec3 aPosI; attribute vec3 aNrmI; attribute vec3 aColI;
 attribute vec3 aOffI; attribute vec2 aYSI;
 uniform mat4 uMVPI; varying vec3 vNI; varying vec3 vCI; varying vec3 vWI;
+float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
 void main(){
   float c=cos(aYSI.x),s=sin(aYSI.x),k=aYSI.y;
   vec3 p=aPosI*k;
   vec3 rp=vec3(p.x*c+p.z*s,p.y,-p.x*s+p.z*c);
   vec3 n=normalize(vec3(aNrmI.x*c+aNrmI.z*s,aNrmI.y,-aNrmI.x*s+aNrmI.z*c));
-  vec3 wp=rp+aOffI; vNI=n;vCI=aColI;vWI=wp;
+  vec3 wp=rp+aOffI;
+  float h=hash21(aOffI.xz),h2=hash21(aOffI.zx+vec2(19.7,43.1));
+  float greenish=smoothstep(.06,.30,aColI.g-max(aColI.r,aColI.b));
+  vec3 col=aColI*(.86+.18*h);
+  col.g*=mix(1.0,.88+.08*h2,greenish);
+  col.r*=mix(1.0,.93+.07*(1.0-h),greenish);
+  vNI=n;vCI=col;vWI=wp;
   gl_Position=uMVPI*vec4(wp,1.0);
 }`;
   const FS=`
@@ -23,7 +30,7 @@ varying vec3 vNI; varying vec3 vCI; varying vec3 vWI;
 uniform vec3 uSunI,uSunColI,uAmbI,uFogColI,uCamI; uniform float uFogDenI;
 void main(){
   float nd=max(dot(normalize(vNI),normalize(uSunI)),0.0);
-  vec3 col=vCI*(uAmbI*1.35+uSunColI*(0.22+0.78*nd));
+  vec3 col=vCI*(uAmbI*1.24+uSunColI*(0.20+0.80*nd));
   float dist=length(vWI-uCamI),f=1.0-exp(-pow(dist*uFogDenI,2.0));
   gl_FragColor=vec4(mix(col,uFogColI,clamp(f,0.0,1.0)),1.0);
 }`;
@@ -62,7 +69,7 @@ void main(){
         pos:mkBuf(m.pos),nrm:mkBuf(m.nrm),col:mkBuf(m.col),
         inst:mkBuf(new Float32Array(5),gl.DYNAMIC_DRAW),verts:m.count,visible:0};
     }
-    console.log('Verdant v117 GPU instance groups:',Object.keys(R.groups).length);
+    console.log('Verdant v119 GPU instance groups:',Object.keys(R.groups).length);
   }
   function circularKm(a,b,L){
     if(!Number.isFinite(a)||!Number.isFinite(b)||!Number.isFinite(L)||L<=0)return Infinity;
