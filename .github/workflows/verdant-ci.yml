@@ -103,6 +103,9 @@ jobs:
           console.log('ok: rejected v130 palms are fully removed from the branch and runtime');
           NODE
 
+      - name: Verdant v133 alpha-aware leaf regression test
+        run: node tests/verdant-v133-alpha-leaves-smoke.js
+
       - name: Verdant atmosphere and retained v128 mountain regression test
         run: |
           node - <<'NODE'
@@ -126,13 +129,14 @@ jobs:
           const mountains=R('js/35-verdant-mountains-v123.js'),m129=R('js/37-verdant-mountains-v129.js');
           const wild=R('js/36-verdant-wildlife-v125.js'),cleanup=R('js/38-verdant-world-cleanup-v129.js');
           for(const f of ['36-verdant-wildlife-v125.js','35-verdant-mountains-v123.js','37-verdant-mountains-v129.js','38-verdant-world-cleanup-v129.js'])
-            if(!loader.includes(f+'?b=131'))throw new Error('v131 loader wiring missing '+f);
-          if(!lite.includes("const RELEASE='131'"))throw new Error('v131 label missing');
-          if(!sw.includes("lunar-ride-v131"))throw new Error('v131 cache missing');
+            if(!loader.includes(f+'?b=133'))throw new Error('v133 loader wiring missing '+f);
+          if(!loader.includes('39-verdant-alpha-leaves-v133.js?b=133'))throw new Error('v133 alpha-leaf layer missing');
+          if(!lite.includes("const RELEASE='133'"))throw new Error('v133 label missing');
+          if(!sw.includes("lunar-ride-v133"))throw new Error('v133 cache missing');
           if(!mountains.includes('ROAD_CORE=46')||!mountains.includes('FULL_REPLACE=ROAD_CORE+ROAD_FADE'))throw new Error('v126 full-route mountain protection missing');
           if(!mountains.includes('__verdantMountainsV128'))throw new Error('v128 mountain cleanup missing');
           if(!m129.includes('__verdantRoadbedV129')||!m129.includes('__verdantMountainsV129'))throw new Error('v129 terrain cleanup incomplete');
           if(!wild.includes('stagHerds')||!wild.includes('retunedFrogs')||!wild.includes('dragonflySwarms'))throw new Error('v125 wildlife layer incomplete');
           if(!cleanup.includes('legacyBillboardsDisabled:true')||!cleanup.includes('extraStagHerds'))throw new Error('v129 final cleanup incomplete');
-          console.log('ok: current Verdant v131 wiring, rejected palms absent');
+          console.log('ok: current Verdant v133 wiring preserves v131 world/wildlife and fixes tree alpha');
           NODE
