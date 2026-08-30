@@ -47,13 +47,14 @@
   };
 })();
 
-/* Stable route/terrain, wildlife, imported instance plan, legacy cleanup,
-   then the dedicated GPU instance renderer. */
+/* Stable route/terrain, wildlife, imported instance plan, dense v118 layer,
+   legacy cleanup, then the dedicated GPU instance renderer. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=117"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=117"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=117"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=117"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=117"></script>');
-  document.write('<script src="js/28-verdant-instanced-renderer.js?b=117"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=118"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=118"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=118"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=118"></script>');
+  document.write('<script src="js/29-verdant-density-v118.js?b=118"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=118"></script>');
+  document.write('<script src="js/28-verdant-instanced-renderer.js?b=118"></script>');
 }
