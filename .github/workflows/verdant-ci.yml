@@ -97,7 +97,7 @@ jobs:
             if(j.buffers?.length!==1||!j.buffers[0].uri?.startsWith('data:application/octet-stream;base64,'))
               throw new Error('palm must be self-contained '+name);
             const p=j.meshes[0].primitives[0],a=j.accessors[p.indices];
-            if(!p.attributes?.POSITION||p.attributes.NORMAL===undefined||p.attributes.COLOR_0===undefined)
+            if(p.attributes?.POSITION===undefined||p.attributes.NORMAL===undefined||p.attributes.COLOR_0===undefined)
               throw new Error('palm attributes missing '+name);
             return sum+a.count/3;
           },0);
