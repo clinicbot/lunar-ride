@@ -1,110 +1,79 @@
 # Lunar Ride — project handoff
 
-Persistent continuation note. Before changing code, read this file, then verify the latest `fixes-build-90` HEAD and latest Verdant CI run because the branch may have advanced.
+Persistent continuation note. Before changing code, verify the latest `fixes-build-90` HEAD and latest Verdant CI run because the branch may have advanced.
 
 ## Repository workflow
 
 - Repository: `clinicbot/lunar-ride`
 - Active branch: `fixes-build-90`; do not modify `main` directly.
-- Open draft PR targets `main`.
 - User updates Windows copy with `UPDATE.bat` (`git pull --ff-only origin fixes-build-90`).
 - After updating: close/reopen Lunar Ride and Ctrl+F5.
+- `ride.bat` supports both `python` and `py` launchers.
 - Never touch `js/09-bluetooth.js` unless explicitly requested.
 - Make a backup branch before risky world/visual changes.
 
 ## Current checkpoint — 2026-08-30
 
-- Current Verdant Rift release: **v131**.
-- Main v131 code commit: `7b874948e589aa76712af6c471f26a7608013ede` (`Verdant v131 remove rejected photogrammetry palms`).
-- CI run `33315157810`: **SUCCESS**; all steps passed, including syntax, generated world, real geometry, retained wildlife/terrain regressions, explicit v131 palm-removal regression, atmosphere check, and current wiring.
-- Backup immediately before removal: `backup-v130-before-v131-remove-palms`.
-- Earlier backups retained: `backup-v129-before-v130-photogrammetry-palms`, `backup-v128-before-v129-world-cleanup`, `backup-v127-before-v128-mountain-cleanup`, `backup-v125-before-v126-mountains`.
-- v130 photogrammetry palm experiment was visually rejected by the user and is now **fully removed from the active branch and runtime**.
+- Current Verdant Rift release: **v133**.
+- Main v133 code commit: `b3f731d36a15fb20b338500b3167a8064ba85bd7` (`Verdant v133 fix alpha-masked tree leaves`).
+- CI run `33323473141`: **SUCCESS**; every step passed, including retained world/wildlife/terrain regressions and the new v133 alpha-aware leaf test.
+- Backup immediately before v133: `backup-v131-before-v133-alpha-leaf-fix`.
+- v132 was visually rejected and fully rolled back in forward commit `21b8160744d6dedaa6ba206b02ba6e99d407b16b` (`Rollback Verdant v132 to v131 baseline`).
+- Therefore **v133 uses the exact v131 world/wildlife/terrain/sky baseline**, plus only the tree-leaf alpha correction described below.
 
-## v131 — rejected palm removal
+## v133 — alpha-masked tree-leaf correction
 
-The v130 palm experiment appeared as large green elongated objects and did not visually integrate with Verdant. v131 removes it completely:
+User supplied screenshots of giant green blade/plank shapes. Investigation showed the earlier TwistedTree-only diagnosis was wrong: those shapes remained when TwistedTree was removed in rejected v132.
 
-- deleted `js/39-verdant-photogrammetry-palms-v130.js`;
-- deleted all six `verdant_palm_*_v130_part*.gltf` assets;
-- removed all palm references from `js/19-verdant-assets.js`;
-- removed all palm references from `sw.js`;
-- release label is `131` and service-worker cache is `lunar-ride-v131`;
-- CI explicitly fails if any rejected v130 palm file or runtime/cache reference reappears.
+Root cause: imported tree assets (`CommonTree`, `TwistedTree`, `Pine`) use alpha-masked leaf cards (`alphaMode: MASK`). The v129 imported-nature loader bakes textures to vertex colours and samples one alpha value per original triangle. When that sample lands on an opaque leaf region, the entire large leaf-card triangle is retained as solid green geometry, producing the blade/plank artifacts.
 
-## Retained v129 world cleanup
+New file: `js/39-verdant-alpha-leaves-v133.js`.
 
-v129 remains the visual/runtime baseline under v131:
+It:
+- reloads only the existing tree families: `CommonTree_1/3/5`, `TwistedTree_1/3`, `Pine_1/3/5`;
+- detects leaf materials using `MASK` + leaf/leaves material names;
+- splits each original leaf triangle into four smaller triangles;
+- samples the source alpha mask independently for each sub-triangle and discards transparent pieces;
+- samples source colour per emitted vertex;
+- leaves all instance positions, scales, tree density, wildlife, buildings, terrain and road layout untouched;
+- swaps only corrected tree geometry into `w.instNature.models` before the GPU instancing renderer uploads it;
+- exposes telemetry under `w.__verdantLeafAlphaV133` and `window.__verdantLeafAlphaStatusV133`.
 
-1. **Legacy triangular billboard kill:** `js/26`, `js/27`, and `js/38` hard-disable legacy `w.veg`; the asset gate waits for imported nature settlement. Never re-enable legacy billboards as fallback.
-2. **Plants on road:** `js/38` filters imported plant transforms against globally nearest route leg using `w._dbg.roadNear`, important because the 25 km route folds near itself.
-3. **Roadbed:** `js/37-verdant-mountains-v129.js` builds final road support (`ROAD_FLAT=29`, `ROAD_BLEND=72`), recalculates normals and updates `meshH/groundAt`.
-4. **Smooth green domes:** `js/37` adds global anti-dome ridge/saddle shaping to real 3-D base terrain.
-5. **Wildlife density:** `js/38` adds 14 additional stag/deer herds plus more cats, bears, monkey troops and bird flocks while retaining v125 wildlife/flee behavior.
+The v133 gate waits for corrected tree models before Verdant starts, so the old opaque-card geometry should not win a load race.
 
-Telemetry includes `w.__verdantRoadbedV129`, `w.__verdantMountainsV129`, `w.__verdantRoadPlantCleanupV129`, and `w.__verdantWildlifeV129`.
+## Retained v131 / v129 baseline
 
-## Retained mountain / sky history
+- Rejected v130 photogrammetry palms remain fully removed.
+- Legacy 26k billboard vegetation remains hard-disabled.
+- `js/38` still filters imported plants against the globally nearest road leg.
+- `js/37-verdant-mountains-v129.js` retains the final roadbed (`ROAD_FLAT=29`, `ROAD_BLEND=72`) and anti-dome terrain shaping.
+- `js/36-verdant-wildlife-v125.js` + `js/38` retain the denser deer, cats, bears, monkeys, frogs, dragonflies and bird flocks from the good v131 baseline.
+- `js/32-verdant-fauna-buildings-v121.js` retains the existing settlement/building layout.
+- v128/v126 mountain cleanup remains intact.
+- `assets/images/sky_verdant.svg` remains the v131 atmosphere-only sky; rejected v132 ringed-planet/cloud changes are not active.
 
-- `js/35-verdant-mountains-v123.js` retains v126 full-route mountain replacement: `ROAD_CORE=46`, `ROAD_FADE=84`, full replacement beyond 130 m.
-- v128 subtracts/replaces the old broad alpine Gaussian mass and exposes `w.__verdantMountainsV128`.
-- `assets/images/sky_verdant.svg` contains no painted landscape paths; unwanted mountain silhouettes must come from real geometry or vegetation.
+## Rejected v132 lesson
 
-## Road/material
+Do not repeat broad family removal or combined world changes without visual confirmation. v132 removed too much attractive vegetation, reduced the apparent wildlife, failed to show the mushroom tree reliably, and left the ugly green objects. Future visual changes should be narrow and independently testable.
 
-- v123 restored clean core asphalt after `PathRocks_Diffuse` made the road look green/grass-contaminated.
-- `tests/verdant-v123-regression-smoke.js` protects this behavior.
+## Four uploaded GLB candidates
 
-## Imported nature / performance rules
-
-- Main imported-nature source: `js/26-verdant-real-nature.js`.
-- GPU instancing: `js/28-verdant-instanced-renderer.js`.
-- Never duplicate thousands of imported meshes into world props.
-- Any new vegetation must be checked against the globally nearest route leg.
-- Prefer sparse imported nature over legacy billboard fallback.
-
-## Wildlife / settlements retained
-
-- `js/36-verdant-wildlife-v125.js`: retained deer herds, cats, bears, moving frogs, dragonfly swarms, bird flocks, monkey troops/jellies and flee behavior.
-- `js/38` adds the v129 density expansion.
-- `js/32-verdant-fauna-buildings-v121.js`: 16 building placements in outpost (~5–6 km), main sky-port city (~16–18 km), summit relay (~21–22 km).
-- `js/34-verdant-assets-gate-v123.js` waits for buildings, creatures and imported nature; timeout is 24 s.
-
-## Four newly uploaded GLB candidates — not yet in repo
-
-The user uploaded four new GLB assets after rejecting the v130 palm. They have been inspected locally but **have not been committed or integrated**.
-
-All four are technically friendly in structure: glTF 2.0 GLB, one mesh / one primitive, vertex colours in normalized `COLOR_0`, no external textures, no materials, no skins/animations, and upright Y-axis geometry. They do not include normals, but the existing imported-nature loader can derive face normals.
-
-Approximate raw stats:
-
-1. `tmpio7oc5gu.glb` — mushroom-like humanoid/character silhouette, ~1.74 MB, 43,532 vertices, **86,920 triangles**.
-2. `tmpsw0h41xa.glb` — large fantasy mushroom cluster/structure, ~3.14 MB, 78,472 vertices, **156,598 triangles**.
-3. `tmp_qap7x4r.glb` — giant mushroom-tree / canopy landmark, ~3.12 MB, 78,107 vertices, **155,978 triangles**.
-4. `tmpw1wzir76.glb` — complex alien rock/island-like prop, ~2.55 MB, 63,801 vertices, **127,322 triangles**.
-
-They are far better candidates than the rejected palm in orientation and colour format, but are too dense for repeated phone/WebGL instancing in raw form. Recommended next step if the user wants them: create simplified Hero + LOD variants (roughly 8–20k tris Hero depending on object, 2–5k LOD), preserve vertex colours, generate normals, then visually inspect before any world integration.
+The four newer uploaded GLBs were inspected locally but are **not in the active repo/world** after the v132 rollback. Raw triangle counts were roughly 87k, 157k, 156k and 127k. The third is a mushroom-tree candidate. Do not re-integrate until a simplified version is previewed and the user explicitly approves the look.
 
 ## CI
 
-Workflow: `.github/workflows/verdant-ci.yml`, runs on pushes to `fixes-build-90`.
+Workflow: `.github/workflows/verdant-ci.yml`.
 
 It protects:
-- JS syntax;
+- JavaScript syntax;
 - generated world + real geometry;
-- retained v121/v122/v123/v125/v126 behavior;
-- retained v129 anti-dome/roadbed/billboard-kill/nearest-road/wildlife behavior;
+- retained v121/v122/v123/v125/v126/v129 behavior;
 - creature/building and imported-nature asset integrity;
-- v131 explicit removal of the rejected v130 palms;
+- rejected v130 palm removal;
+- v133 alpha-aware tree-leaf wiring and markers;
 - atmosphere-only sky + retained v128 alpine cleanup;
-- current v131 release/cache/load-order wiring.
+- current v133 release/cache/load order.
 
-Retained behavior tests should be release-agnostic where possible.
+## Immediate next visual test
 
-## Continue protocol
-
-User can say:
-
-> Continue my Lunar Ride project. Repository `clinicbot/lunar-ride`, branch `fixes-build-90`. Read `PROJECT_HANDOFF.md`, then inspect the latest HEAD and latest Verdant CI run before making any changes.
-
-Always refresh HEAD/CI rather than trusting the exact SHA written here.
+User should run `UPDATE.bat`, close/reopen Lunar Ride, Ctrl+F5, and confirm **Verdant Rift · v133**. Inspect the same locations/screenshots that previously showed giant green leaf blades/planks. The red/attractive trees and v131 wildlife density should remain. If the alpha fix looks bad or performance suffers, revert to `backup-v131-before-v133-alpha-leaf-fix` via a forward rollback commit.
