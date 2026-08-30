@@ -45,6 +45,7 @@
     putBear(2.72,24,1.25);
     putBear(16.8,-27,1.18);
 
+    let birdCount=0;
     if(w.actors){
       const birdKeys=['bird','bird2','bird3','bird4'].filter(k=>GLCRE[k]&&GLCRE[k].ready);
       const flock=(baseKm,count,seedOff)=>{
@@ -56,18 +57,22 @@
             circ:(j+seedOff)*1.41,w:(j&1?-1:1)*(.10+j*.012),baseY:w.ry[i]+13+j*2,
             px:w.rx[i],py:w.ry[i]+15,pz:w.rz[i],yaw:0,flap:true,flapT:1.4,
             gph:(j+seedOff)*.83,emiss:1,k:1.05+j*.05});
+          birdCount++;
         }
       };
       flock(.06,4,0);
+      flock(4.7,3,3);
       flock(9.7,3,2);
+      flock(14.4,4,1);
       flock(20.4,3,1);
+      flock(23.4,3,0);
     }
 
-    w.__verdantLite={extraBears:3,extraBirds:10};
+    w.__verdantLite={extraBears:3,extraBirds:birdCount};
     return w;
   };
 
-  const RELEASE='118';
+  const RELEASE='119';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
