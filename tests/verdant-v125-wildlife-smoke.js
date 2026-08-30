@@ -25,8 +25,12 @@ if(!v.includes('[0.75,2.65,4.85,6.75,8.65,10.55,12.65,14.85,16.75,18.85,20.75,22
   throw new Error('bird flock distribution missing');
 if(!v.includes('const palm=')||!v.includes('stats.palms++'))throw new Error('lightweight jungle palm layer missing');
 
-if(!loader.includes('36-verdant-wildlife-v125.js?b=125'))throw new Error('v125 wildlife script not wired');
-if(!lite.includes("const RELEASE='125'"))throw new Error('v125 release label missing');
-if(!sw.includes("lunar-ride-v125")||!sw.includes('js/36-verdant-wildlife-v125.js'))throw new Error('v125 service-worker cache wiring missing');
+/* v125 is a retained behavior layer, so future releases should keep it wired
+   without forcing the current build number to remain 125 forever. */
+if(!/36-verdant-wildlife-v125\.js\?b=\d+/.test(loader))throw new Error('v125 wildlife script not wired');
+const rm=lite.match(/const RELEASE='(\d+)'/),cm=sw.match(/lunar-ride-v(\d+)/);
+if(!rm||+rm[1]<125)throw new Error('current release label predates v125');
+if(!cm||+cm[1]!==+rm[1])throw new Error('service-worker cache/release mismatch');
+if(!sw.includes('js/36-verdant-wildlife-v125.js'))throw new Error('v125 service-worker cache wiring missing');
 
-console.log('ok: v125 living herds, flee behavior, moving frogs, swarms/flocks and lightweight palms are wired');
+console.log('ok: v125 living herds, flee behavior, moving frogs, swarms/flocks and lightweight palms are wired in release '+rm[1]);
