@@ -1,0 +1,103 @@
+name: Import Aqua CC0 fish assets v144
+
+on:
+  push:
+    branches: [fixes-build-90]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-fish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fixes-build-90
+          fetch-depth: 0
+
+      - name: Import pinned Quaternius CC0 GLBs and convert to embedded glTF
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=assets/models/aqua_fish
+          mkdir -p "$OUT"
+          BASE='https://raw.githubusercontent.com/Mnehmos/exhibit-of-shadows/e160070ede35d2d1a62c7572e8b348211c58fe83/assets/fish'
+          files=(clownfish fish-a fish-b fish-c shark anglerfish puffer lionfish butterfly-fish swordfish black-lionfish)
+          for n in "${files[@]}"; do
+            echo "Downloading $n.glb"
+            curl -fL --retry 3 --retry-delay 1 "$BASE/$n.glb" -o "$OUT/$n.glb"
+            test "$(head -c 4 "$OUT/$n.glb")" = 'glTF'
+          done
+
+          node <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const dir='assets/models/aqua_fish';
+          for(const name of fs.readdirSync(dir).filter(x=>x.endsWith('.glb'))){
+            const p=path.join(dir,name),b=fs.readFileSync(p);
+            if(b.toString('ascii',0,4)!=='glTF'||b.readUInt32LE(4)!==2)throw new Error('invalid GLB '+name);
+            let off=12,json=null,bin=null;
+            while(off+8<=b.length){
+              const len=b.readUInt32LE(off),type=b.readUInt32LE(off+4);off+=8;
+              const chunk=b.subarray(off,off+len);off+=len;
+              if(type===0x4E4F534A)json=JSON.parse(chunk.toString('utf8').replace(/[\u0000\s]+$/,''));
+              else if(type===0x004E4942)bin=chunk;
+            }
+            if(!json||!bin||!json.buffers||!json.buffers.length)throw new Error('missing GLB chunks '+name);
+            json.buffers[0].byteLength=bin.length;
+            json.buffers[0].uri='data:application/octet-stream;base64,'+bin.toString('base64');
+            const out=p.replace(/\.glb$/,'.gltf');
+            fs.writeFileSync(out,JSON.stringify(json));
+            fs.unlinkSync(p);
+            const tris=(json.meshes||[]).reduce((s,m)=>s+(m.primitives||[]).length,0);
+            console.log('converted',name,'nodes',json.nodes?.length||0,'animations',json.animations?.length||0,'meshPrimitives',tris);
+          }
+          NODE
+
+          cat > "$OUT/PROVENANCE.md" <<'EOF'
+          # Aqua Rift fish assets — provenance
+
+          These models are by **Quaternius**, released as **CC0 / Public Domain**, and were sourced in GLB form from the public `Mnehmos/exhibit-of-shadows` repository at pinned commit `e160070ede35d2d1a62c7572e8b348211c58fe83`. That repository records the Poly Pizza model pages below. The GLBs are converted here losslessly to glTF 2.0 JSON with the binary buffer embedded as a data URI so Lunar Ride's existing glTF loader can consume them.
+
+          - clownfish.gltf — https://poly.pizza/m/769fHo3eEB
+          - fish-a.gltf — https://poly.pizza/m/BEcU9rjiAq
+          - fish-b.gltf — https://poly.pizza/m/XWl86YFtpF
+          - fish-c.gltf — https://poly.pizza/m/Ymu8ftrmuT
+          - shark.gltf — https://poly.pizza/m/YYsK3gRCBZ
+          - anglerfish.gltf — https://poly.pizza/m/MRjSlwCjHM
+          - puffer.gltf — https://poly.pizza/m/UKHtgpxTOk
+          - lionfish.gltf — https://poly.pizza/m/czsz9Baw86
+          - butterfly-fish.gltf — https://poly.pizza/m/s2MkBeSzGy
+          - swordfish.gltf — https://poly.pizza/m/7hMOlBjln0
+          - black-lionfish.gltf — https://poly.pizza/m/4k2s68UrSg
+
+          CC0 does not require attribution; this file is retained for provenance and reproducibility.
+          EOF
+
+      - name: Validate imported glTF assets
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const dir='assets/models/aqua_fish';
+          const names=['clownfish','fish-a','fish-b','fish-c','shark','anglerfish','puffer','lionfish','butterfly-fish','swordfish','black-lionfish'];
+          for(const n of names){
+            const f=path.join(dir,n+'.gltf'),j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid '+f);
+            if(!j.buffers?.[0]?.uri?.startsWith('data:application/octet-stream;base64,'))throw new Error('not embedded '+f);
+            console.log(n,'meshes',j.meshes.length,'nodes',j.nodes?.length||0,'animations',j.animations?.length||0,'materials',j.materials?.length||0);
+          }
+          NODE
+
+      - name: Commit imported fish to fixes-build-90
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/models/aqua_fish
+          if git diff --cached --quiet; then
+            echo 'Fish assets already imported; nothing to commit.'
+            exit 0
+          fi
+          git commit -m 'Import Quaternius CC0 fish assets for Aqua Rift v144'
+          git push origin HEAD:fixes-build-90
