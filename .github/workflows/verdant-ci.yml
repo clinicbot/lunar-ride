@@ -112,6 +112,9 @@ jobs:
       - name: Verdant v137 TwistedTree 50-50 regression test
         run: node tests/verdant-v137-twisted-tree-mix-smoke.js
 
+      - name: Verdant v138 purple flower carpets regression test
+        run: node tests/verdant-v138-purple-flower-carpets-smoke.js
+
       - name: Verdant atmosphere and retained v128 mountain regression test
         run: |
           node - <<'NODE'
@@ -124,7 +127,7 @@ jobs:
           if(!weather.includes('sky_verdant.svg?b=131'))throw new Error('retained v131 skyline cache-bust missing');
           for(const k of ['oldAlpine','H[v]-=oldA','alpineRidges','__verdantMountainsV128'])
             if(!mountains.includes(k))throw new Error('retained v128 alpine cleanup missing: '+k);
-          console.log('ok: v137 retains v131 atmosphere and v128 legacy-dome removal');
+          console.log('ok: v138 retains v131 atmosphere and v128 legacy-dome removal');
           NODE
 
       - name: Verify current Verdant wiring
@@ -135,19 +138,20 @@ jobs:
           const mountains=R('js/35-verdant-mountains-v123.js'),m129=R('js/37-verdant-mountains-v129.js');
           const wild=R('js/36-verdant-wildlife-v125.js'),cleanup=R('js/38-verdant-world-cleanup-v129.js');
           for(const f of ['36-verdant-wildlife-v125.js','35-verdant-mountains-v123.js','37-verdant-mountains-v129.js','38-verdant-world-cleanup-v129.js'])
-            if(!loader.includes(f+'?b=137'))throw new Error('v137 loader wiring missing '+f);
-          if(!loader.includes('39-verdant-common-tree-mix-v134.js?b=137'))throw new Error('v134 CommonTree mix not retained');
-          if(!loader.includes('41-verdant-common-tree-compact-v136.js?b=137'))throw new Error('v136 compact CommonTree not retained');
-          if(!loader.includes('42-verdant-twisted-tree-mix-v137.js?b=137'))throw new Error('v137 TwistedTree mix loader missing');
+            if(!loader.includes(f+'?b=138'))throw new Error('v138 loader wiring missing '+f);
+          if(!loader.includes('39-verdant-common-tree-mix-v134.js?b=138'))throw new Error('v134 CommonTree mix not retained');
+          if(!loader.includes('41-verdant-common-tree-compact-v136.js?b=138'))throw new Error('v136 compact CommonTree not retained');
+          if(!loader.includes('42-verdant-twisted-tree-mix-v137.js?b=138'))throw new Error('v137 TwistedTree mix not retained');
+          if(!loader.includes('43-verdant-purple-flower-carpets-v138.js?b=138'))throw new Error('v138 purple carpet loader missing');
           if(loader.includes('40-verdant-common-tree-structure-v135.js'))throw new Error('rejected v135 synthetic structure layer still active');
-          if(!lite.includes("const RELEASE='137'"))throw new Error('v137 label missing');
-          if(!sw.includes("lunar-ride-v137"))throw new Error('v137 cache missing');
-          for(const f of ['39-verdant-common-tree-mix-v134.js','41-verdant-common-tree-compact-v136.js','42-verdant-twisted-tree-mix-v137.js'])
-            if(!sw.includes(f))throw new Error('v137 cache missing '+f);
+          if(!lite.includes("const RELEASE='138'"))throw new Error('v138 label missing');
+          if(!sw.includes("lunar-ride-v138"))throw new Error('v138 cache missing');
+          for(const f of ['39-verdant-common-tree-mix-v134.js','41-verdant-common-tree-compact-v136.js','42-verdant-twisted-tree-mix-v137.js','43-verdant-purple-flower-carpets-v138.js'])
+            if(!sw.includes(f))throw new Error('v138 cache missing '+f);
           if(!mountains.includes('ROAD_CORE=46')||!mountains.includes('FULL_REPLACE=ROAD_CORE+ROAD_FADE'))throw new Error('v126 full-route mountain protection missing');
           if(!mountains.includes('__verdantMountainsV128'))throw new Error('v128 mountain cleanup missing');
           if(!m129.includes('__verdantRoadbedV129')||!m129.includes('__verdantMountainsV129'))throw new Error('v129 terrain cleanup incomplete');
           if(!wild.includes('stagHerds')||!wild.includes('retunedFrogs')||!wild.includes('dragonflySwarms'))throw new Error('v125 wildlife layer incomplete');
           if(!cleanup.includes('legacyBillboardsDisabled:true')||!cleanup.includes('extraStagHerds'))throw new Error('v129 final cleanup incomplete');
-          console.log('ok: current Verdant v137 preserves v136 and adds only 50/50 TwistedTree red variants');
+          console.log('ok: current Verdant v138 preserves v137 and adds only road-safe GPU-instanced purple flower carpets');
           NODE
