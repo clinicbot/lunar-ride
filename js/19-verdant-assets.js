@@ -48,23 +48,23 @@
 })();
 
 /* Stable route, v128 legacy mountain removal, v129 global anti-dome/roadbed,
-   then nature and retained fauna. v129 cleanup removes legacy billboards and
-   road-intruding plants. v131 deliberately removes the rejected v130 palm
-   experiment and returns to the established GPU-instanced nature set. */
+   then nature and retained fauna. v132 adds a final road/oversize-prop cleanup,
+   alien mushroom groves, denser herds/swarms, more settlements and richer sky. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=131"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=131"></script>');
-  document.write('<script src="js/35-verdant-mountains-v123.js?b=131"></script>');
-  document.write('<script src="js/37-verdant-mountains-v129.js?b=131"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=131"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=131"></script>');
-  document.write('<script src="js/30-verdant-natural-v119.js?b=131"></script>');
-  document.write('<script src="js/31-verdant-enrichment-v120.js?b=131"></script>');
-  document.write('<script src="js/32-verdant-fauna-buildings-v121.js?b=131"></script>');
-  document.write('<script src="js/33-verdant-terrain-birds-v122.js?b=131"></script>');
-  document.write('<script src="js/34-verdant-assets-gate-v123.js?b=131"></script>');
-  document.write('<script src="js/36-verdant-wildlife-v125.js?b=131"></script>');
-  document.write('<script src="js/38-verdant-world-cleanup-v129.js?b=131"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=131"></script>');
-  document.write('<script src="js/28-verdant-instanced-renderer.js?b=131"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=132"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=132"></script>');
+  document.write('<script src="js/35-verdant-mountains-v123.js?b=132"></script>');
+  document.write('<script src="js/37-verdant-mountains-v129.js?b=132"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=132"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=132"></script>');
+  document.write('<script src="js/30-verdant-natural-v119.js?b=132"></script>');
+  document.write('<script src="js/31-verdant-enrichment-v120.js?b=132"></script>');
+  document.write('<script src="js/32-verdant-fauna-buildings-v121.js?b=132"></script>');
+  document.write('<script src="js/33-verdant-terrain-birds-v122.js?b=132"></script>');
+  document.write('<script src="js/34-verdant-assets-gate-v123.js?b=132"></script>');
+  document.write('<script src="js/36-verdant-wildlife-v125.js?b=132"></script>');
+  document.write('<script src="js/38-verdant-world-cleanup-v129.js?b=132"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=132"></script>');
+  document.write('<script src="js/39-verdant-v132-expansion.js?b=132"></script>');
+  document.write('<script src="js/28-verdant-instanced-renderer.js?b=132"></script>');
 }

@@ -2,9 +2,9 @@
 
 /* Verdant Rift lightweight wildlife pass ---------------------------------
    Imported glTF nature is the visual baseline from v115 onward. The legacy
-   billboard vegetation is hard-disabled by v129. v131 removes the rejected
-   v130 photogrammetry-palm experiment and keeps WebGL1 compatibility,
-   lightweight wildlife, and the Verdant release label. */
+   billboard vegetation is hard-disabled by v129. v132 keeps WebGL1
+   compatibility and the lightweight baseline wildlife while the final v132
+   expansion adds more herds, settlements and the alien grove. */
 (function(){
   const fixVegTexture=()=>{
     if(!TEX||!TEX.veg||isGL2) return;
@@ -73,7 +73,7 @@
     return w;
   };
 
-  const RELEASE='131';
+  const RELEASE='132';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
