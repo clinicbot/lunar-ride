@@ -1,9 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 1024">
-<defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#3e769a"/><stop offset=".48" stop-color="#8db6bd"/><stop offset=".78" stop-color="#d3c8a2"/><stop offset="1" stop-color="#4b654e"/></linearGradient><filter id="b"><feGaussianBlur stdDeviation="28"/></filter></defs>
-<rect width="2048" height="1024" fill="url(#g)"/>
-<g fill="#eef4ed" opacity=".55" filter="url(#b)"><ellipse cx="360" cy="240" rx="260" ry="65"/><ellipse cx="630" cy="300" rx="340" ry="70"/><ellipse cx="1450" cy="230" rx="300" ry="65"/><ellipse cx="1740" cy="300" rx="360" ry="75"/></g>
-<path d="M0 800 Q180 630 360 760T720 690T1080 720T1440 650T1800 720T2048 680V1024H0Z" fill="#456348" opacity=".72"/>
-<path d="M0 875 Q150 760 300 835T640 790T1020 840T1370 765T1700 830T2048 785V1024H0Z" fill="#294b38" opacity=".88"/>
-<g fill="#1e3d2e" opacity=".92"><path d="M90 840l45-150 45 150h-28l42 105H76l42-105z"/><path d="M280 820l42-145 42 145h-26l38 96H266l40-96z"/><path d="M520 850l48-170 48 170h-29l44 110H505l44-110z"/><path d="M1210 835l45-155 45 155h-28l42 105h-118l42-105z"/><path d="M1540 820l40-138 40 138h-25l37 93h-105l37-93z"/><path d="M1880 842l46-162 46 162h-28l42 105h-120l42-105z"/></g>
-<circle cx="1130" cy="160" r="42" fill="#c9e8df" opacity=".55"/><circle cx="1130" cy="160" r="31" fill="#77b3ad" opacity=".45"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 1024" preserveAspectRatio="xMidYMid slice">
+<defs>
+  <linearGradient id="sky" x2="0" y2="1">
+    <stop stop-color="#8da9b3"/>
+    <stop offset=".48" stop-color="#bac9c8"/>
+    <stop offset=".76" stop-color="#d6d8ce"/>
+    <stop offset="1" stop-color="#9baaa0"/>
+  </linearGradient>
+  <linearGradient id="far" x2="0" y2="1">
+    <stop stop-color="#a7b1ac"/>
+    <stop offset="1" stop-color="#85958e"/>
+  </linearGradient>
+  <linearGradient id="mid" x2="0" y2="1">
+    <stop stop-color="#8d9c96"/>
+    <stop offset="1" stop-color="#6e8178"/>
+  </linearGradient>
+  <linearGradient id="near" x2="0" y2="1">
+    <stop stop-color="#75877d"/>
+    <stop offset="1" stop-color="#586f63"/>
+  </linearGradient>
+  <filter id="cloud"><feGaussianBlur stdDeviation="34"/></filter>
+</defs>
+<rect width="2048" height="1024" fill="url(#sky)"/>
+
+<!-- Soft storm cloud banks.  They deliberately contain no landscape shapes. -->
+<g fill="#edf1ec" opacity=".30" filter="url(#cloud)">
+  <ellipse cx="245" cy="245" rx="300" ry="72"/>
+  <ellipse cx="610" cy="300" rx="390" ry="84"/>
+  <ellipse cx="1120" cy="220" rx="330" ry="70"/>
+  <ellipse cx="1645" cy="285" rx="430" ry="88"/>
+  <ellipse cx="2010" cy="215" rx="250" ry="64"/>
+</g>
+
+<!-- Distant mountain chains: angular, irregular and low contrast so the real
+     3-D terrain remains the dominant foreground silhouette.  The left/right
+     ends meet at the same height to avoid a panorama seam. -->
+<path d="M0 790 L76 766 L132 738 L188 752 L244 710 L302 731 L352 682 L410 706 L462 660 L520 698 L574 641 L626 674 L684 623 L736 664 L792 612 L846 646 L902 601 L956 635 L1014 590 L1068 625 L1122 574 L1178 612 L1234 565 L1288 602 L1344 552 L1402 596 L1458 569 L1516 620 L1570 584 L1628 633 L1684 596 L1740 646 L1794 611 L1852 661 L1906 630 L1964 690 L2014 734 L2048 790 V1024 H0Z" fill="url(#far)" opacity=".42"/>
+
+<path d="M0 842 L64 821 L118 788 L170 804 L222 756 L278 781 L330 730 L382 758 L434 709 L488 746 L540 694 L594 724 L648 678 L700 711 L752 662 L808 699 L862 650 L916 684 L970 641 L1024 678 L1078 632 L1132 674 L1186 626 L1240 667 L1294 622 L1348 660 L1402 617 L1458 654 L1512 611 L1568 650 L1622 615 L1676 657 L1732 620 L1788 668 L1842 634 L1898 688 L1954 652 L2006 722 L2048 842 V1024 H0Z" fill="url(#mid)" opacity=".48"/>
+
+<path d="M0 900 L58 878 L112 846 L164 862 L216 821 L270 843 L322 802 L376 831 L430 787 L484 817 L538 775 L592 810 L646 769 L700 802 L754 762 L808 798 L862 756 L916 792 L970 754 L1024 790 L1078 750 L1132 786 L1186 748 L1240 783 L1294 744 L1348 779 L1402 742 L1456 778 L1510 740 L1564 781 L1618 747 L1672 786 L1726 750 L1780 794 L1834 758 L1888 806 L1942 773 L1996 839 L2048 900 V1024 H0Z" fill="url(#near)" opacity=".38"/>
+
+<!-- Subtle atmospheric haze at the horizon ties the SVG to WebGL fog. -->
+<rect y="815" width="2048" height="209" fill="#cbd4cd" opacity=".16"/>
 </svg>
