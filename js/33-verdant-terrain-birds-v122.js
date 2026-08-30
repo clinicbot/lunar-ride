@@ -63,20 +63,18 @@
   }
 
   /* drawMesh is already the single choke point for terrain/road geometry.
-     Rebinding the texture slots here keeps the core shader and every other
-     scene untouched.  Base grass remains the current Lunar Ride grass; only
-     Verdant's cliff-rock and road/path slots are replaced. */
+     Rebinding only the texture units keeps the core shader and every other
+     scene untouched.  Sampler uniforms are already fixed to units 2..7 by the
+     renderer, so this is also safe while drawMesh is used by the shadow pass. */
   const baseDrawMesh=drawMesh;
   drawMesh=function(b){
     const V=TEX.verdant;
     if(V&&V.ready&&typeof state!=='undefined'&&state.scene&&state.scene.id==='verdant'
        &&typeof gpu!=='undefined'&&(b===gpu.terrain||b===gpu.road)){
-      const binds=[[2,TEX.gA,'uTexGA'],[3,TEX.gN,'uTexGN'],
-                   [4,V.rA||TEX.rA,'uTexRA'],[5,V.rN||TEX.rN,'uTexRN'],
-                   [6,V.aA||TEX.aA,'uTexAA'],[7,V.aN||TEX.aN,'uTexAN']];
+      const binds=[[2,TEX.gA],[3,TEX.gN],[4,V.rA||TEX.rA],[5,V.rN||TEX.rN],
+                   [6,V.aA||TEX.aA],[7,V.aN||TEX.aN]];
       for(const q of binds){
         gl.activeTexture(gl.TEXTURE0+q[0]);gl.bindTexture(gl.TEXTURE_2D,q[1]);
-        if(U&&U[q[2]]!==undefined&&U[q[2]]!==null)gl.uniform1i(U[q[2]],q[0]);
       }
       gl.activeTexture(gl.TEXTURE0);
     }
