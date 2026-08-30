@@ -67,7 +67,7 @@
     return w;
   };
 
-  const RELEASE='117';
+  const RELEASE='118';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
