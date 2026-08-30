@@ -5,7 +5,7 @@
    trainer physics and road geometry never depend on the weather state. */
 (function(){
   const sc=SCENES.find(s=>s.id==='verdant');
-  if(sc){sc.skyImg='assets/images/sky_verdant.svg?b=128';sc._clearFogDen=sc.sky.fogDen;}
+  if(sc){sc.skyImg='assets/images/sky_verdant.svg?b=129';sc._clearFogDen=sc.sky.fogDen;}
 
   const cv=document.createElement('canvas');
   cv.id='verdantWeatherFx';
@@ -24,8 +24,6 @@
   function loop(now){
     requestAnimationFrame(loop);
     const dt=Math.min(.05,(now-last)/1000);last=now;
-    /* `state` is a top-level lexical binding in the classic ride script; it
-       is deliberately not required to be a property of window. */
     const active=typeof state!=='undefined'&&state.scene&&state.scene.id==='verdant';
     if(!sc||!active){
       cv.style.display='none';c.clearRect(0,0,W,H);
@@ -34,8 +32,6 @@
     }
     cv.style.display='block';size();
     const km=((state.s||0)/1000)%25,t=state.elapsed||0;
-    /* Wetland and jungle are the wettest.  Elsewhere an occasional moving
-       shower crosses the route, so two rides need not feel identical. */
     let wet=0;
     if(km>=6&&km<9) wet=.72;
     else if(km>=9&&km<13) wet=.88;
@@ -44,7 +40,7 @@
     const pulse=.5+.5*Math.sin(t/72+km*.83+1.4);
     const shower=Math.max(0,Math.sin(t/115+km*.31)-.42)*.55;
     let rain=clamp(wet*(.35+.65*pulse)+shower,0,1);
-    if(km>=21&&km<22.5) rain*=.28; // summit is more fog/flurry than rain
+    if(km>=21&&km<22.5) rain*=.28;
     let mist=(km>=6&&km<13?.55:0)+(km>=18&&km<22.5?.58:0)+rain*.36;
     mist=clamp(mist*(.72+.28*Math.sin(t/95+2.1)),0,1);
     sc.sky.fogDen=(sc._clearFogDen||.00028)*(1+mist*2.9+rain*.65);
@@ -66,10 +62,8 @@
         c.strokeStyle='rgba(210,235,240,'+(d.a*(.28+.60*rain))+')';
         c.beginPath();c.moveTo(d.x,d.y);c.lineTo(d.x-d.l*.18,d.y+d.l);c.stroke();
       }
-      /* wet lens veil during the heaviest bursts */
       if(rain>.72){c.fillStyle='rgba(90,125,130,'+((rain-.72)*.10)+')';c.fillRect(0,0,W,H);}
     }
-    /* very occasional storm flash, intentionally subtle */
     const flash=rain>.78&&Math.sin(t*.115+3.7)>.997;
     if(flash){c.fillStyle='rgba(225,240,245,.10)';c.fillRect(0,0,W,H);}
   }

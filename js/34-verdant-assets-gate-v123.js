@@ -1,11 +1,11 @@
 "use strict";
 
-/* Verdant Rift v123 — asset readiness gate ---------------------------------
-   v121 originally stamped settlements and several animal families only when
-   their asynchronous glTF load happened to be finished at the exact instant
-   buildWorld ran. Entering Verdant quickly therefore made those objects vanish
-   for the whole ride. This gate waits for the required library before calling
-   the existing synchronous startRide/buildWorld pipeline. */
+/* Verdant Rift v129 — asset readiness gate ---------------------------------
+   The original v123 gate waited for creatures and settlements, but not the
+   imported nature parser. Entering Verdant while nature was still decoding
+   made the whole ride fall back to the old triangular billboard forest.
+   v129 waits for nature settlement too, then calls the synchronous world
+   builder only after every requested nature model has settled. */
 (function(){
   const BUILDINGS={
     stSide:'assets/models/station_side.gltf',
@@ -36,21 +36,28 @@
     vship:['assets/models/verdant_ship.gltf',{}]
   };
 
+  const natureStatus=()=>{
+    try{
+      if(typeof window!=='undefined'&&typeof window.__verdantNatureStatusV129==='function')
+        return window.__verdantNatureStatusV129();
+    }catch(e){}
+    return {started:false,total:0,settled:0,ready:0,failed:0,complete:false,coreReady:false};
+  };
   const status=()=>{
     const mb=[],mc=[];
     for(const k in BUILDINGS)if(!GLTREES||!GLTREES[k]||!GLTREES[k].prims||!GLTREES[k].prims.length)mb.push(k);
     for(const k in CREATURES)if(!GLCRE||!GLCRE[k]||!GLCRE[k].ready)mc.push(k);
-    return {missingBuildings:mb,missingCreatures:mc,
-      total:Object.keys(BUILDINGS).length+Object.keys(CREATURES).length,
-      ready:Object.keys(BUILDINGS).length+Object.keys(CREATURES).length-mb.length-mc.length};
+    const ns=natureStatus(),baseTotal=Object.keys(BUILDINGS).length+Object.keys(CREATURES).length;
+    const baseReady=baseTotal-mb.length-mc.length;
+    return {missingBuildings:mb,missingCreatures:mc,nature:ns,
+      total:baseTotal+(ns.total||0),ready:baseReady+(ns.settled||0),
+      natureComplete:!!ns.complete,natureCoreReady:!!ns.coreReady};
   };
 
   let waiting=null,retried=false;
   const retryMissing=s=>{
     if(retried)return;
     retried=true;
-    /* A normal startup already requested every file. Retry only what is still
-       absent after several seconds, covering a transient fetch/decode failure. */
     for(const k of s.missingBuildings){
       const f=BUILDINGS[k];
       try{loadGLTFStatic(k,f,1);}catch(e){}
@@ -59,11 +66,16 @@
       const c=CREATURES[k];
       try{loadGLTFCreature(k,c[0],c[1]);}catch(e){}
     }
+    try{
+      if(typeof window.__verdantNatureWaitV129==='function')window.__verdantNatureWaitV129();
+    }catch(e){}
   };
 
+  const allReady=s=>!s.missingBuildings.length&&!s.missingCreatures.length&&s.natureComplete;
   const waitForAssets=()=>{
+    try{if(typeof window.__verdantNatureWaitV129==='function')window.__verdantNatureWaitV129();}catch(e){}
     const now=status();
-    if(!now.missingBuildings.length&&!now.missingCreatures.length)return Promise.resolve({...now,complete:true});
+    if(allReady(now))return Promise.resolve({...now,complete:true});
     if(waiting)return waiting;
     const t0=performance.now();retried=false;
     waiting=new Promise(resolve=>{
@@ -72,13 +84,13 @@
         const bar=typeof $==='function'&&$('loadBar');
         if(bar){const frac=s.total? s.ready/s.total:1;bar.style.width=(8+frac*27).toFixed(1)+'%';}
         const txt=typeof $==='function'&&$('loadTxt');
-        if(txt)txt.textContent='Loading wildlife & settlements '+s.ready+'/'+s.total;
-        if(!s.missingBuildings.length&&!s.missingCreatures.length){
+        if(txt)txt.textContent='Loading wildlife, nature & settlements '+s.ready+'/'+s.total;
+        if(allReady(s)){
           waiting=null;resolve({...s,complete:true,elapsed});return;
         }
-        if(elapsed>4200&&!retried)retryMissing(s);
-        if(elapsed>18000){
-          console.warn('Verdant asset gate timed out; continuing with available assets',s);
+        if(elapsed>5000&&!retried)retryMissing(s);
+        if(elapsed>24000){
+          console.warn('Verdant v129 asset gate timed out; continuing without legacy billboards',s);
           waiting=null;resolve({...s,complete:false,elapsed});return;
         }
         setTimeout(tick,90);
@@ -89,29 +101,29 @@
   };
 
   const install=()=>{
-    if(typeof startRide!=='function'||startRide.__verdantGateV123)return;
+    if(typeof startRide!=='function'||startRide.__verdantGateV129)return;
     const originalStartRide=startRide;
     const gated=function(sc,resume){
       if(!sc||sc.id!=='verdant')return originalStartRide(sc,resume);
       const s=status();
-      if(!s.missingBuildings.length&&!s.missingCreatures.length)return originalStartRide(sc,resume);
+      if(allReady(s))return originalStartRide(sc,resume);
 
-      /* Show feedback immediately. Audio also gets its browser-required user
-         gesture now, before the asynchronous wait. */
       try{readSetup();if(cfg.sound)audioStart();}catch(e){}
       try{
         $('menu').classList.add('hide');$('loading').classList.add('on');
-        $('loadBar').style.width='8%';$('loadTxt').textContent='Loading wildlife & settlements';
+        $('loadBar').style.width='8%';$('loadTxt').textContent='Loading wildlife, nature & settlements';
       }catch(e){}
       waitForAssets().then(result=>{
-        window.__verdantAssetGateV123=result;
+        window.__verdantAssetGateV129=result;
         try{$('loadTxt').textContent='Building the world';}catch(e){}
         originalStartRide(sc,resume);
       });
     };
     gated.__verdantGateV123=true;
+    gated.__verdantGateV129=true;
     startRide=gated;
     window.__verdantAssetStatusV123=status;
+    window.__verdantAssetStatusV129=status;
   };
 
   if(typeof document!=='undefined'){

@@ -1,14 +1,16 @@
 "use strict";
 
-/* Verdant Rift v117 — imported nature instance source ---------------------
-   External glTF models are parsed once while the menu is visible.  Textures
+/* Verdant Rift v129 — imported nature instance source ---------------------
+   External glTF models are parsed once while the menu is visible. Textures
    are sampled into per-vertex colours, but models are NOT duplicated into the
-   world's props mesh.  buildWorld() now creates only compact transform lists;
-   js/28 uploads one GPU copy per species and streams nearby instances. */
+   world's props mesh. v129 exposes deterministic load status so the Verdant
+   start gate can wait for nature too; the triangular legacy billboard field
+   is never used as a fallback. */
 (function(){
   const STORE={};
   const IMG_CACHE=new Map();
   let started=false;
+  const LOAD={total:0,settled:0,ready:0,failed:0,promise:null};
 
   const COMPONENTS={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16};
   const CT={5120:Int8Array,5121:Uint8Array,5122:Int16Array,5123:Uint16Array,
@@ -163,8 +165,14 @@
     }
   }
 
+  const natureStatus=()=>({
+    started,total:LOAD.total,settled:LOAD.settled,ready:LOAD.ready,failed:LOAD.failed,
+    complete:started&&LOAD.total>0&&LOAD.settled>=LOAD.total,
+    coreReady:!!(STORE.common1&&STORE.bush&&STORE.fern)
+  });
+
   function startLoads(){
-    if(started)return;started=true;
+    if(started)return LOAD.promise;started=true;
     const files={
       common1:'CommonTree_1.gltf',common3:'CommonTree_3.gltf',common5:'CommonTree_5.gltf',
       twisted1:'TwistedTree_1.gltf',twisted3:'TwistedTree_3.gltf',
@@ -173,9 +181,19 @@
       flower4:'Flower_4_Group.gltf',mushroom:'Mushroom_Common.gltf',
       rock1:'Rock_Medium_1.gltf',rock2:'Rock_Medium_2.gltf'
     };
-    for(const k in files)loadModel(k,'assets/models/'+files[k]);
+    const keys=Object.keys(files);LOAD.total=keys.length;
+    const jobs=keys.map(k=>loadModel(k,'assets/models/'+files[k]).then(ok=>{
+      LOAD.settled++;if(ok)LOAD.ready++;else LOAD.failed++;
+      return ok;
+    }));
+    LOAD.promise=Promise.all(jobs).then(()=>natureStatus());
+    return LOAD.promise;
   }
 
+  if(typeof window!=='undefined'){
+    window.__verdantNatureStatusV129=natureStatus;
+    window.__verdantNatureWaitV129=()=>startLoads();
+  }
   if(typeof window!=='undefined'&&typeof fetch==='function')startLoads();
   const oldInit=initGL;
   initGL=function(){const r=oldInit();startLoads();return r;};
@@ -185,10 +203,15 @@
     const w=previousBuild(sc,onProgress);
     if(!w||!sc||sc.id!=='verdant'||!w.verdant)return w;
 
-    /* If the rider enters immediately before the core models are ready, keep
-       the old billboard vegetation rather than producing an empty world. */
     const coreReady=!!(STORE.common1&&STORE.bush&&STORE.fern);
-    if(!coreReady){w.__realNature={ready:false,loading:true};return w;}
+    if(!coreReady){
+      /* Never resurrect the old 26k billboard layer: that is the source of
+         the giant green triangular silhouettes seen when nature lost the race. */
+      w.veg=null;
+      w.__realNature={ready:false,loading:!natureStatus().complete,
+        legacyBillboards:false,natureStatus:natureStatus()};
+      return w;
+    }
 
     const rr=mulberry32(sc.seed+11713),n=w.nMain,routeKm=n*ROUTE_STEP/1000;
     const groups={},models={};
@@ -230,41 +253,35 @@
       }
     };
 
-    /* 0-4 km — lush open woodland: frequent trees plus lower undergrowth. */
     scatterBoth(0,4,.070,['common1','common3','common5'],8,34,.70,1.08,'trees',.92,.24);
     scatterBoth(0,4,.036,['bush','bushFlowers'],5,22,.48,.90,'bushes',.90,.18);
     scatterBoth(0,4,.070,['fern'],5,18,.12,.22,'ferns',.72,.08);
 
-    /* 4-9 km — denser mixed woodland. */
     scatterBoth(4,9,.058,['common1','common3','twisted1','twisted3'],7,30,.58,.96,'trees',.94,.30);
     scatterBoth(4,9,.031,['bush','bushFlowers'],4.8,20,.42,.82,'bushes',.93,.22);
     scatterBoth(4,9,.046,['fern'],4.5,17,.12,.24,'ferns',.86,.12);
 
-    /* 9-14 km — wet jungle with rich low vegetation. */
     scatterBoth(9,14,.078,['twisted1','twisted3','common5'],7,26,.52,.88,'trees',.88,.28);
     scatterBoth(9,14,.022,['fern'],4,16,.11,.23,'ferns',.95,.20);
     scatterBoth(9,14,.050,['bush','bushFlowers'],4.5,18,.38,.78,'bushes',.90,.20);
     scatterBoth(9,14,.066,['flower4'],4.5,16,.22,.42,'flowers',.72,.10);
     scatterBoth(9,14,.095,['mushroom'],4,13,.22,.42,'mushrooms',.60,.08);
 
-    /* 14-19 km — rocky / dead-wood exposure. */
     scatterBoth(14,19,.125,['dead2','twisted1'],9,32,.44,.74,'trees',.72,.10);
     scatterBoth(14,19,.047,['rock1','rock2'],5,25,.48,1.10,'rocks',.90,.16);
     scatterBoth(14,19,.070,['bush'],6,22,.38,.68,'bushes',.74,.08);
 
-    /* 19-23 km — alpine pine forest. */
     scatterBoth(19,23,.055,['pine1','pine3','pine5'],7,30,.56,.96,'trees',.95,.30);
     scatterBoth(19,23,.052,['fern','bush'],4.5,18,.18,.48,'ferns',.82,.12);
     scatterBoth(19,23,.085,['rock1','rock2'],6,23,.50,1.05,'rocks',.68,.08);
 
-    /* 23-25 km — mixed return. */
     scatterBoth(23,25,.065,['common1','common5','pine5','twisted1'],7,28,.58,.96,'trees',.94,.28);
     scatterBoth(23,25,.034,['bush','bushFlowers'],4.5,18,.38,.78,'bushes',.92,.18);
     scatterBoth(23,25,.070,['fern','flower4'],4,15,.16,.38,'flowers',.72,.08);
 
     w.instNature={ready:true,routeKm,models,groups,stats};
-    w.__realNature={ready:true,mode:'gpu-instanced',stats};
-    console.log('Verdant v117 instance plan:',stats,'groups',Object.keys(groups).length);
+    w.__realNature={ready:true,mode:'gpu-instanced',stats,natureStatus:natureStatus(),legacyBillboards:false};
+    console.log('Verdant v129 instance plan:',stats,'groups',Object.keys(groups).length,natureStatus());
     return w;
   };
 })();
