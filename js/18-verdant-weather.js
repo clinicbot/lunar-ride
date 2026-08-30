@@ -5,7 +5,7 @@
    trainer physics and road geometry never depend on the weather state. */
 (function(){
   const sc=SCENES.find(s=>s.id==='verdant');
-  if(sc){sc.skyImg='assets/images/sky_verdant.svg?b=129';sc._clearFogDen=sc.sky.fogDen;}
+  if(sc){sc.skyImg='assets/images/sky_verdant.svg?b=131';sc._clearFogDen=sc.sky.fogDen;}
 
   const cv=document.createElement('canvas');
   cv.id='verdantWeatherFx';

@@ -1,7 +1,7 @@
 /* Lunar Ride service worker.
    NETWORK-FIRST for everything: while online you always get the newest
    deploy; every successful response is copied into the cache for offline use. */
-const CACHE = 'lunar-ride-v130';
+const CACHE = 'lunar-ride-v131';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
@@ -19,16 +19,10 @@ const CORE = [
   'js/32-verdant-fauna-buildings-v121.js', 'js/33-verdant-terrain-birds-v122.js',
   'js/34-verdant-assets-gate-v123.js', 'js/36-verdant-wildlife-v125.js',
   'js/38-verdant-world-cleanup-v129.js', 'js/27-verdant-billboard-cleanup.js',
-  'js/39-verdant-photogrammetry-palms-v130.js', 'js/28-verdant-instanced-renderer.js',
+  'js/28-verdant-instanced-renderer.js',
   'assets/images/verdant_rift_card.svg', 'assets/images/sky_verdant.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
-  'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf',
-  'assets/models/verdant_palm_hero_v130_part1.gltf',
-  'assets/models/verdant_palm_hero_v130_part2.gltf',
-  'assets/models/verdant_palm_hero_v130_part3.gltf',
-  'assets/models/verdant_palm_hero_v130_part4.gltf',
-  'assets/models/verdant_palm_lod_v130_part1.gltf',
-  'assets/models/verdant_palm_lod_v130_part2.gltf'
+  'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf'
 ];
 
 self.addEventListener('install', e => {
