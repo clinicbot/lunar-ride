@@ -39,16 +39,21 @@ for(const k of ['extraCatGroups','extraBearGroups','extraMonkeyTroops','extraBir
   if(!cleanup.includes(k))throw new Error('v129 wildlife expansion missing: '+k);
 if(!cleanup.includes('rdx:p.rx,rdz:p.rz'))throw new Error('v129 land animals lack flee road reference');
 
-const m37=loader.match(/37-verdant-mountains-v129\.js\?b=129/);
-const m26=loader.match(/26-verdant-real-nature\.js\?b=129/);
-const m38=loader.match(/38-verdant-world-cleanup-v129\.js\?b=129/);
-const m28=loader.match(/28-verdant-instanced-renderer\.js\?b=129/);
-if(!m37||!m26||!m38||!m28)throw new Error('v129 loader wiring missing');
+/* Retained v129 behavior must remain wired in later releases. Do not pin this
+   regression to a historical cache-bust number. */
+const find=f=>loader.match(new RegExp(f.replace(/\./g,'\\.')+'\\?b=\\d+'));
+const m37=find('37-verdant-mountains-v129.js');
+const m26=find('26-verdant-real-nature.js');
+const m38=find('38-verdant-world-cleanup-v129.js');
+const m28=find('28-verdant-instanced-renderer.js');
+if(!m37||!m26||!m38||!m28)throw new Error('retained v129 loader wiring missing');
 if(!(loader.indexOf(m37[0])<loader.indexOf(m26[0])&&loader.indexOf(m26[0])<loader.indexOf(m38[0])&&loader.indexOf(m38[0])<loader.indexOf(m28[0])))
-  throw new Error('v129 layer order incorrect');
-if(!lite.includes("const RELEASE='129'"))throw new Error('v129 release label missing');
-if(!weather.includes('sky_verdant.svg?b=129'))throw new Error('v129 sky cache bust missing');
-if(!sw.includes("lunar-ride-v129")||!sw.includes('js/37-verdant-mountains-v129.js')||!sw.includes('js/38-verdant-world-cleanup-v129.js'))
-  throw new Error('v129 service-worker wiring missing');
+  throw new Error('retained v129 layer order incorrect');
+const rm=lite.match(/const RELEASE='(\d+)'/),cm=sw.match(/lunar-ride-v(\d+)/);
+if(!rm||+rm[1]<129)throw new Error('current Verdant release regressed below v129');
+if(!cm||+cm[1]!==+rm[1])throw new Error('service-worker cache/release mismatch');
+if(!/sky_verdant\.svg\?b=\d+/.test(weather))throw new Error('Verdant sky cache bust missing');
+if(!sw.includes('js/37-verdant-mountains-v129.js')||!sw.includes('js/38-verdant-world-cleanup-v129.js'))
+  throw new Error('retained v129 service-worker wiring missing');
 
-console.log('ok: v129 kills legacy billboards, protects the road, rejects road plants, breaks smooth domes and greatly increases wildlife');
+console.log('ok: retained v129 kills legacy billboards, protects the road, rejects road plants, breaks smooth domes and greatly increases wildlife');
