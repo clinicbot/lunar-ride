@@ -1,7 +1,7 @@
 /* Lunar Ride service worker.
    NETWORK-FIRST for everything: while online you always get the newest
    deploy; every successful response is copied into the cache for offline use. */
-const CACHE = 'lunar-ride-v117';
+const CACHE = 'lunar-ride-v118';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
@@ -15,6 +15,7 @@ const CORE = [
   'js/20-verdant-route-audit.js', 'js/21-verdant-terrain-polish.js',
   'js/25-verdant-lite-richness.js', 'js/26-verdant-real-nature.js',
   'js/27-verdant-billboard-cleanup.js', 'js/28-verdant-instanced-renderer.js',
+  'js/29-verdant-density-v118.js',
   'assets/images/verdant_rift_card.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
   'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf'
