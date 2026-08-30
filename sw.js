@@ -1,7 +1,7 @@
 /* Lunar Ride service worker.
    NETWORK-FIRST for everything: while online you always get the newest
    deploy; every successful response is copied into the cache for offline use. */
-const CACHE = 'lunar-ride-v142';
+const CACHE = 'lunar-ride-v143';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
@@ -24,8 +24,9 @@ const CORE = [
   'js/46-verdant-uploaded-mushroom-model-v141.js',
   'js/45-verdant-wildlife-buildings-mushrooms-v140.js',
   'js/47-verdant-uploaded-mushroom-replace-v141.js',
-  'js/48-verdant-mushroom-carpet-fix-v142.js', 'js/28-verdant-instanced-renderer.js',
-  'assets/images/verdant_rift_card.svg', 'assets/images/sky_verdant.svg',
+  'js/48-verdant-mushroom-carpet-fix-v142.js',
+  'js/49-aqua-rift-v143.js', 'js/28-verdant-instanced-renderer.js',
+  'assets/images/verdant_rift_card.svg', 'assets/images/aqua_rift_card.svg', 'assets/images/sky_verdant.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
   'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf',
   'assets/models/verdant_mushroom_uploaded_v141.gltf'
