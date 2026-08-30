@@ -85,6 +85,32 @@ jobs:
           }
           NODE
 
+      - name: Verdant v130 photogrammetry palm regression test
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const hero=[1,2,3,4].map(i=>`verdant_palm_hero_v130_part${i}.gltf`);
+          const lod=[1,2].map(i=>`verdant_palm_lod_v130_part${i}.gltf`);
+          const triCount=files=>files.reduce((sum,name)=>{
+            const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid palm asset '+name);
+            if(j.buffers?.length!==1||!j.buffers[0].uri?.startsWith('data:application/octet-stream;base64,'))
+              throw new Error('palm must be self-contained '+name);
+            const p=j.meshes[0].primitives[0],a=j.accessors[p.indices];
+            if(!p.attributes?.POSITION||p.attributes.NORMAL===undefined||p.attributes.COLOR_0===undefined)
+              throw new Error('palm attributes missing '+name);
+            return sum+a.count/3;
+          },0);
+          const ht=triCount(hero),lt=triCount(lod);
+          if(ht!==1248)throw new Error('unexpected Hero palm triangles '+ht);
+          if(lt!==538)throw new Error('unexpected LOD palm triangles '+lt);
+          if(ht>2000||lt>800)throw new Error('palm performance budget exceeded');
+          const palm=fs.readFileSync('js/39-verdant-photogrammetry-palms-v130.js','utf8');
+          for(const k of ['palmHero','palmLod','roadNear','__verdantPhotogrammetryPalmsV130','optimized-photogrammetry-scan','heroPalms','lodPalms'])
+            if(!palm.includes(k))throw new Error('v130 palm behavior missing: '+k);
+          console.log('ok: v130 optimized palms', {heroTriangles:ht,lodTriangles:lt});
+          NODE
+
       - name: Verdant atmosphere and retained v128 mountain regression test
         run: |
           node - <<'NODE'
@@ -97,7 +123,7 @@ jobs:
           if(!sky.includes('NO painted mountain')||!sky.includes('real 3-D terrain'))
             throw new Error('atmosphere-only skyline marker missing');
           if(!weather.includes('sky_verdant.svg?b=129'))
-            throw new Error('v129 skyline cache-bust missing');
+            throw new Error('retained skyline cache-bust missing');
           for(const k of ['oldAlpine','H[v]-=oldA','alpineRidges','__verdantMountainsV128'])
             if(!mountains.includes(k))throw new Error('retained v128 alpine cleanup missing: '+k);
           console.log('ok: atmosphere-only sky and retained v128 legacy-dome removal');
@@ -110,14 +136,18 @@ jobs:
           const loader=R('js/19-verdant-assets.js'),lite=R('js/25-verdant-lite-richness.js'),sw=R('sw.js');
           const mountains=R('js/35-verdant-mountains-v123.js'),m129=R('js/37-verdant-mountains-v129.js');
           const wild=R('js/36-verdant-wildlife-v125.js'),cleanup=R('js/38-verdant-world-cleanup-v129.js');
-          if(!loader.includes('36-verdant-wildlife-v125.js?b=129'))throw new Error('v125 wildlife loader missing at v129');
-          if(!loader.includes('35-verdant-mountains-v123.js?b=129'))throw new Error('retained mountain loader missing at v129');
-          if(!loader.includes('37-verdant-mountains-v129.js?b=129'))throw new Error('v129 mountain layer missing');
-          if(!loader.includes('38-verdant-world-cleanup-v129.js?b=129'))throw new Error('v129 cleanup layer missing');
-          if(!lite.includes("const RELEASE='129'"))throw new Error('v129 label missing');
-          if(!sw.includes("lunar-ride-v129"))throw new Error('v129 cache missing');
-          if(!sw.includes('js/37-verdant-mountains-v129.js')||!sw.includes('js/38-verdant-world-cleanup-v129.js'))
-            throw new Error('v129 service-worker layers missing');
+          const palm=R('js/39-verdant-photogrammetry-palms-v130.js');
+          for(const f of ['36-verdant-wildlife-v125.js','35-verdant-mountains-v123.js','37-verdant-mountains-v129.js','38-verdant-world-cleanup-v129.js','39-verdant-photogrammetry-palms-v130.js'])
+            if(!loader.includes(f+'?b=130'))throw new Error('v130 loader wiring missing '+f);
+          if(loader.indexOf('39-verdant-photogrammetry-palms-v130.js')>loader.indexOf('28-verdant-instanced-renderer.js'))
+            throw new Error('palm layer must load before instanced renderer');
+          if(!lite.includes("const RELEASE='130'"))throw new Error('v130 label missing');
+          if(!sw.includes("lunar-ride-v130"))throw new Error('v130 cache missing');
+          for(const f of ['js/39-verdant-photogrammetry-palms-v130.js',
+            'assets/models/verdant_palm_hero_v130_part1.gltf','assets/models/verdant_palm_hero_v130_part2.gltf',
+            'assets/models/verdant_palm_hero_v130_part3.gltf','assets/models/verdant_palm_hero_v130_part4.gltf',
+            'assets/models/verdant_palm_lod_v130_part1.gltf','assets/models/verdant_palm_lod_v130_part2.gltf'])
+            if(!sw.includes(f))throw new Error('v130 cache asset missing '+f);
           if(!mountains.includes('ROAD_CORE=46')||!mountains.includes('FULL_REPLACE=ROAD_CORE+ROAD_FADE'))
             throw new Error('v126 full-route mountain protection missing');
           if(!mountains.includes('__verdantMountainsV128'))throw new Error('v128 mountain cleanup missing');
@@ -127,5 +157,7 @@ jobs:
             throw new Error('v125 wildlife layer incomplete');
           if(!cleanup.includes('legacyBillboardsDisabled:true')||!cleanup.includes('extraStagHerds'))
             throw new Error('v129 final cleanup incomplete');
-          console.log('ok: current Verdant v129 wiring');
+          if(!palm.includes('__verdantPhotogrammetryPalmsV130')||!palm.includes('roadNear'))
+            throw new Error('v130 palms incomplete');
+          console.log('ok: current Verdant v130 wiring');
           NODE
