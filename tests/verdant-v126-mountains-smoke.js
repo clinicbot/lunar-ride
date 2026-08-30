@@ -5,8 +5,6 @@ const read=f=>fs.readFileSync(f,'utf8');
 const base=read('js/17-verdant-rift.js');
 const mountains=read('js/35-verdant-mountains-v123.js');
 const loader=read('js/19-verdant-assets.js');
-const lite=read('js/25-verdant-lite-richness.js');
-const sw=read('sw.js');
 
 /* The original terrain carve reaches width+28 m.  The widest Verdant road is
    3.35 m half-width, so a 46 m hard core leaves >14 m safety beyond the carve. */
@@ -30,11 +28,12 @@ if(!mountains.includes('maxProtectedChange')||!mountains.includes('roadCoreM:ROA
   throw new Error('v126 mountain safety telemetry missing');
 
 /* The pass must run before nature/fauna placement so trees, animals and
-   building foundations sample the final terrain height. */
-const mi=loader.indexOf('35-verdant-mountains-v123.js?b=126');
-const ni=loader.indexOf('25-verdant-lite-richness.js?b=126');
-if(mi<0||ni<0||mi>ni)throw new Error('v126 mountain pass load order incorrect');
-if(!lite.includes("const RELEASE='126'"))throw new Error('v126 release label missing');
-if(!sw.includes("lunar-ride-v126"))throw new Error('v126 cache missing');
+   building foundations sample the final terrain height. This regression is
+   intentionally release-agnostic: later releases must keep the v126 geometry
+   algorithm without being forced to retain a v126 cache/version label. */
+const m=loader.match(/35-verdant-mountains-v123\.js\?b=\d+/);
+const n=loader.match(/25-verdant-lite-richness\.js\?b=\d+/);
+if(!m||!n||loader.indexOf(m[0])>loader.indexOf(n[0]))
+  throw new Error('mountain pass load order incorrect');
 
-console.log(JSON.stringify({ok:true,roadCoreM:46,fadeM:84,fullReplacementM:130,release:126}));
+console.log(JSON.stringify({ok:true,roadCoreM:46,fadeM:84,fullReplacementM:130}));
