@@ -14,11 +14,11 @@ This file is the persistent continuation note for future ChatGPT sessions. Befor
 
 ## Current checkpoint — 2026-08-30
 
-- Current release shown for Verdant Rift: **v127**.
-- HEAD before this handoff file: `b2fd4900c6eea160a2a19fe73c3e55290f16892b`.
-- Latest Verdant CI run before this handoff: run `33304741901`, **SUCCESS**.
-- The earlier red CI email for run `33303766220` was caused by an obsolete string-based regression assertion; gameplay/geometry/wildlife tests before that assertion were passing. That obsolete test dependency has since been fixed and the latest CI is green.
-- Backup created before the latest mountain work: `backup-v125-before-v126-mountains`.
+- Current Verdant Rift release: **v128**.
+- HEAD before this handoff update: `856b1c614838c2752dad352687c21ca7ac3531fd` (`Verdant v128 remove legacy dome skyline`).
+- Verdant CI run for that code commit: run `33305748082`, **SUCCESS**; all steps passed including syntax, generated world, real geometry, wildlife, retained v121/v122/v123/v125/v126 regressions, asset validation, new v128 skyline/alpine-dome regression, and release wiring.
+- Backup created immediately before the v128 visual change: `backup-v127-before-v128-mountain-cleanup`.
+- Previous backup retained: `backup-v125-before-v126-mountains`.
 
 ## Verdant Rift world
 
@@ -27,27 +27,39 @@ This file is the persistent continuation note for future ChatGPT sessions. Befor
 - Route/world builder: `js/17-verdant-rift.js`.
 - Weather: `js/18-verdant-weather.js`; route-aware rain/mist, visual only.
 - Verdant loader/wiring: `js/19-verdant-assets.js`.
-- Release label is currently in `js/25-verdant-lite-richness.js`.
+- Release label is in `js/25-verdant-lite-richness.js`.
 - Service-worker cache release must match the release label in `sw.js`.
 
 ## Terrain / mountain history
 
-The user repeatedly found old-looking green hemispheres / circular hills / triangular cartoon mountains visible around the route. There are two separate visual sources that had to be addressed:
+The user repeatedly found old-looking green hemispheres / circular hills / triangular cartoon mountains visible around the route. Three distinct sources were eventually identified:
 
-1. **3-D terrain mesh** — the original `bareLand()` added a smooth radial perimeter uplift. `js/35-verdant-mountains-v123.js` now contains the retained **v126 full-route mountain replacement** algorithm. It removes/replaces the smooth radial ring away from the road, adds asymmetric multi-scale ridges/erosion, stone colour on high/steep/far surfaces, recalculates normals, and updates `meshH` / `groundAt`.
+1. **Original radial perimeter uplift** in `bareLand()` — a smooth circular ring near the terrain edge.
+   - `js/35-verdant-mountains-v123.js` contains the retained full-route replacement algorithm introduced in v126.
    - Hard road protection: `ROAD_CORE=46` m.
    - Fade: `ROAD_FADE=84` m.
-   - Full replacement beyond about 130 m.
-   - The smaller protection radius was necessary because the 25 km route folds through much of the 5.2 km terrain map; the old 180 m protection left many distant domes untouched.
+   - Full replacement beyond 130 m.
+   - It subtracts the old radial uplift, adds asymmetric multi-scale perimeter ridges/erosion, recalculates normals, applies more stone colour to high/steep/far surfaces, and updates `meshH` / `groundAt`.
+   - The smaller protection radius was necessary because the 25 km route folds through much of the 5.2 km terrain map; the earlier 180 m protection left many distant domes untouched.
 
-2. **Sky/background panorama** — some apparent green domes/triangles were not terrain at all; they came from `assets/images/sky_verdant.svg`. In **v127** the old cartoon green skyline was replaced with three low-contrast, angular irregular atmospheric mountain chains plus haze/clouds. `js/18-verdant-weather.js` loads `sky_verdant.svg?b=127`.
+2. **Original alpine Gaussian mass** in `js/17-verdant-rift.js` — `235*Math.exp(...)` centred near `(1050,760)`.
+   - This remained after v126 and could still read as a broad green hemisphere from many viewpoints.
+   - **v128 now explicitly subtracts this legacy Gaussian away from the protected road corridor and replaces it with three offset anisotropic ridge systems plus noise/erosion.**
+   - The original Gaussian is deliberately still present in the base builder because the v128 post-pass removes/replaces it while preserving the road corridor and retained test architecture.
+   - v128 telemetry is exposed as `w.__verdantMountainsV128`; v126 telemetry remains as `w.__verdantMountainsV126` so retained release-agnostic tests continue to work.
+   - Alpine ridge influence also contributes to stone colouring so the replacement should not read as one giant green mass.
 
-User's most recent mountain screenshots showed that many old mountains were still visible throughout the route before this v126/v127 work. The current v127 specifically attempts to fix both the 3-D and background causes. The next real-world task is to have the user update and visually retest the same locations and the full lap.
+3. **Sky/background panorama** — earlier `assets/images/sky_verdant.svg` versions contained painted green domes/triangles; v127 replaced them with angular atmospheric chains, but those chains themselves were still zig-zag mountain silhouettes.
+   - **v128 removes painted mountain/hill/triangle skyline paths entirely.** The SVG now contains atmosphere, clouds, mist and haze only.
+   - All actual landscape silhouette should therefore come from real 3-D terrain, making any remaining unwanted hill clearly a geometry issue rather than a background-image issue.
+   - `js/18-verdant-weather.js` loads `sky_verdant.svg?b=128`.
+
+The next real-world task is visual testing: user should run `UPDATE.bat`, close/reopen Lunar Ride, use Ctrl+F5, confirm the scene label says **v128**, then inspect the same locations where the old smooth green domes/triangles were visible and ideally ride/scan the full lap.
 
 ## Road / terrain material
 
 - v122 experimented with `Rocks_Diffuse.png`, `Rocks_Desert_Diffuse.png`, and `PathRocks_Diffuse.png`.
-- `PathRocks_Diffuse` made the paved road look green/grass-contaminated. v123 restored the core asphalt material for the road while retaining the rock textures for terrain/mountains.
+- `PathRocks_Diffuse` made the paved road look green/grass-contaminated. v123 restored the core asphalt material for the road while retaining rock textures for terrain/mountains.
 - Regression test: `tests/verdant-v123-regression-smoke.js` protects this.
 
 ## Imported vegetation / performance architecture
@@ -109,10 +121,10 @@ It currently checks:
 - v126 full-route mountain safety;
 - glTF creature/building asset integrity;
 - imported nature dependencies;
-- v127 atmospheric skyline;
+- **v128 atmosphere-only skyline and legacy alpine Gaussian replacement**;
 - release/cache/wiring consistency.
 
-Important lesson: retained feature tests should be **release-agnostic** where possible. Do not make a v125/v126 behavior regression fail merely because the current release becomes v128.
+Important lesson: retained feature tests should be **release-agnostic** where possible. Do not make a v125/v126 behavior regression fail merely because the current release becomes v129+.
 
 ## Other important project features/fixes already done on this branch
 
