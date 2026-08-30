@@ -2,9 +2,9 @@
 
 /* Verdant Rift lightweight wildlife pass ---------------------------------
    Imported glTF nature is the visual baseline from v115 onward. The legacy
-   billboard vegetation is hard-disabled by v129. v141 keeps the complete
-   approved v140 wildlife/building expansion and corrects only the mushroom
-   model in a separate later layer. */
+   billboard vegetation is hard-disabled by v129. v142 keeps the complete
+   approved v141 world and applies only the mushroom-size and bilateral
+   hillside-carpet visual correction in a later layer. */
 (function(){
   const fixVegTexture=()=>{
     if(!TEX||!TEX.veg||isGL2) return;
@@ -73,7 +73,7 @@
     return w;
   };
 
-  const RELEASE='141';
+  const RELEASE='142';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
