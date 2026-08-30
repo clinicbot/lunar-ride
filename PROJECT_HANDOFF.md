@@ -14,100 +14,76 @@ Persistent continuation note. Before changing code, read this file, then verify 
 
 ## Current checkpoint — 2026-08-30
 
-- Current Verdant Rift release: **v130**.
-- Current code HEAD before this handoff update: `d5fea3fa8cd27003c7bc999778933237c3857205`.
-- Verdant CI run `33314558729`: **SUCCESS**; all steps passed, including the new v130 palm regression plus all retained road/terrain/wildlife regressions.
-- Backup immediately before v130 palm integration: `backup-v129-before-v130-photogrammetry-palms`.
-- Earlier backups retained: `backup-v128-before-v129-world-cleanup`, `backup-v127-before-v128-mountain-cleanup`, `backup-v125-before-v126-mountains`.
-- Next user test: `UPDATE.bat`, close/reopen, Ctrl+F5, confirm **Verdant Rift · v130**, then inspect the jungle/transition section roughly **8.8–14.2 km** for the new palms and watch phone performance.
+- Current Verdant Rift release: **v131**.
+- Main v131 code commit: `7b874948e589aa76712af6c471f26a7608013ede` (`Verdant v131 remove rejected photogrammetry palms`).
+- CI run `33315157810`: **SUCCESS**; all steps passed, including syntax, generated world, real geometry, retained wildlife/terrain regressions, explicit v131 palm-removal regression, atmosphere check, and current wiring.
+- Backup immediately before removal: `backup-v130-before-v131-remove-palms`.
+- Earlier backups retained: `backup-v129-before-v130-photogrammetry-palms`, `backup-v128-before-v129-world-cleanup`, `backup-v127-before-v128-mountain-cleanup`, `backup-v125-before-v126-mountains`.
+- v130 photogrammetry palm experiment was visually rejected by the user and is now **fully removed from the active branch and runtime**.
 
-## v130 — optimized photogrammetry palms
+## v131 — rejected palm removal
 
-The user supplied a dense photogrammetry tropical palm GLB (~14.7 MB / ~292,648 triangles). It was far too heavy for direct phone/WebGL instancing, so it was reduced and converted to vertex-coloured self-contained glTF assets.
+The v130 palm experiment appeared as large green elongated objects and did not visually integrate with Verdant. v131 removes it completely:
 
-### Runtime models
+- deleted `js/39-verdant-photogrammetry-palms-v130.js`;
+- deleted all six `verdant_palm_*_v130_part*.gltf` assets;
+- removed all palm references from `js/19-verdant-assets.js`;
+- removed all palm references from `sw.js`;
+- release label is `131` and service-worker cache is `lunar-ride-v131`;
+- CI explicitly fails if any rejected v130 palm file or runtime/cache reference reappears.
 
-For reliable GitHub text upload and very small runtime cost, the optimized palm is split into self-contained glTF parts with embedded base64 buffers and no external texture/bin dependencies:
+## Retained v129 world cleanup
 
-Hero model, reconstructed from four parts:
-- `assets/models/verdant_palm_hero_v130_part1.gltf`
-- `assets/models/verdant_palm_hero_v130_part2.gltf`
-- `assets/models/verdant_palm_hero_v130_part3.gltf`
-- `assets/models/verdant_palm_hero_v130_part4.gltf`
-- Combined Hero budget: **1,248 triangles**.
+v129 remains the visual/runtime baseline under v131:
 
-LOD model, reconstructed from two parts:
-- `assets/models/verdant_palm_lod_v130_part1.gltf`
-- `assets/models/verdant_palm_lod_v130_part2.gltf`
-- Combined LOD budget: **538 triangles**.
-
-The original texture look was baked into vertex colours. This deliberately trades some close-up texture detail for excellent phone performance and keeps the original photogrammetry silhouette rather than the old procedural/cartoon palm.
-
-### Integration
-
-Main file: `js/39-verdant-photogrammetry-palms-v130.js`.
-
-- Loads and joins the glTF parts once.
-- Expands indexed parts into the `pos/nrm/col/count` format already consumed by `js/28-verdant-instanced-renderer.js`.
-- Adds `palmHero` and `palmLod` to `w.instNature`, so the existing GPU instancing architecture draws them; do not bake duplicated palm meshes into world props.
-- Hero palms are sparse and relatively close to the route; LOD palms are more numerous and farther away.
-- Main placement anchors span ~9.18–13.86 km, with transition LOD palms near ~8.82/8.96 and 14.05/14.18 km.
-- Hero scale is roughly 9.2–12.9 m; LOD roughly 7–11.4 m.
-- Every candidate is checked with `w._dbg.roadNear()` against the globally nearest route leg. Hero minimum road clearance is ~11.5 m and LOD ~17.5 m, with retry offsets if a candidate is too close.
-- Telemetry: `w.__verdantPhotogrammetryPalmsV130` reports Hero/LOD counts, skipped-road attempts and model triangle counts.
-- Asset load gate displays `Loading photogrammetry palms` if needed and waits before building Verdant.
-- `window.__verdantPalmAssetsV130` exposes load state/models/wait for diagnostics.
-
-### v130 wiring
-
-`js/19-verdant-assets.js` load order near the end is intentionally:
-1. `js/38-verdant-world-cleanup-v129.js`
-2. `js/27-verdant-billboard-cleanup.js`
-3. `js/39-verdant-photogrammetry-palms-v130.js`
-4. `js/28-verdant-instanced-renderer.js`
-
-This means v129 cleanup happens first, the v130 palm layer adds road-safe instances next, and the GPU renderer uploads the final `instNature` plan afterward.
-
-Release label: `js/25-verdant-lite-richness.js` -> `RELEASE='130'`.
-Service-worker cache: `sw.js` -> `lunar-ride-v130`; it caches `js/39` and all six palm part files for offline use.
-
-## v129 retained world cleanup
-
-v129 fixed four independent visual/runtime problems and remains fully active under v130:
-
-1. **Giant green triangular silhouettes:** old ~26k billboards could survive an async nature-loading race. `js/26`, `js/27`, and `js/38` now hard-disable legacy `w.veg`; asset gate waits for imported nature settlement. Never re-enable the old billboards as a fallback.
-2. **Plants on the road:** the folded 25 km route can pass near itself. `js/38` validates imported plant transforms against the globally nearest road leg (`w._dbg.roadNear`), not only the route sample that spawned the plant.
-3. **Grass/terrain intruding into asphalt:** `js/37-verdant-mountains-v129.js` builds a final roadbed (`ROAD_FLAT=29`, `ROAD_BLEND=72`), recalculates normals and updates `meshH/groundAt`.
-4. **Residual smooth green domes:** `js/37` adds a global anti-dome ridge/saddle pass to real 3-D base terrain.
-5. **Sparse wildlife:** `js/38` adds 14 more stag/deer herds plus additional cat, bear, monkey and bird groups while retaining v125 wildlife/flee behavior.
+1. **Legacy triangular billboard kill:** `js/26`, `js/27`, and `js/38` hard-disable legacy `w.veg`; the asset gate waits for imported nature settlement. Never re-enable legacy billboards as fallback.
+2. **Plants on road:** `js/38` filters imported plant transforms against globally nearest route leg using `w._dbg.roadNear`, important because the 25 km route folds near itself.
+3. **Roadbed:** `js/37-verdant-mountains-v129.js` builds final road support (`ROAD_FLAT=29`, `ROAD_BLEND=72`), recalculates normals and updates `meshH/groundAt`.
+4. **Smooth green domes:** `js/37` adds global anti-dome ridge/saddle shaping to real 3-D base terrain.
+5. **Wildlife density:** `js/38` adds 14 additional stag/deer herds plus more cats, bears, monkey troops and bird flocks while retaining v125 wildlife/flee behavior.
 
 Telemetry includes `w.__verdantRoadbedV129`, `w.__verdantMountainsV129`, `w.__verdantRoadPlantCleanupV129`, and `w.__verdantWildlifeV129`.
 
 ## Retained mountain / sky history
 
-- `js/35-verdant-mountains-v123.js` retains v126 full-route mountain replacement: `ROAD_CORE=46`, `ROAD_FADE=84`, full replacement beyond 130 m; subtracts the old radial perimeter uplift and adds asymmetric ridges/erosion.
-- v128 also subtracts/replaces the old broad alpine Gaussian mass and exposes `w.__verdantMountainsV128`.
-- `assets/images/sky_verdant.svg` has **no painted mountain/hill/triangle paths** — only atmosphere/clouds/haze. Unwanted mountain silhouettes therefore come from real geometry or vegetation, not painted sky art.
+- `js/35-verdant-mountains-v123.js` retains v126 full-route mountain replacement: `ROAD_CORE=46`, `ROAD_FADE=84`, full replacement beyond 130 m.
+- v128 subtracts/replaces the old broad alpine Gaussian mass and exposes `w.__verdantMountainsV128`.
+- `assets/images/sky_verdant.svg` contains no painted landscape paths; unwanted mountain silhouettes must come from real geometry or vegetation.
 
 ## Road/material
 
 - v123 restored clean core asphalt after `PathRocks_Diffuse` made the road look green/grass-contaminated.
-- `tests/verdant-v123-regression-smoke.js` protects the asphalt/material behavior.
+- `tests/verdant-v123-regression-smoke.js` protects this behavior.
 
 ## Imported nature / performance rules
 
 - Main imported-nature source: `js/26-verdant-real-nature.js`.
 - GPU instancing: `js/28-verdant-instanced-renderer.js`.
-- Never regress to duplicating thousands of imported meshes into world props.
-- Any new vegetation must be checked against the **globally nearest route leg** because the route folds near itself.
-- Prefer a sparse imported scene over any legacy billboard fallback.
+- Never duplicate thousands of imported meshes into world props.
+- Any new vegetation must be checked against the globally nearest route leg.
+- Prefer sparse imported nature over legacy billboard fallback.
 
 ## Wildlife / settlements retained
 
 - `js/36-verdant-wildlife-v125.js`: retained deer herds, cats, bears, moving frogs, dragonfly swarms, bird flocks, monkey troops/jellies and flee behavior.
 - `js/38` adds the v129 density expansion.
 - `js/32-verdant-fauna-buildings-v121.js`: 16 building placements in outpost (~5–6 km), main sky-port city (~16–18 km), summit relay (~21–22 km).
-- `js/34-verdant-assets-gate-v123.js` waits for buildings, creatures and imported nature; current timeout is 24 s.
+- `js/34-verdant-assets-gate-v123.js` waits for buildings, creatures and imported nature; timeout is 24 s.
+
+## Four newly uploaded GLB candidates — not yet in repo
+
+The user uploaded four new GLB assets after rejecting the v130 palm. They have been inspected locally but **have not been committed or integrated**.
+
+All four are technically friendly in structure: glTF 2.0 GLB, one mesh / one primitive, vertex colours in normalized `COLOR_0`, no external textures, no materials, no skins/animations, and upright Y-axis geometry. They do not include normals, but the existing imported-nature loader can derive face normals.
+
+Approximate raw stats:
+
+1. `tmpio7oc5gu.glb` — mushroom-like humanoid/character silhouette, ~1.74 MB, 43,532 vertices, **86,920 triangles**.
+2. `tmpsw0h41xa.glb` — large fantasy mushroom cluster/structure, ~3.14 MB, 78,472 vertices, **156,598 triangles**.
+3. `tmp_qap7x4r.glb` — giant mushroom-tree / canopy landmark, ~3.12 MB, 78,107 vertices, **155,978 triangles**.
+4. `tmpw1wzir76.glb` — complex alien rock/island-like prop, ~2.55 MB, 63,801 vertices, **127,322 triangles**.
+
+They are far better candidates than the rejected palm in orientation and colour format, but are too dense for repeated phone/WebGL instancing in raw form. Recommended next step if the user wants them: create simplified Hero + LOD variants (roughly 8–20k tris Hero depending on object, 2–5k LOD), preserve vertex colours, generate normals, then visually inspect before any world integration.
 
 ## CI
 
@@ -116,15 +92,14 @@ Workflow: `.github/workflows/verdant-ci.yml`, runs on pushes to `fixes-build-90`
 It protects:
 - JS syntax;
 - generated world + real geometry;
-- wildlife runtime;
 - retained v121/v122/v123/v125/v126 behavior;
 - retained v129 anti-dome/roadbed/billboard-kill/nearest-road/wildlife behavior;
 - creature/building and imported-nature asset integrity;
-- **v130 palm assets**: valid glTF 2.0, self-contained buffers, Hero exactly 1,248 tris, LOD exactly 538 tris, performance budgets, roadNear/telemetry integration;
+- v131 explicit removal of the rejected v130 palms;
 - atmosphere-only sky + retained v128 alpine cleanup;
-- current v130 release/cache/load-order wiring.
+- current v131 release/cache/load-order wiring.
 
-Retained behavior tests should be release-agnostic. Do not pin an old v125/v126/v129 regression to a cache number or timeout just because the release advances.
+Retained behavior tests should be release-agnostic where possible.
 
 ## Continue protocol
 
