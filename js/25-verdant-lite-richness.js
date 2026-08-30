@@ -2,9 +2,9 @@
 
 /* Verdant Rift lightweight wildlife pass ---------------------------------
    Imported glTF nature is the visual baseline from v115 onward. The legacy
-   billboard vegetation is hard-disabled by v129. v136 keeps the complete
-   v131 world/wildlife baseline, preserves the approved v134 75/25 CommonTree
-   colour mix, and adds the exact v133 compact CommonTree form to only 10%. */
+   billboard vegetation is hard-disabled by v129. v137 keeps the complete
+   v131 world/wildlife baseline, preserves v134/v136 CommonTree work, and adds
+   only a 50/50 light/dark TwistedTree mix. */
 (function(){
   const fixVegTexture=()=>{
     if(!TEX||!TEX.veg||isGL2) return;
@@ -73,7 +73,7 @@
     return w;
   };
 
-  const RELEASE='136';
+  const RELEASE='137';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
