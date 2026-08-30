@@ -72,7 +72,7 @@
     return w;
   };
 
-  const RELEASE='119';
+  const RELEASE='120';
   const label=()=>{
     const b=document.getElementById('buildTag');
     if(b)b.textContent='build '+RELEASE;
