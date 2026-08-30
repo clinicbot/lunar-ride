@@ -47,10 +47,9 @@
   };
 })();
 
-/* v142 preserves the complete v141 world, then applies only the two visual
-   corrections requested by the user: quarter-size mushrooms and bilateral
-   hillside purple carpets on green ground. Aqua Rift v143 is a separate new
-   world and is loaded after the Verdant correction layer. */
+/* Verdant remains v142. Aqua is a separate world: v143 builds the glass
+   ocean, then v144 replaces leaked land fauna/synthetic swimmers with real
+   Quaternius CC0 fish and a denser reef. */
 if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/20-verdant-route-audit.js?b=142"></script>');
   document.write('<script src="js/21-verdant-terrain-polish.js?b=142"></script>');
@@ -75,5 +74,6 @@ if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/47-verdant-uploaded-mushroom-replace-v141.js?b=142"></script>');
   document.write('<script src="js/48-verdant-mushroom-carpet-fix-v142.js?b=142"></script>');
   document.write('<script src="js/49-aqua-rift-v143.js?b=143"></script>');
+  document.write('<script src="js/50-aqua-real-fish-v144.js?b=144"></script>');
   document.write('<script src="js/28-verdant-instanced-renderer.js?b=142"></script>');
 }
