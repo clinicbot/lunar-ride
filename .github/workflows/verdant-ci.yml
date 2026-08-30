@@ -82,21 +82,22 @@ jobs:
           }
           NODE
 
-      - name: Verdant v127 atmospheric skyline regression test
+      - name: Verdant v128 skyline and alpine-dome regression test
         run: |
           node - <<'NODE'
           const fs=require('fs');
           const sky=fs.readFileSync('assets/images/sky_verdant.svg','utf8');
           const weather=fs.readFileSync('js/18-verdant-weather.js','utf8');
-          if(sky.includes('#456348')||sky.includes('#294b38')||sky.includes('#1e3d2e'))
-            throw new Error('legacy cartoon green skyline/tree palette still present');
-          if((sky.match(/<path /g)||[]).length<3)
-            throw new Error('atmospheric mountain layers missing');
-          if(!sky.includes('Distant mountain chains')||!sky.includes('angular, irregular'))
-            throw new Error('v127 skyline marker missing');
-          if(!weather.includes('sky_verdant.svg?b=127'))
-            throw new Error('v127 skyline cache-bust missing');
-          console.log('ok: v127 atmospheric skyline replaced legacy domes/triangles');
+          const mountains=fs.readFileSync('js/35-verdant-mountains-v123.js','utf8');
+          if((sky.match(/<path /g)||[]).length!==0)
+            throw new Error('painted skyline paths must be absent in v128');
+          if(!sky.includes('NO painted mountain')||!sky.includes('real 3-D terrain'))
+            throw new Error('v128 atmosphere-only skyline marker missing');
+          if(!weather.includes('sky_verdant.svg?b=128'))
+            throw new Error('v128 skyline cache-bust missing');
+          for(const k of ['oldAlpine','H[v]-=oldA','alpineRidges','__verdantMountainsV128'])
+            if(!mountains.includes(k))throw new Error('v128 alpine dome replacement missing: '+k);
+          console.log('ok: v128 removes painted skyline and legacy alpine Gaussian dome');
           NODE
 
       - name: Verify current Verdant wiring
@@ -105,14 +106,15 @@ jobs:
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
           const loader=R('js/19-verdant-assets.js'),lite=R('js/25-verdant-lite-richness.js'),sw=R('sw.js');
           const mountains=R('js/35-verdant-mountains-v123.js'),wild=R('js/36-verdant-wildlife-v125.js');
-          if(!loader.includes('36-verdant-wildlife-v125.js?b=127'))throw new Error('v127 wildlife loader missing');
-          if(!loader.includes('35-verdant-mountains-v123.js?b=127'))throw new Error('v127 mountain loader missing');
-          if(!lite.includes("const RELEASE='127'"))throw new Error('v127 label missing');
-          if(!sw.includes("lunar-ride-v127"))throw new Error('v127 cache missing');
-          if(!sw.includes("assets/images/sky_verdant.svg"))throw new Error('v127 skyline not cached');
+          if(!loader.includes('36-verdant-wildlife-v125.js?b=128'))throw new Error('v128 wildlife loader missing');
+          if(!loader.includes('35-verdant-mountains-v123.js?b=128'))throw new Error('v128 mountain loader missing');
+          if(!lite.includes("const RELEASE='128'"))throw new Error('v128 label missing');
+          if(!sw.includes("lunar-ride-v128"))throw new Error('v128 cache missing');
+          if(!sw.includes("assets/images/sky_verdant.svg"))throw new Error('v128 skyline not cached');
           if(!mountains.includes('ROAD_CORE=46')||!mountains.includes('FULL_REPLACE=ROAD_CORE+ROAD_FADE'))
             throw new Error('v126 full-route mountain protection missing');
+          if(!mountains.includes('__verdantMountainsV128'))throw new Error('v128 mountain cleanup missing');
           if(!wild.includes('stagHerds')||!wild.includes('retunedFrogs')||!wild.includes('dragonflySwarms'))
             throw new Error('v125 wildlife layer incomplete');
-          console.log('ok: current Verdant v127 wiring');
+          console.log('ok: current Verdant v128 wiring');
           NODE

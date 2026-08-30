@@ -1,17 +1,15 @@
 "use strict";
 
-/* Verdant Rift v126 — full-route perimeter mountain replacement ------------
-   v124 correctly replaced the old smooth radial mountain ring, but protected
-   180 m around EVERY route sample and faded the replacement over another
-   260 m.  Because Verdant's 25 km route folds through the whole map, much of
-   the distant skyline is close to some other road segment and therefore kept
-   the old green dome silhouette.
+/* Verdant Rift v128 — full-route mountain cleanup -------------------------
+   v126 removed the old smooth radial perimeter uplift while protecting the
+   ridden corridor.  A second legacy source remained in bareLand(): the broad
+   235 m Gaussian alpine mass centred near (1050,760).  From many viewpoints
+   that still reads as a large green hemisphere even after adding erosion.
 
-   v126 keeps only the actually required road-support corridor untouched:
-   46 m hard protection, then a smooth 84 m transition.  The original terrain
-   carve ends around 31 m, so the ridden road, route profile and physics remain
-   unchanged while virtually all visible distant terrain gets the asymmetric
-   ridge treatment. */
+   v128 keeps the v126 road protection exactly as-is, explicitly removes that
+   Gaussian mass away from the road, and replaces it with several offset,
+   anisotropic ridges.  The result keeps a dramatic alpine quarter without a
+   circular/domed silhouette. */
 (function(){
   const previousBuild=buildWorld;
   buildWorld=function(sc,onProgress){
@@ -29,6 +27,7 @@
     const macroNoise=makeNoise(sc.seed+12471);
     const detailNoise=makeNoise(sc.seed+12509);
     const H=new Float32Array(nVert),before=new Float32Array(nVert),weight=new Float32Array(nVert);
+    const alpineWeight=new Float32Array(nVert);
     for(let v=0;v<nVert;v++)H[v]=before[v]=pos[v*3+1];
 
     const oldRadial=(x,z)=>{
@@ -37,8 +36,28 @@
       const q=(r-.72)/.28;
       return q*q*185;
     };
+    const oldAlpine=(x,z)=>{
+      const dx=x-1050,dz=z-760;
+      return 235*Math.exp(-(dx*dx+dz*dz)/(950*950));
+    };
+    const alpineRidges=(x,z)=>{
+      const ridge=(cx,cz,ca,sa,su,sv,amp)=>{
+        const dx=x-cx,dz=z-cz;
+        const u=dx*ca+dz*sa,v=-dx*sa+dz*ca;
+        return amp*Math.exp(-(u*u)/(su*su)-(v*v)/(sv*sv));
+      };
+      let h=0;
+      h+=ridge(990,720,.80803,.58914,1120,285,118);
+      h+=ridge(1260,930,.97590,-.21823,720,230,84);
+      h+=ridge(720,1030,.52337,.85211,650,205,68);
+      const broad=.78+.13*macroNoise(x/420+4.2,z/420-7.1)
+                        +.09*detailNoise(x/205-8.4,z/205+2.7);
+      const serr=.88+.12*Math.sin((x+z)/185+ridgeNoise(x/260,z/260)*1.7);
+      return Math.max(0,h*clamp(broad*serr,.55,1.18));
+    };
 
     let changed=0,maxRemoved=0,maxAdded=0,maxDetail=0;
+    let maxAlpineRemoved=0,maxAlpineAdded=0;
     for(let v=0;v<nVert;v++){
       const k=v*3,x=pos[k],z=pos[k+2],q=near(x,z),d=q?q.d:1e6;
       if(d<=ROAD_CORE)continue;
@@ -48,11 +67,22 @@
       if(protect<.0005)continue;
       const r=Math.hypot(x,z)/HALF,a=Math.atan2(z,x);
 
-      /* Remove the smooth ring inherited from bareLand().  Beyond 130 m this
-         is now a complete removal, independent of whether another route leg
-         happens to run somewhere behind the current camera view. */
+      /* Remove both legacy smooth mountain sources.  Beyond 130 m this is a
+         complete removal, independent of whether another route leg happens to
+         run somewhere behind the current camera view. */
       const old=oldRadial(x,z)*protect;
       if(old>0){H[v]-=old;maxRemoved=Math.max(maxRemoved,old);}
+      const oldA=oldAlpine(x,z)*protect;
+      if(oldA>.01){H[v]-=oldA;maxAlpineRemoved=Math.max(maxAlpineRemoved,oldA);}
+
+      /* Replace the old alpine Gaussian with offset elongated ridges rather
+         than another radial mound.  Its footprint is deliberately asymmetric. */
+      const ar=alpineRidges(x,z)*protect;
+      if(ar>.01){
+        H[v]+=ar;
+        alpineWeight[v]=clamp(ar/175,0,1);
+        maxAlpineAdded=Math.max(maxAlpineAdded,ar);
+      }
 
       /* Asymmetric perimeter. Several unrelated angular frequencies and two
          spatial noise fields prevent circles, hemispheres and repeated peaks. */
@@ -70,11 +100,10 @@
         H[v]+=add;maxAdded=Math.max(maxAdded,add);
       }
 
-      /* Erosion/shoulders operate on all high terrain, not only the perimeter.
-         This breaks the broad alpine Gaussian and any remaining smooth face
-         without producing sharp procedural spikes. */
+      /* Erosion/shoulders operate on all high terrain, including the new
+         alpine ridges, so broad smooth faces do not survive as green blobs. */
       const high=clamp((H[v]-34)/225,0,1),edge=clamp((r-.52)/.48,0,1);
-      const strength=protect*clamp(.09+high*.62+edge*.40,0,1);
+      const strength=protect*clamp(.09+high*.62+edge*.40+alpineWeight[v]*.22,0,1);
       if(strength>.015){
         const rn=1-Math.abs(ridgeNoise(x/278-5,z/278+9));
         const rn2=1-Math.abs(detailNoise(x/143+13,z/143-6));
@@ -115,14 +144,15 @@
       if(d<=ROAD_CORE)maxProtectedChange=Math.max(maxProtectedChange,dh);
       else if(d<FULL_REPLACE)maxTransitionChange=Math.max(maxTransitionChange,dh);
 
-      /* Broad shoulders become stone before they become cliffs.  This is what
-         prevents a remaining high face from reading as one giant green blob. */
+      /* Broad shoulders become stone before they become cliffs.  Alpine ridge
+         influence explicitly contributes so the replacement cannot read as a
+         single giant green mass. */
       if(col&&d>ROAD_CORE){
         const far=smoothstep(clamp((d-ROAD_CORE)/185,0,1));
         const high=clamp((H[v]-42)/220,0,1);
         const slope=clamp((1-ny)*1.75,0,1);
         const radial=clamp((Math.hypot(x,z)/HALF-.50)/.42,0,1);
-        const m=far*clamp(slope*.58+high*.30+radial*.26,0,.82);
+        const m=far*clamp(slope*.58+high*.30+radial*.26+alpineWeight[v]*.34,0,.90);
         if(m>.008){
           const variation=.84+.20*(macroNoise(x/410,z/410)*.5+.5);
           const warm=.5+.5*detailNoise(x/680-3,z/680+4);
@@ -144,9 +174,11 @@
     w.__verdantMountainsV126={changed,maxRemoved,maxAdded,maxDetail,
       roadCoreM:ROAD_CORE,fadeM:ROAD_FADE,fullReplacementM:FULL_REPLACE,
       maxProtectedChange,maxTransitionChange};
+    w.__verdantMountainsV128={maxAlpineRemoved,maxAlpineAdded,legacyAlpineCenter:[1050,760],
+      legacyAlpineAmp:235,paintedSkyMountains:false};
     if(maxProtectedChange>.001)
-      console.error('Verdant v126 mountain pass touched protected road core',maxProtectedChange);
-    console.log('Verdant v126 full-route mountain replacement:',w.__verdantMountainsV126);
+      console.error('Verdant v128 mountain pass touched protected road core',maxProtectedChange);
+    console.log('Verdant v128 full-route mountain cleanup:',w.__verdantMountainsV126,w.__verdantMountainsV128);
     return w;
   };
 })();
