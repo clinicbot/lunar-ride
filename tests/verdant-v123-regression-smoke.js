@@ -27,13 +27,17 @@ if(!mountains.includes('ridgeNoise')||!mountains.includes('macroNoise')||!mounta
   throw new Error('multi-scale mountain breakup missing');
 
 /* Asset timing regression: all settlement and visible glTF creature families
-   must be awaited before the synchronous world build. */
+   must be awaited before the synchronous world build. Timeout duration and
+   status wording are intentionally release-agnostic because later gates may
+   wait for additional asset families such as imported nature. */
 const buildingKeys=['stSide','sHang','sAnt','stGate','sRef','cGate','cDome','cTower','cArc','cSpire','cClu','sRing'];
 const creatureKeys=['stag','jelly','bird','bird2','bird3','bird4','cat','dfly','vbear','vfrog','vmonkey','vship'];
 for(const k of buildingKeys)if(!gate.includes(k+':'))throw new Error('asset gate missing building '+k);
 for(const k of creatureKeys)if(!gate.includes(k+':['))throw new Error('asset gate missing creature '+k);
-for(const k of ['waitForAssets','retryMissing','18000','startRide=gated','Loading wildlife & settlements'])
+for(const k of ['waitForAssets','retryMissing','startRide=gated'])
   if(!gate.includes(k))throw new Error('asset readiness behavior missing: '+k);
+if(!/elapsed>\d{4,5}/.test(gate))throw new Error('asset gate timeout behavior missing');
+if(!gate.includes('Loading wildlife'))throw new Error('asset gate user feedback missing');
 
 if(loader.indexOf('35-verdant-mountains-v123.js')<loader.indexOf('21-verdant-terrain-polish.js'))
   throw new Error('mountain pass must run after terrain polish');
