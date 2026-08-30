@@ -14,81 +14,91 @@ Persistent continuation note. Before changing code, read this file, then verify 
 
 ## Current checkpoint — 2026-08-30
 
-- Current Verdant Rift release: **v135**.
-- Main v135 code commit: `327f644557cdc166a4ef44837d2abe448cb42b4b`.
-- CI run `33326303519`: **SUCCESS**; all steps passed, including retained v134 75/25 CommonTree colour mix plus the new v135 exact 10% structure-variant runtime test.
-- Backup of the user-approved v134: `backup-v134-before-v135-common-tree-structure-mix`.
-- Earlier v134 backup: `backup-v131-before-v134-common-tree-mix`.
-- v135 is intentionally another narrow, reversible visual change.
+- Current Verdant Rift release: **v136**.
+- Main v136 code commit: `bff86e87424956534f97fba6890e7caef105dee0`.
+- CI run `33326959543`: **SUCCESS**; all steps passed, including retained v134 75/25 CommonTree colour mix, the new v136 10% exact-v133 compact CommonTree regression, retained wildlife/terrain checks, atmosphere and current wiring.
+- Backup immediately before v136: `backup-v135-before-v136-real-compact-common`.
+- User-approved v134 backup remains: `backup-v134-before-v135-common-tree-structure-mix`.
 
-## v135 — add 10% compact CommonTree structure variant
+## v136 — exact v133 compact CommonTree on 10% only
 
-User approved v134 and asked to keep it, while also retaining a small amount of the alternate CommonTree structure seen in the rejected v133 experiment.
+The user showed a close-up of the compact dark-green CommonTree appearance from rejected v133 and clarified that this exact form, not a synthetic deformation, is desired as a minority variant.
 
-New file: `js/40-verdant-common-tree-structure-v135.js`.
+New active file: `js/41-verdant-common-tree-compact-v136.js`.
 
 Behavior:
-- keeps the entire v134 75/25 CommonTree colour mix intact;
-- targets **only** `common1`, `common3`, `common5`;
-- takes **10% of the total CommonTree population from the remaining light group** and moves those instances to a compact structural variant;
-- final target distribution: **65% original light + 25% original-geometry dark + 10% compact structure**;
-- compact structure uses the same source CommonTree model and colour buffer, but contracts green foliage radially and stretches it slightly vertically; bark is not deliberately recoloured;
-- recomputes normals for the compact variant;
+- preserves the approved v134 CommonTree colour population;
+- targets **only** `common1`, `common3`, `common5` (`CommonTree_1/3/5`);
+- rebuilds only those three CommonTree models with the **same alpha-aware leaf-card subdivision algorithm used in v133**;
+- each alpha-masked leaf triangle is split into four sub-triangles and alpha-tested per sub-triangle, reproducing the compact v133 CommonTree silhouette;
+- only **10% of the total CommonTree population** is moved from the remaining light group into this exact-v133 compact model;
+- final target distribution: **65% original light + 25% original-geometry dark + 10% exact v133 compact CommonTree**;
 - selection is deterministic and spatially mixed;
-- does **not** target `TwistedTree`, `Pine`, red trees, wildlife, terrain, buildings, road or sky;
-- telemetry: `w.__verdantCommonTreeStructureV135`.
+- v136 waits for the three compact CommonTree models to finish preparing before starting Verdant;
+- `TwistedTree`, `Pine`, red trees, wildlife, terrain, road, buildings and sky are untouched;
+- telemetry: `w.__verdantCommonTreeCompactV136`.
 
-Runtime test: `tests/verdant-v135-common-tree-structure-smoke.js` runs v134 + v135 together and verifies exact **65/25/10** counts on test groups, preserved v134 dark ratio, unchanged wildlife, and untouched TwistedTree/Pine.
+Runtime/static regression: `tests/verdant-v136-common-tree-compact-smoke.js` verifies the exact 10% split from a 75/25 input population and protects the v133 alpha-aware markers. The loader/wiring test confirms the rejected synthetic v135 structure layer is no longer active.
+
+## v135 — rejected synthetic structure experiment
+
+v135 tried to imitate the compact shape by contracting/stretching the existing v131 CommonTree geometry. The user did not see the desired compact trees because this was not the same structure as v133.
+
+- File retained only historically: `js/40-verdant-common-tree-structure-v135.js`.
+- It is **not loaded or cached by v136**.
+- Backup: `backup-v135-before-v136-real-compact-common`.
+
+Do not re-enable this synthetic structure layer unless explicitly requested.
 
 ## v134 — approved CommonTree light/dark mix
 
-User approved the existing bright-green CommonTree look from v131 and also liked a darker-green appearance. v134 keeps both.
+User approved this version visually and asked to preserve it.
 
 File: `js/39-verdant-common-tree-mix-v134.js`.
 
 Behavior:
 - targets only `common1`, `common3`, `common5`;
 - keeps exact v131 geometry, positions, yaw, scale and total tree count;
-- 75% original bright colour and 25% darker foliage colour;
+- **75% original bright colour + 25% darker foliage colour** before v136 takes 10% of total from the light group;
 - dark variant shares position/normal buffers with the original model;
 - does not touch other tree families, wildlife or world geometry;
 - telemetry: `w.__verdantCommonTreeMixV134`.
 
-Backup preserving this exact user-approved state: `backup-v134-before-v135-common-tree-structure-mix`.
+Backup preserving exact v134: `backup-v134-before-v135-common-tree-structure-mix`.
 
 ## Good baseline and rejected experiments
 
 ### v131 — good baseline
 
-v131 is the visual/world baseline underneath v134/v135. It fully removed the rejected v130 photogrammetry palms while retaining the established nature, wildlife, roads, mountains and settlements.
+v131 is the visual/world baseline underneath v134/v136. It fully removed the rejected v130 photogrammetry palms while retaining established nature, wildlife, roads, mountains and settlements.
 
 ### v132 — rejected
 
-v132 combined oversized-tree cleanup, road-prop cleanup, mushroom tree, extra wildlife/buildings and richer sky. User rejected it because attractive red/other trees disappeared or changed, wildlife appeared reduced, ugly green objects remained and mushroom trees were not visible. It was fully rolled back via a forward commit to the exact v131 tree.
+v132 bundled oversized-tree cleanup, road-prop cleanup, mushroom tree, extra wildlife/buildings and richer sky. User rejected it because attractive trees disappeared/changed, wildlife appeared reduced, ugly green objects remained and mushroom trees were not visible. It was fully rolled back to the exact v131 tree.
 
 Lesson: do not bundle multiple visual/world changes. Make one small change, get screenshots, then continue.
 
-### v133 — rejected but visually informative
+### v133 — broadly rejected but source of the desired compact CommonTree
 
-v133 attempted an alpha-mask reconstruction for every imported tree family (`CommonTree`, `TwistedTree`, `Pine`). It changed too many existing trees: CommonTree became darker/structurally different, red trees became much darker, and the ugly green blade objects still remained. User preferred v131 overall but liked some of the alternate CommonTree appearance. v133 was fully rolled back to v131.
+v133 applied alpha-mask reconstruction to every imported tree family (`CommonTree`, `TwistedTree`, `Pine`). It changed too much: CommonTree became compact/darker, red trees changed strongly, and ugly green blade objects still remained. User preferred v131 overall but later specifically liked the compact CommonTree appearance.
 
-Backup of rejected v133: `backup-v133-before-return-v131`.
+Backup: `backup-v133-before-return-v131`.
 
-Important: do **not** re-enable the broad v133 alpha fix. Any reuse of that visual idea must stay isolated to CommonTree only, as v134/v135 do.
+Important: **never re-enable the broad v133 tree fix.** v136 reuses the v133 alpha-aware algorithm for CommonTree only.
 
 ## Current problematic green objects
 
-User has supplied multiple close-up screenshots of narrow/elongated green blade/plank/tree-like objects. Their exact source is **not yet proven**. Previous diagnoses (`TwistedTree`, then all alpha-masked tree cards) were too broad and did not eliminate them reliably.
+User has supplied multiple close-up screenshots of narrow/elongated green blade/plank/tree-like objects. Their exact source is still **not proven**. Previous broad diagnoses were wrong or incomplete.
 
 Next debugging rule:
 - do not remove a family based only on appearance;
-- identify the specific runtime/model key first, ideally with a temporary labelled model lineup or instrumentation;
+- identify the specific runtime/model key first, ideally with a temporary labelled lineup or instrumentation;
 - change one model at a time;
-- preserve the approved v134/v135 CommonTree mixture while testing.
+- preserve the approved v134/v136 CommonTree mixture while testing.
 
 ## Retained v129 world cleanup
 
-v129 remains the world/runtime baseline under v131/v134/v135:
+v129 remains the world/runtime baseline:
 
 1. `js/26`, `js/27`, `js/38` hard-disable legacy triangular `w.veg` billboards.
 2. `js/38` filters imported plant transforms against the globally nearest route leg using `w._dbg.roadNear`.
@@ -109,8 +119,8 @@ Telemetry includes `w.__verdantRoadbedV129`, `w.__verdantMountainsV129`, `w.__ve
 
 - Main imported-nature source: `js/26-verdant-real-nature.js`.
 - GPU instancing: `js/28-verdant-instanced-renderer.js`.
-- v134 adds only three dark CommonTree model groups and shares their position/normal arrays with the existing models.
-- v135 adds only three compact CommonTree model groups and reuses the same instance architecture.
+- v134 adds only dark CommonTree model groups and shares original position/normal arrays.
+- v136 adds only three alpha-aware compact CommonTree model groups and keeps the existing instancing architecture.
 - Never bake thousands of duplicated vegetation meshes into world props.
 - Any new vegetation must be checked against the globally nearest route leg.
 
@@ -135,11 +145,12 @@ It protects:
 - retained v121/v122/v123/v125/v126/v129 behavior;
 - creature/building and imported-nature dependency integrity;
 - explicit removal of rejected v130 palms;
-- v134 exact CommonTree 75/25 mix and non-interference with other tree families/wildlife;
-- v135 exact CommonTree 10% structure split, resulting in 65/25/10 on deterministic test groups;
+- v134 CommonTree 75/25 colour mix;
+- v136 exact-v133 CommonTree compact algorithm and 10% split, yielding 65/25/10;
+- absence of the active rejected v135 synthetic structure layer;
 - retained v131 atmosphere + v128 mountain cleanup;
-- current v135 release/cache/load-order wiring.
+- current v136 release/cache/load-order wiring.
 
 ## Immediate visual test
 
-User should run `UPDATE.bat`, close/reopen Lunar Ride, Ctrl+F5, confirm **Verdant Rift · v135**, then inspect the same early-route CommonTree areas. Desired result: most trees remain familiar bright v131 CommonTrees, about one quarter remain the approved darker v134 colour variant, and a smaller roughly 10% subset has a visibly more compact/taller crown structure. If the compact structure is not attractive, roll forward from `backup-v134-before-v135-common-tree-structure-mix` and remove only the v135 layer.
+User should run `UPDATE.bat`, close/reopen Lunar Ride, Ctrl+F5, confirm **Verdant Rift · v136**, then inspect the same early-route CommonTree areas. Desired result: familiar bright v131 CommonTrees still dominate, about one quarter are the approved darker v134 colour variant, and roughly 10% show the **same compact dark-green crown structure seen in the user's v133 screenshot**. If this still does not visually match, return to `backup-v134-before-v135-common-tree-structure-mix` and diagnose the exact v133 runtime key before any further change.
