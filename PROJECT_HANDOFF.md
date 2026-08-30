@@ -14,96 +14,141 @@ This file is the persistent continuation note for future ChatGPT sessions. Befor
 
 ## Current checkpoint — 2026-08-30
 
-- Current Verdant Rift release: **v128**.
-- HEAD before this handoff update: `856b1c614838c2752dad352687c21ca7ac3531fd` (`Verdant v128 remove legacy dome skyline`).
-- Verdant CI run for that code commit: run `33305748082`, **SUCCESS**; all steps passed including syntax, generated world, real geometry, wildlife, retained v121/v122/v123/v125/v126 regressions, asset validation, new v128 skyline/alpine-dome regression, and release wiring.
-- Backup created immediately before the v128 visual change: `backup-v127-before-v128-mountain-cleanup`.
-- Previous backup retained: `backup-v125-before-v126-mountains`.
+- Current Verdant Rift release: **v129**.
+- Main v129 code commit: `dff4d382bb1f1ff056ac6b2fea68d7b98a929b05` (`Verdant v129 fix road plants domes and wildlife density`).
+- Follow-up regression-test commit: `cd4bd80f098b1187024259a69e769cb8a3c4e077` (`Make v123 asset gate regression release-agnostic`).
+- CI run `33308353773`: **SUCCESS**. All steps passed, including syntax, generated world, real geometry, wildlife runtime, retained v121/v122/v123/v125/v126 regressions, the new v129 cleanup regression, all asset validation, atmosphere/v128 mountain retention, and v129 release wiring.
+- Backup created immediately before v129: `backup-v128-before-v129-world-cleanup`.
+- Earlier backups retained: `backup-v127-before-v128-mountain-cleanup`, `backup-v125-before-v126-mountains`.
+- The next real-world task is visual testing by the user after `UPDATE.bat` + close/reopen + Ctrl+F5. Confirm scene label **v129** and revisit the screenshot locations around the early lap/full lap.
 
-## Verdant Rift world
+## What v129 fixes and why
+
+The user's v128 screenshots finally exposed that several visually similar defects had different sources. v129 addresses all of them together instead of treating everything as one mountain problem.
+
+### 1. Giant green triangular silhouettes — asynchronous legacy billboard race
+
+- Base Verdant still creates a legacy ~26,000-quad billboard vegetation field in `js/17-verdant-rift.js`.
+- `js/26-verdant-real-nature.js` previously kept that field if the imported nature models had not finished parsing at world-build time.
+- `js/34-verdant-assets-gate-v123.js` waited for buildings and creatures, but **not imported nature**. Therefore entering Verdant quickly could preserve the old triangular billboard forest for the whole ride even though some modern imported vegetation was also visible.
+- v129 exposes imported-nature readiness through `window.__verdantNatureStatusV129` / `window.__verdantNatureWaitV129` and the asset gate now waits for nature settlement too.
+- v129 never resurrects legacy billboards as a fallback: `js/26` sets `w.veg=null` when core imported nature is unavailable, and `js/27-verdant-billboard-cleanup.js` hard-disables `w.veg` unconditionally for Verdant.
+- `js/38-verdant-world-cleanup-v129.js` repeats the hard kill as final defense.
+
+### 2. Plants appearing on the road — folded-route placement bug
+
+- Imported/natural vegetation layers place a plant at an offset from the route sample that spawned it.
+- Because the 25 km route folds through the 5.2 km map, a plant can be safely offset from one route leg while accidentally landing on a **different nearby route leg**.
+- `js/38-verdant-world-cleanup-v129.js` now filters **every imported nature instance** against `w._dbg.roadNear(x,z)`, i.e. the globally nearest road leg, with kind/scale-aware clearances for trees, bushes, ferns, flowers, mushrooms and rocks.
+- Telemetry: `w.__verdantRoadPlantCleanupV129` reports checked, rejected and retained instances by kind.
+
+### 3. Grass/terrain intruding into asphalt — final roadbed support
+
+- Verdant terrain uses a 16 m grid. Earlier near-road flattening was not wide enough to guarantee that a diagonal terrain triangle could never poke toward the narrow road ribbon after subsequent terrain passes.
+- New file `js/37-verdant-mountains-v129.js` runs after the retained v128 mountain layer and **before vegetation/fauna placement**.
+- It creates a final roadbed shelf: `ROAD_FLAT=29` m, blending to `ROAD_BLEND=72` m, with terrain target around `ry - 0.34` while the road ribbon is around `ry + 0.08`.
+- It recalculates normals and updates `meshH` / `groundAt` after the pass.
+- Telemetry: `w.__verdantRoadbedV129`, including `minRoadClearanceM`.
+
+### 4. Remaining smooth green dome-like hills — base low-frequency terrain
+
+- v126 removed/replaced the original radial perimeter uplift.
+- v128 removed/replaced the old alpine Gaussian mass and removed painted skyline mountains from the SVG.
+- The v128 screenshots nevertheless showed broad smooth green hills. At that point the sky SVG contained no landscape paths, proving these were **real 3-D base terrain**, mainly the broad low-frequency `bareLand()` noise rather than another hidden sky image.
+- `js/37-verdant-mountains-v129.js` therefore adds a **global anti-dome ridge/saddle pass** to elevated smooth terrain, starting outside the final road-support core and becoming strong quickly. It changes silhouette, not merely texture, and applies stronger stone colour to elevated/rugged surfaces.
+- Telemetry: `w.__verdantMountainsV129`.
+
+### 5. Wildlife felt sparse despite v125
+
+Retained v125 wildlife is still in `js/36-verdant-wildlife-v125.js`, but ten deer-herd locations across 25 km left long stretches where little was visible. v129 keeps all retained animals and adds a new final density layer in `js/38-verdant-world-cleanup-v129.js`:
+
+- **14 additional stag/deer herds**, generally 7–11 animals each, interleaved with the retained ten herds;
+- **8 additional cat groups**;
+- **4 additional bear groups**;
+- **5 additional monkey troops**;
+- **12 additional bird flocks**, generally 6–9 birds each.
+- New land animals carry `rdx/rdz` road references so the existing flee behavior can still work.
+- Telemetry: `w.__verdantWildlifeV129`.
+
+## Verdant Rift world / wiring
 
 - Scene id: `verdant`.
 - One continuous closed route, about 25 km, no road junction choices.
 - Route/world builder: `js/17-verdant-rift.js`.
-- Weather: `js/18-verdant-weather.js`; route-aware rain/mist, visual only.
+- Weather: `js/18-verdant-weather.js`; route-aware rain/mist, visual only; sky cache-bust is `?b=129`.
 - Verdant loader/wiring: `js/19-verdant-assets.js`.
-- Release label is in `js/25-verdant-lite-richness.js`.
-- Service-worker cache release must match the release label in `sw.js`.
+- Release label: `js/25-verdant-lite-richness.js` (`RELEASE='129'`).
+- Service worker: `sw.js`, cache `lunar-ride-v129`.
+- New v129 terrain/roadbed layer: `js/37-verdant-mountains-v129.js`.
+- New v129 final plant/wildlife cleanup layer: `js/38-verdant-world-cleanup-v129.js`.
+- Current important load order: terrain polish -> retained v128 mountain pass (`js/35`) -> v129 anti-dome/roadbed (`js/37`) -> nature/enrichment/fauna -> readiness gate -> retained v125 wildlife (`js/36`) -> v129 final cleanup (`js/38`) -> hard billboard cleanup (`js/27`) -> GPU instanced renderer (`js/28`).
 
-## Terrain / mountain history
+## Retained mountain history
 
-The user repeatedly found old-looking green hemispheres / circular hills / triangular cartoon mountains visible around the route. Three distinct sources were eventually identified:
+### v126 radial-perimeter replacement
 
-1. **Original radial perimeter uplift** in `bareLand()` — a smooth circular ring near the terrain edge.
-   - `js/35-verdant-mountains-v123.js` contains the retained full-route replacement algorithm introduced in v126.
-   - Hard road protection: `ROAD_CORE=46` m.
-   - Fade: `ROAD_FADE=84` m.
-   - Full replacement beyond 130 m.
-   - It subtracts the old radial uplift, adds asymmetric multi-scale perimeter ridges/erosion, recalculates normals, applies more stone colour to high/steep/far surfaces, and updates `meshH` / `groundAt`.
-   - The smaller protection radius was necessary because the 25 km route folds through much of the 5.2 km terrain map; the earlier 180 m protection left many distant domes untouched.
+`js/35-verdant-mountains-v123.js` retains the v126 algorithm that subtracts the original radial ring and replaces it with asymmetric multi-scale ridges/erosion.
 
-2. **Original alpine Gaussian mass** in `js/17-verdant-rift.js` — `235*Math.exp(...)` centred near `(1050,760)`.
-   - This remained after v126 and could still read as a broad green hemisphere from many viewpoints.
-   - **v128 now explicitly subtracts this legacy Gaussian away from the protected road corridor and replaces it with three offset anisotropic ridge systems plus noise/erosion.**
-   - The original Gaussian is deliberately still present in the base builder because the v128 post-pass removes/replaces it while preserving the road corridor and retained test architecture.
-   - v128 telemetry is exposed as `w.__verdantMountainsV128`; v126 telemetry remains as `w.__verdantMountainsV126` so retained release-agnostic tests continue to work.
-   - Alpine ridge influence also contributes to stone colouring so the replacement should not read as one giant green mass.
+- Hard road protection: `ROAD_CORE=46` m.
+- Fade: `ROAD_FADE=84` m.
+- Full replacement beyond 130 m.
+- Updates normals, colouring, `meshH` and `groundAt`.
+- Telemetry remains `w.__verdantMountainsV126` for release-agnostic regressions.
 
-3. **Sky/background panorama** — earlier `assets/images/sky_verdant.svg` versions contained painted green domes/triangles; v127 replaced them with angular atmospheric chains, but those chains themselves were still zig-zag mountain silhouettes.
-   - **v128 removes painted mountain/hill/triangle skyline paths entirely.** The SVG now contains atmosphere, clouds, mist and haze only.
-   - All actual landscape silhouette should therefore come from real 3-D terrain, making any remaining unwanted hill clearly a geometry issue rather than a background-image issue.
-   - `js/18-verdant-weather.js` loads `sky_verdant.svg?b=128`.
+### v128 legacy alpine Gaussian removal
 
-The next real-world task is visual testing: user should run `UPDATE.bat`, close/reopen Lunar Ride, use Ctrl+F5, confirm the scene label says **v128**, then inspect the same locations where the old smooth green domes/triangles were visible and ideally ride/scan the full lap.
+- Original `bareLand()` contains a broad `235*Math.exp(...)` alpine mass.
+- v128 explicitly subtracts it away from the protected road corridor and replaces it with anisotropic ridge systems/noise/erosion.
+- Telemetry: `w.__verdantMountainsV128`.
+
+### v128 atmosphere-only sky
+
+- `assets/images/sky_verdant.svg` contains **no painted mountain/hill/triangle paths**; only sky gradient, cloud ellipses and haze.
+- This is intentionally retained so unwanted landscape silhouettes can be diagnosed as real geometry/vegetation rather than background art.
 
 ## Road / terrain material
 
 - v122 experimented with `Rocks_Diffuse.png`, `Rocks_Desert_Diffuse.png`, and `PathRocks_Diffuse.png`.
-- `PathRocks_Diffuse` made the paved road look green/grass-contaminated. v123 restored the core asphalt material for the road while retaining rock textures for terrain/mountains.
-- Regression test: `tests/verdant-v123-regression-smoke.js` protects this.
+- `PathRocks_Diffuse` made the paved road look green/grass-contaminated. v123 restored the core asphalt material while retaining rock textures for terrain/mountains.
+- `tests/verdant-v123-regression-smoke.js` protects this and was made release-agnostic again in v129 (it no longer hardcodes an old 18-second gate timeout/string).
 
 ## Imported vegetation / performance architecture
 
-- User imported many glTF nature assets under `assets/models/` (CommonTree, TwistedTree, Pine, DeadTree, bushes, ferns, flowers, mushrooms, rocks, etc.).
-- The visually preferred imported trees are used; the ugly old yellow grass-clump fallback was removed.
-- Nature distribution is irregular/grove-based, not evenly spaced roadside planting: `js/30-verdant-natural-v119.js` plus enrichment layers.
-- GPU instancing is important for performance: `js/28-verdant-instanced-renderer.js`.
-- Do not regress to baking thousands of duplicated meshes.
+- Imported glTF nature assets live under `assets/models/` (CommonTree, TwistedTree, Pine, DeadTree, bushes, ferns, flowers, mushrooms, rocks, etc.).
+- Nature distribution is irregular/grove-based: `js/26`, `js/30`, `js/31` plus enrichment layers.
+- GPU instancing is important for phone/web performance: `js/28-verdant-instanced-renderer.js`.
+- Do not regress to baking thousands of duplicated imported meshes.
+- **Do not re-enable legacy Verdant billboards as a fallback.** A sparse imported scene is preferable to the old giant triangular sprites.
+- Any new vegetation placement should be validated against the **globally nearest route leg**, not merely its source route sample, because the route folds back near itself.
 
 ## Settlements / buildings
 
-`js/32-verdant-fauna-buildings-v121.js` adds 16 building placements using 12 glTF building families, grouped into recognizable settlements rather than random scatter:
+`js/32-verdant-fauna-buildings-v121.js` adds 16 building placements using 12 glTF building families, grouped into recognizable settlements:
 
 - around 5–6 km: research/ranger outpost;
 - around 16–18 km: main sky-port city;
 - around 21–22 km: summit relay.
 
-Building keys include station side/hangar/antenna/gate/refinery/ring and city gate/dome/tower/arcology/spire pair/cluster. Automatic foundations sample terrain so buildings should not float or bury themselves on slopes.
+`js/34-verdant-assets-gate-v123.js` now waits for buildings, creatures **and imported nature settlement** before synchronous world construction. Timeout is currently 24 seconds; if nature assets fail, Verdant continues without legacy billboards.
 
-`js/34-verdant-assets-gate-v123.js` waits for required building and creature assets before synchronous world construction; this fixed the earlier timing bug where most buildings/animals disappeared if the user entered Verdant before glTF loading finished.
+## Living wildlife — retained + v129
 
-## Living wildlife — v125 retained layer
+Retained main layer: `js/36-verdant-wildlife-v125.js`:
 
-Main file: `js/36-verdant-wildlife-v125.js`.
+- 10 deer/stag herd locations, generally 5–8 each;
+- 8 cat-group locations;
+- 5 bear-group locations;
+- 9 mobile frog patches;
+- 7 dragonfly swarms;
+- 13 extra bird-flock locations;
+- monkey troops, floating jellies, lightweight procedural hero palms;
+- existing generic flee behavior for road-side animals.
 
-The goal is a **living world, not static statues**. Current retained groups include:
-
-- 10 deer/stag herd locations, generally 5–8 animals each.
-- Several selected herds deliberately begin on/near the road.
-- Existing generic engine flee behavior is reused: animals carry road reference (`rdx/rdz`); when the rider gets within roughly 32 m, road-side animals enter flee state and run away from the road.
-- 8 cat-group locations, generally 4–7 cats.
-- 5 bear-group locations, generally 3–5 bears.
-- 9 frog patches; old large frogs are retuned smaller and mobile. New frogs are roughly 0.32–0.48 scale and wander/hop/bob rather than stand like statues.
-- 7 dragonfly swarm locations, generally 8–13 dragonflies each.
-- 13 additional bird-flock locations across the whole 25 km lap, using all four bird glTF families.
-- monkey troops and floating jelly groups in jungle/wetland sections.
-- lightweight procedural hero palms in the jungle section.
-
-There are also older wildlife/bird layers retained from v120–v122, including additional bears, frogs, monkeys, insects and 133 birds in 19 flocks. CI protects v125 flee/frog/swarm/flock behavior in `tests/verdant-v125-wildlife-smoke.js`.
+v129 adds the denser set described above via `js/38` without removing retained v125 behavior.
 
 ## Uploaded GLB reference
 
-The user uploaded a photogrammetry-style tropical plant/palm GLB during the Verdant work. Inspection showed it was a single very dense textured mesh, about **14.7 MB / ~292,648 triangles**, without skeleton/animation. It is too heavy to instance directly in the phone/web ride. v125 therefore uses its silhouette/palette as reference for lightweight procedural palms. If fidelity is later desired, create/obtain a genuinely optimized low-poly version rather than inserting the raw scan.
+The user previously uploaded a photogrammetry-style tropical plant/palm GLB. It was a single ~14.7 MB / ~292,648-triangle textured mesh with no skeleton/animation and is too heavy to instance directly in the phone/web ride. v125 uses its silhouette/palette only as reference for lightweight procedural palms. If higher fidelity is later desired, use a genuinely optimized low-poly version rather than the raw scan.
 
 ## CI
 
@@ -119,16 +164,17 @@ It currently checks:
 - road/material + asset readiness regression;
 - v125 living wildlife/flee/frogs/swarms;
 - v126 full-route mountain safety;
+- **v129 world cleanup regression**: anti-dome/roadbed markers, nature readiness, hard billboard kill, global nearest-road plant filtering, expanded wildlife and loader/cache order;
 - glTF creature/building asset integrity;
 - imported nature dependencies;
-- **v128 atmosphere-only skyline and legacy alpine Gaussian replacement**;
+- atmosphere-only sky + retained v128 alpine-dome removal;
 - release/cache/wiring consistency.
 
-Important lesson: retained feature tests should be **release-agnostic** where possible. Do not make a v125/v126 behavior regression fail merely because the current release becomes v129+.
+Important lesson: retained feature tests should be **release-agnostic** where possible. Do not make old behavior regressions fail merely because a later release changes the cache number, timeout duration or loading text.
 
 ## Other important project features/fixes already done on this branch
 
-The branch began as a build-90 stabilization branch and also contains prior fixes including TCX calorie/time handling, save/continue state preservation, gradient auditing, map pan/zoom, junction cleanup work, debug-start safety, and many Verdant additions. The draft PR description records the initial stabilization changes. Before altering old ride physics or export code, inspect current files and tests rather than reconstructing them from memory.
+The branch began as a build-90 stabilization branch and also contains prior fixes including TCX calorie/time handling, save/continue state preservation, gradient auditing, map pan/zoom, junction cleanup work, debug-start safety, and many Verdant additions. Before altering old ride physics or export code, inspect current files and tests rather than reconstructing them from memory.
 
 ## How to continue in a new ChatGPT conversation
 
