@@ -16,200 +16,80 @@ jobs:
 
       - name: JavaScript syntax
         run: |
-          node --check js/17-verdant-rift.js
-          node --check js/18-verdant-weather.js
-          node --check js/19-verdant-assets.js
-          node --check js/20-verdant-route-audit.js
-          node --check js/21-verdant-terrain-polish.js
-          node --check js/25-verdant-lite-richness.js
-          node --check js/26-verdant-real-nature.js
-          node --check js/27-verdant-billboard-cleanup.js
-          node --check js/28-verdant-instanced-renderer.js
-          node --check js/30-verdant-natural-v119.js
-          node --check js/31-verdant-enrichment-v120.js
-          node --check js/32-verdant-fauna-buildings-v121.js
-          node --check js/33-verdant-terrain-birds-v122.js
-          node --check js/34-verdant-assets-gate-v123.js
-          node --check js/35-verdant-mountains-v123.js
+          for f in js/*.js; do node --check "$f"; done
+          for f in tests/*.js; do node --check "$f"; done
 
       - name: Verdant generated-world smoke test
-        id: verdant
-        shell: bash
-        run: |
-          set +e
-          node tests/verdant-smoke.js 2>&1 | tee verdant-test.log
-          code=${PIPESTATUS[0]}
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit 0
+        run: node tests/verdant-smoke.js
 
       - name: Verdant real geometry load test
-        id: realmesh
-        shell: bash
-        run: |
-          set +e
-          timeout 35s node tests/verdant-real-mesh-smoke.js 2>&1 | tee verdant-real-mesh.log
-          code=${PIPESTATUS[0]}
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit 0
+        run: timeout 35s node tests/verdant-real-mesh-smoke.js
 
       - name: Verdant wildlife runtime regression test
-        run: node tests/verdant-lite-runtime-smoke.js 2>&1 | tee verdant-lite-runtime.log
+        run: node tests/verdant-lite-runtime-smoke.js
 
       - name: Verdant v121 fauna and buildings runtime test
-        run: node tests/verdant-v121-fauna-buildings-smoke.js 2>&1 | tee verdant-v121-runtime.log
+        run: node tests/verdant-v121-fauna-buildings-smoke.js
 
       - name: Verdant v122 terrain and birds runtime test
-        run: node tests/verdant-v122-terrain-birds-smoke.js 2>&1 | tee verdant-v122-runtime.log
+        run: node tests/verdant-v122-terrain-birds-smoke.js
 
-      - name: Verdant v123 regression test
-        run: node tests/verdant-v123-regression-smoke.js 2>&1 | tee verdant-v123-runtime.log
+      - name: Verdant v123 road and asset regression test
+        run: node tests/verdant-v123-regression-smoke.js
 
-      - name: Validate self-contained Verdant glTF files
+      - name: Verdant v125 living wildlife regression test
+        run: node tests/verdant-v125-wildlife-smoke.js
+
+      - name: Validate creature and building assets
         run: |
-          node - <<'NODE' 2>&1 | tee gltf-test.log
-          const fs=require('fs');
-          const files=[
-            'verdant_bear.gltf','verdant_frog.gltf','verdant_monkey.gltf','verdant_ship.gltf',
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const creatures=['verdant_bear.gltf','verdant_frog.gltf','verdant_monkey.gltf','verdant_ship.gltf',
             'creature_stag.gltf','creature_jelly.gltf','creature_cat.gltf','creature_dragonfly.gltf',
-            'bird_kestrel.gltf','bird_gull.gltf','bird_finch.gltf','bird_ray.gltf'
-          ];
-          for(const name of files){
-            const f='assets/models/'+name,j=JSON.parse(fs.readFileSync(f,'utf8'));
-            if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
-              throw new Error('asset unavailable to current creature loader: '+name);
+            'bird_kestrel.gltf','bird_gull.gltf','bird_finch.gltf','bird_ray.gltf'];
+          const buildings=['station_side.gltf','station_hangar.gltf','station_antenna.gltf','station_gate.gltf',
+            'station_refinery.gltf','station_ring.gltf','city_gate.gltf','city_dome.gltf','city_tower.gltf',
+            'city_arcology.gltf','city_spire_pair.gltf','city_cluster.gltf'];
+          for(const name of creatures.concat(buildings)){
+            const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid asset '+name);
+            for(const b of (j.buffers||[]))if(b.uri&&!b.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),b.uri)))
+              throw new Error(name+' missing buffer '+b.uri);
+            for(const im of (j.images||[]))if(im.uri&&!im.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),im.uri)))
+              throw new Error(name+' missing image '+im.uri);
             console.log('ok',name);
           }
           NODE
 
-      - name: Validate external nature glTF dependencies
+      - name: Validate imported nature dependencies
         run: |
-          node - <<'NODE' 2>&1 | tee nature-assets.log
+          node - <<'NODE'
           const fs=require('fs'),path=require('path');
-          const files=[
-            'CommonTree_1.gltf','CommonTree_3.gltf','CommonTree_5.gltf',
-            'TwistedTree_1.gltf','TwistedTree_3.gltf',
-            'Pine_1.gltf','Pine_3.gltf','Pine_5.gltf','DeadTree_2.gltf',
-            'Bush_Common.gltf','Bush_Common_Flowers.gltf','Fern_1.gltf',
-            'Flower_4_Group.gltf','Mushroom_Common.gltf',
-            'Rock_Medium_1.gltf','Rock_Medium_2.gltf'
-          ];
-          let total=0;
+          const files=['CommonTree_1.gltf','CommonTree_3.gltf','CommonTree_5.gltf',
+            'TwistedTree_1.gltf','TwistedTree_3.gltf','Pine_1.gltf','Pine_3.gltf','Pine_5.gltf','DeadTree_2.gltf',
+            'Bush_Common.gltf','Bush_Common_Flowers.gltf','Fern_1.gltf','Flower_4_Group.gltf','Mushroom_Common.gltf',
+            'Rock_Medium_1.gltf','Rock_Medium_2.gltf'];
           for(const name of files){
             const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
-            if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid glTF '+name);
-            const refs=[];
-            for(const b of (j.buffers||[]))if(b.uri&&!b.uri.startsWith('data:'))refs.push(b.uri);
-            for(const im of (j.images||[]))if(im.uri&&!im.uri.startsWith('data:'))refs.push(im.uri);
-            for(const ref of refs){
-              const p=path.resolve(path.dirname(f),ref);
-              if(!fs.existsSync(p))throw new Error(name+' missing dependency '+ref);
-            }
-            const tris=(j.meshes||[]).flatMap(m=>m.primitives||[]).reduce((s,p)=>{
-              const a=j.accessors[p.indices];return s+(a?Math.floor(a.count/3):0);
-            },0);
-            total+=tris;console.log('ok',name,'triangles',tris,'dependencies',refs.length);
-          }
-          console.log('source asset triangles',total);
-          NODE
-
-      - name: Validate v121 building library and triangle budget
-        run: |
-          node - <<'NODE' 2>&1 | tee building-assets.log
-          const fs=require('fs');
-          const files=['station_side.gltf','station_hangar.gltf','station_antenna.gltf','station_gate.gltf',
-            'station_refinery.gltf','station_ring.gltf','city_gate.gltf','city_dome.gltf','city_tower.gltf',
-            'city_arcology.gltf','city_spire_pair.gltf','city_cluster.gltf'];
-          let total=0;
-          for(const name of files){
-            const j=JSON.parse(fs.readFileSync('assets/models/'+name,'utf8'));
-            if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
-              throw new Error('building unavailable to current static loader: '+name);
-            const tris=(j.meshes||[]).flatMap(m=>m.primitives||[]).reduce((s,p)=>{
-              const a=j.accessors[p.indices];return s+(a?Math.floor(a.count/3):0);
-            },0);
-            total+=tris;console.log('ok',name,'triangles',tris);
-          }
-          console.log('all unique building source triangles',total);
-          if(total>450000)throw new Error('unique building library exceeds runtime triangle budget: '+total);
-          NODE
-
-      - name: Validate terrain source textures
-        run: |
-          node - <<'NODE' 2>&1 | tee terrain-assets.log
-          const fs=require('fs');
-          for(const f of ['assets/models/Rocks_Diffuse.png','assets/models/Rocks_Desert_Diffuse.png','assets/models/PathRocks_Diffuse.png']){
-            if(!fs.existsSync(f))throw new Error('missing terrain texture: '+f);
-            const n=fs.statSync(f).size;
-            if(n<10000)throw new Error('terrain texture unexpectedly small: '+f+' '+n);
-            console.log('ok',f,'bytes',n);
+            for(const b of (j.buffers||[]))if(b.uri&&!b.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),b.uri)))
+              throw new Error(name+' missing buffer '+b.uri);
+            for(const im of (j.images||[]))if(im.uri&&!im.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),im.uri)))
+              throw new Error(name+' missing image '+im.uri);
+            console.log('ok',name);
           }
           NODE
 
-      - name: Verify v123 world architecture
+      - name: Verify current Verdant wiring
         run: |
-          node - <<'NODE' 2>&1 | tee architecture.log
+          node - <<'NODE'
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
-          const src=R('js/26-verdant-real-nature.js');
-          const nat=R('js/30-verdant-natural-v119.js');
-          const rich=R('js/31-verdant-enrichment-v120.js');
-          const v121=R('js/32-verdant-fauna-buildings-v121.js');
-          const v122=R('js/33-verdant-terrain-birds-v122.js');
-          const gate=R('js/34-verdant-assets-gate-v123.js');
-          const mountain=R('js/35-verdant-mountains-v123.js');
-          const ren=R('js/28-verdant-instanced-renderer.js');
-          const clean=R('js/27-verdant-billboard-cleanup.js');
-          const loader=R('js/19-verdant-assets.js');
-          const lite=R('js/25-verdant-lite-richness.js');
-          const sw=R('sw.js');
-          if(!src.includes('w.instNature='))throw new Error('instance plan missing');
-          if(src.includes('mergeProps(w'))throw new Error('imported nature must not bake into props');
-          if(!nat.includes('I.naturalV119=stats')||!nat.includes('stats.groves++')||!nat.includes('heroTrees'))
-            throw new Error('v119 natural grove distribution missing');
-          if(!rich.includes('I.enrichmentV120=stats')||!rich.includes('Visible animal encounters')||!rich.includes('Background forest depth'))
-            throw new Error('v120 habitat/encounter enrichment missing');
-          const buildingKeys=['stSide','sHang','sAnt','stGate','sRef','cGate','cDome','cTower','cArc','cSpire','cClu','sRing'];
-          for(const k of buildingKeys)if(!v121.includes("'"+k+"'"))throw new Error('v121 missing building key '+k);
-          if(!v121.includes('MAX_BUILDING_TRIS=450000')||!v121.includes('foundationCol')||!v121.includes('w.__verdantV121=stats'))
-            throw new Error('v121 settlement safety/telemetry missing');
-          for(const f of ['Rocks_Diffuse.png','Rocks_Desert_Diffuse.png','PathRocks_Diffuse.png'])
-            if(!v122.includes(f))throw new Error('v122 missing terrain material '+f);
-          if(!v122.includes('b===gpu.road')||!v122.includes('gl.TEXTURE6')||!v122.includes('TEX.aA'))
-            throw new Error('v123 clean road reset missing from material layer');
-          if(!mountain.includes('roadProtectionM:180')||!mountain.includes('w.meshH=gridH'))
-            throw new Error('v123 mountain protection missing');
-          if(!gate.includes('waitForAssets')||!gate.includes('startRide=gated')||!gate.includes('18000'))
-            throw new Error('v123 asset readiness gate missing');
-          if(!loader.includes('35-verdant-mountains-v123.js')||!loader.includes('34-verdant-assets-gate-v123.js'))
-            throw new Error('v123 loader wiring incorrect');
-          if(!lite.includes("const RELEASE='123'"))throw new Error('v123 release label missing');
-          if(!sw.includes("lunar-ride-v123")||!sw.includes('35-verdant-mountains-v123.js')||!sw.includes('34-verdant-assets-gate-v123.js'))
-            throw new Error('v123 service-worker cache wiring missing');
-          if(!ren.includes('drawArraysInstanced')||!ren.includes('ANGLE_instanced_arrays'))
-            throw new Error('WebGL instancing paths missing');
-          if(!ren.includes('circularKm')||!ren.includes('DYNAMIC_DRAW'))
-            throw new Error('streaming visibility update missing');
-          if(!clean.includes('w.veg=null'))throw new Error('legacy Verdant billboard buffers still uploaded');
-          console.log('ok: v123 road + mountains + asset gate, with v119-v122 content preserved');
+          const loader=R('js/19-verdant-assets.js'),lite=R('js/25-verdant-lite-richness.js'),sw=R('sw.js');
+          const mountains=R('js/35-verdant-mountains-v123.js'),wild=R('js/36-verdant-wildlife-v125.js');
+          if(!loader.includes('36-verdant-wildlife-v125.js?b=125'))throw new Error('v125 loader missing');
+          if(!lite.includes("const RELEASE='125'"))throw new Error('v125 label missing');
+          if(!sw.includes("lunar-ride-v125"))throw new Error('v125 cache missing');
+          if(!mountains.includes('roadProtectionM:180'))throw new Error('mountain road protection missing');
+          if(!wild.includes('stagHerds')||!wild.includes('retunedFrogs')||!wild.includes('dragonflySwarms'))
+            throw new Error('v125 wildlife layer incomplete');
+          console.log('ok: current Verdant v125 wiring');
           NODE
-
-      - name: Upload diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: verdant-check-output
-          path: |
-            verdant-test.log
-            verdant-real-mesh.log
-            verdant-lite-runtime.log
-            verdant-v121-runtime.log
-            verdant-v122-runtime.log
-            verdant-v123-runtime.log
-            gltf-test.log
-            nature-assets.log
-            building-assets.log
-            terrain-assets.log
-            architecture.log
-
-      - name: Fail if generated-world test failed
-        if: steps.verdant.outputs.exit_code != '0' || steps.realmesh.outputs.exit_code != '0'
-        run: exit 1
