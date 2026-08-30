@@ -1,0 +1,38 @@
+name: Aqua Rift checks
+
+on:
+  push:
+    branches: [fixes-build-90]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aqua-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Aqua JavaScript syntax
+        run: |
+          node --check js/49-aqua-rift-v143.js
+          node --check tests/aqua-rift-v143-smoke.js
+
+      - name: Aqua Rift v143 runtime smoke
+        run: node tests/aqua-rift-v143-smoke.js
+
+      - name: Verify Aqua runtime wiring and cache
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
+          const loader=R('js/19-verdant-assets.js'),sw=R('sw.js'),aqua=R('js/49-aqua-rift-v143.js');
+          if(!loader.includes('49-aqua-rift-v143.js?b=143'))throw new Error('Aqua loader wiring missing');
+          if(!sw.includes("lunar-ride-v143"))throw new Error('v143 service-worker cache missing');
+          for(const f of ['js/49-aqua-rift-v143.js','assets/images/aqua_rift_card.svg'])if(!sw.includes(f))throw new Error('Aqua cache missing '+f);
+          if(!fs.existsSync('assets/images/aqua_rift_card.svg'))throw new Error('Aqua world card missing');
+          for(const k of ["name:'Aqua Rift — Glass Ocean'","customWorld:AQUA_ID","w.glass=meshOf(glass)","w.water=meshOf(wm)","w.__aquaRiftV143"])
+            if(!aqua.includes(k))throw new Error('Aqua runtime marker missing '+k);
+          if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring was disturbed');
+          console.log('ok: Aqua Rift v143 is wired as a separate world while Verdant v142 remains intact');
+          NODE
