@@ -30,6 +30,7 @@ jobs:
           node --check js/29-verdant-density-v118.js
           node --check js/30-verdant-natural-v119.js
           node --check js/31-verdant-enrichment-v120.js
+          node --check js/32-verdant-fauna-buildings-v121.js
       - name: Verdant generated-world smoke test
         id: verdant
         shell: bash
@@ -50,6 +51,8 @@ jobs:
           exit 0
       - name: Verdant wildlife runtime regression test
         run: node tests/verdant-lite-runtime-smoke.js 2>&1 | tee verdant-lite-runtime.log
+      - name: Verdant v121 fauna and buildings runtime test
+        run: node tests/verdant-v121-fauna-buildings-smoke.js 2>&1 | tee verdant-v121-runtime.log
       - name: Validate self-contained Verdant glTF files
         run: |
           node - <<'NODE' 2>&1 | tee gltf-test.log
@@ -63,6 +66,18 @@ jobs:
             if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
               throw new Error('invalid self-contained glTF: '+f);
             console.log('ok',f);
+          }
+          NODE
+      - name: Validate v121 fauna glTF files
+        run: |
+          node - <<'NODE' 2>&1 | tee fauna-assets.log
+          const fs=require('fs');
+          for(const name of ['creature_stag.gltf','creature_jelly.gltf','creature_cat.gltf','creature_dragonfly.gltf',
+            'bird_kestrel.gltf','bird_gull.gltf','bird_finch.gltf','bird_ray.gltf']){
+            const f='assets/models/'+name,j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
+              throw new Error('v121 fauna must be self-contained for current creature loader: '+name);
+            console.log('ok',name);
           }
           NODE
       - name: Validate external nature glTF dependencies
@@ -96,13 +111,34 @@ jobs:
           }
           console.log('source asset triangles',total);
           NODE
-      - name: Verify instancing and v120 enrichment architecture
+      - name: Validate v121 building library and triangle budget
+        run: |
+          node - <<'NODE' 2>&1 | tee building-assets.log
+          const fs=require('fs');
+          const files=['station_side.gltf','station_hangar.gltf','station_antenna.gltf','station_gate.gltf',
+            'station_refinery.gltf','station_ring.gltf','city_gate.gltf','city_dome.gltf','city_tower.gltf',
+            'city_arcology.gltf','city_spire_pair.gltf','city_cluster.gltf'];
+          let total=0;
+          for(const name of files){
+            const j=JSON.parse(fs.readFileSync('assets/models/'+name,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length||!j.buffers?.[0]?.uri?.startsWith('data:'))
+              throw new Error('building unavailable to current static loader: '+name);
+            const tris=(j.meshes||[]).flatMap(m=>m.primitives||[]).reduce((s,p)=>{
+              const a=j.accessors[p.indices];return s+(a?Math.floor(a.count/3):0);
+            },0);
+            total+=tris;console.log('ok',name,'triangles',tris);
+          }
+          console.log('all unique building source triangles',total);
+          if(total>450000)throw new Error('unique building library exceeds v121 runtime triangle budget: '+total);
+          NODE
+      - name: Verify instancing and v121 world architecture
         run: |
           node - <<'NODE' 2>&1 | tee instancing-architecture.log
           const fs=require('fs');
           const src=fs.readFileSync('js/26-verdant-real-nature.js','utf8');
           const nat=fs.readFileSync('js/30-verdant-natural-v119.js','utf8');
           const rich=fs.readFileSync('js/31-verdant-enrichment-v120.js','utf8');
+          const v121=fs.readFileSync('js/32-verdant-fauna-buildings-v121.js','utf8');
           const ren=fs.readFileSync('js/28-verdant-instanced-renderer.js','utf8');
           const clean=fs.readFileSync('js/27-verdant-billboard-cleanup.js','utf8');
           const loader=fs.readFileSync('js/19-verdant-assets.js','utf8');
@@ -114,13 +150,19 @@ jobs:
             throw new Error('v119 natural grove distribution missing');
           if(!rich.includes('I.enrichmentV120=stats')||!rich.includes('Visible animal encounters')||!rich.includes('Background forest depth'))
             throw new Error('v120 habitat/encounter enrichment missing');
-          if(!rich.includes("a.gcre='vbear'")||!rich.includes('headPitch:0')||!rich.includes('pinY=py'))
-            throw new Error('v120 late-added actor runtime state incomplete');
-          if(!loader.includes('31-verdant-enrichment-v120.js')||!loader.includes('30-verdant-natural-v119.js'))
-            throw new Error('v120 loader wiring incorrect');
-          if(!lite.includes("const RELEASE='120'"))throw new Error('v120 release label missing');
-          if(!sw.includes("lunar-ride-v120")||!sw.includes('js/31-verdant-enrichment-v120.js'))
-            throw new Error('v120 service-worker cache wiring missing');
+          const buildingKeys=['stSide','sHang','sAnt','stGate','sRef','cGate','cDome','cTower','cArc','cSpire','cClu','sRing'];
+          const faunaKeys=['stag','cat','jelly','dfly','bird4'];
+          for(const k of buildingKeys)if(!v121.includes("'"+k+"'"))throw new Error('v121 missing building key '+k);
+          for(const k of faunaKeys)if(!v121.includes("'"+k+"'"))throw new Error('v121 missing fauna key '+k);
+          if(!v121.includes('MAX_BUILDING_TRIS=450000')||!v121.includes('foundationCol')||!v121.includes('w.__verdantV121=stats'))
+            throw new Error('v121 settlement safety/telemetry missing');
+          if(!v121.includes('headPitch:0')||!v121.includes('if(meta.float)a.pinY=py'))
+            throw new Error('v121 late-added creature runtime state incomplete');
+          if(!loader.includes('32-verdant-fauna-buildings-v121.js')||!loader.includes('31-verdant-enrichment-v120.js'))
+            throw new Error('v121 loader wiring incorrect');
+          if(!lite.includes("const RELEASE='121'"))throw new Error('v121 release label missing');
+          if(!sw.includes("lunar-ride-v121")||!sw.includes('js/32-verdant-fauna-buildings-v121.js'))
+            throw new Error('v121 service-worker cache wiring missing');
           if(!ren.includes('drawArraysInstanced')||!ren.includes('ANGLE_instanced_arrays'))
             throw new Error('WebGL instancing paths missing');
           if(!ren.includes('circularKm')||!ren.includes('DYNAMIC_DRAW'))
@@ -128,7 +170,7 @@ jobs:
           if(!ren.includes('hash21')||!ren.includes('greenish'))
             throw new Error('natural foliage shading missing');
           if(!clean.includes('w.veg=null'))throw new Error('legacy Verdant billboard buffers still uploaded');
-          console.log('ok: streamed GPU instancing + v119 forest + v120 enrichment present');
+          console.log('ok: v119 forest + v120 enrichment + v121 fauna/settlements present');
           NODE
       - name: Upload diagnostics
         if: always()
@@ -139,8 +181,11 @@ jobs:
             verdant-test.log
             verdant-real-mesh.log
             verdant-lite-runtime.log
+            verdant-v121-runtime.log
             gltf-test.log
+            fauna-assets.log
             nature-assets.log
+            building-assets.log
             instancing-architecture.log
       - name: Fail if generated-world test failed
         if: steps.verdant.outputs.exit_code != '0' || steps.realmesh.outputs.exit_code != '0'
