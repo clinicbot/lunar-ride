@@ -1,7 +1,7 @@
 /* Lunar Ride service worker.
    NETWORK-FIRST for everything: while online you always get the newest
    deploy; every successful response is copied into the cache for offline use. */
-const CACHE = 'lunar-ride-v143';
+const CACHE = 'lunar-ride-v142';
 
 const CORE = [
   '.', 'index.html', 'css/styles.css', 'css/15-fixes.css', 'manifest.webmanifest',
