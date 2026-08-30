@@ -34,11 +34,14 @@ jobs:
       - name: Verdant v122 terrain and birds runtime test
         run: node tests/verdant-v122-terrain-birds-smoke.js
 
-      - name: Verdant v123 road and asset regression test
+      - name: Verdant road and asset regression test
         run: node tests/verdant-v123-regression-smoke.js
 
       - name: Verdant v125 living wildlife regression test
         run: node tests/verdant-v125-wildlife-smoke.js
+
+      - name: Verdant v126 full-route mountain regression test
+        run: node tests/verdant-v126-mountains-smoke.js
 
       - name: Validate creature and building assets
         run: |
@@ -85,11 +88,13 @@ jobs:
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
           const loader=R('js/19-verdant-assets.js'),lite=R('js/25-verdant-lite-richness.js'),sw=R('sw.js');
           const mountains=R('js/35-verdant-mountains-v123.js'),wild=R('js/36-verdant-wildlife-v125.js');
-          if(!loader.includes('36-verdant-wildlife-v125.js?b=125'))throw new Error('v125 loader missing');
-          if(!lite.includes("const RELEASE='125'"))throw new Error('v125 label missing');
-          if(!sw.includes("lunar-ride-v125"))throw new Error('v125 cache missing');
-          if(!mountains.includes('roadProtectionM:180'))throw new Error('mountain road protection missing');
+          if(!loader.includes('36-verdant-wildlife-v125.js?b=126'))throw new Error('v126 wildlife loader missing');
+          if(!loader.includes('35-verdant-mountains-v123.js?b=126'))throw new Error('v126 mountain loader missing');
+          if(!lite.includes("const RELEASE='126'"))throw new Error('v126 label missing');
+          if(!sw.includes("lunar-ride-v126"))throw new Error('v126 cache missing');
+          if(!mountains.includes('ROAD_CORE=46')||!mountains.includes('FULL_REPLACE=ROAD_CORE+ROAD_FADE'))
+            throw new Error('v126 full-route mountain protection missing');
           if(!wild.includes('stagHerds')||!wild.includes('retunedFrogs')||!wild.includes('dragonflySwarms'))
             throw new Error('v125 wildlife layer incomplete');
-          console.log('ok: current Verdant v125 wiring');
+          console.log('ok: current Verdant v126 wiring');
           NODE
