@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
+  <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#0a85a3"/><stop offset="1" stop-color="#07344f"/></linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#41515a"/><stop offset="1" stop-color="#1d272d"/></linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#ocean)"/>
+  <circle cx="210" cy="110" r="55" fill="#8fefff" opacity=".18"/><circle cx="930" cy="165" r="85" fill="#9cf8ff" opacity=".12"/>
+  <path d="M0 520 Q210 420 410 505 T800 480 T1200 505 V675 H0Z" fill="#175b58"/>
+  <path d="M210 675 L510 300 L690 300 L990 675Z" fill="url(#road)"/>
+  <path d="M520 675 L585 300" stroke="#baf7ff" stroke-width="5"/><path d="M680 675 L615 300" stroke="#baf7ff" stroke-width="5"/>
+  <g fill="none" stroke="#8ee9f2" opacity=".72">
+    <ellipse cx="600" cy="420" rx="330" ry="235" stroke-width="14"/>
+    <ellipse cx="600" cy="405" rx="245" ry="175" stroke-width="10"/>
+    <ellipse cx="600" cy="390" rx="165" ry="118" stroke-width="7"/>
+    <ellipse cx="600" cy="375" rx="95" ry="68" stroke-width="5"/>
+  </g>
+  <g fill="#ffd34e"><ellipse cx="235" cy="245" rx="28" ry="12"/><polygon points="207,245 182,230 182,260"/><ellipse cx="1010" cy="300" rx="38" ry="16"/><polygon points="972,300 942,280 942,320"/></g>
+  <g fill="#ff6f91"><ellipse cx="355" cy="185" rx="22" ry="10"/><polygon points="333,185 315,173 315,197"/><ellipse cx="870" cy="225" rx="20" ry="9"/><polygon points="850,225 833,214 833,236"/></g>
+  <g stroke="#ff8a6c" stroke-width="10" stroke-linecap="round"><path d="M110 585v-80m0 35-35-30m35 8 40-40"/><path d="M1080 590v-95m0 40-40-35m40 5 45-45"/></g>
+  <text x="70" y="95" fill="#e9fdff" font-family="Arial, sans-serif" font-size="64" font-weight="700">AQUA RIFT</text>
+  <text x="73" y="140" fill="#b9f7ff" font-family="Arial, sans-serif" font-size="28">GLASS OCEAN</text>
+</svg>
