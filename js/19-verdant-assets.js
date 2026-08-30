@@ -48,15 +48,17 @@
 })();
 
 /* Stable route/terrain, v119 natural forest, v120 habitat/encounters,
-   v121 fauna + settlements, legacy cleanup, then the GPU instance renderer. */
+   v121 fauna/settlements, v122 terrain materials + bird flocks, legacy
+   cleanup, then the GPU instance renderer. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=121"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=121"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=121"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=121"></script>');
-  document.write('<script src="js/30-verdant-natural-v119.js?b=121"></script>');
-  document.write('<script src="js/31-verdant-enrichment-v120.js?b=121"></script>');
-  document.write('<script src="js/32-verdant-fauna-buildings-v121.js?b=121"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=121"></script>');
-  document.write('<script src="js/28-verdant-instanced-renderer.js?b=121"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=122"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=122"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=122"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=122"></script>');
+  document.write('<script src="js/30-verdant-natural-v119.js?b=122"></script>');
+  document.write('<script src="js/31-verdant-enrichment-v120.js?b=122"></script>');
+  document.write('<script src="js/32-verdant-fauna-buildings-v121.js?b=122"></script>');
+  document.write('<script src="js/33-verdant-terrain-birds-v122.js?b=122"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=122"></script>');
+  document.write('<script src="js/28-verdant-instanced-renderer.js?b=122"></script>');
 }
