@@ -47,24 +47,26 @@
   };
 })();
 
-/* v135 keeps the approved v134 CommonTree 75/25 colour mix and adds only a
-   10% compact structural CommonTree variant. Final target is 65/25/10. */
+/* v136 keeps the approved v134 75/25 CommonTree colour mix and replaces the
+   subtle rejected v135 structure experiment with the exact v133 alpha-aware
+   CommonTree geometry on only 10% of CommonTree instances. Final target is
+   65% light / 25% dark / 10% true compact-v133 CommonTree. */
 if(typeof document!=='undefined'&&document.write){
-  document.write('<script src="js/20-verdant-route-audit.js?b=135"></script>');
-  document.write('<script src="js/21-verdant-terrain-polish.js?b=135"></script>');
-  document.write('<script src="js/35-verdant-mountains-v123.js?b=135"></script>');
-  document.write('<script src="js/37-verdant-mountains-v129.js?b=135"></script>');
-  document.write('<script src="js/25-verdant-lite-richness.js?b=135"></script>');
-  document.write('<script src="js/26-verdant-real-nature.js?b=135"></script>');
-  document.write('<script src="js/30-verdant-natural-v119.js?b=135"></script>');
-  document.write('<script src="js/31-verdant-enrichment-v120.js?b=135"></script>');
-  document.write('<script src="js/32-verdant-fauna-buildings-v121.js?b=135"></script>');
-  document.write('<script src="js/33-verdant-terrain-birds-v122.js?b=135"></script>');
-  document.write('<script src="js/34-verdant-assets-gate-v123.js?b=135"></script>');
-  document.write('<script src="js/36-verdant-wildlife-v125.js?b=135"></script>');
-  document.write('<script src="js/38-verdant-world-cleanup-v129.js?b=135"></script>');
-  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=135"></script>');
-  document.write('<script src="js/39-verdant-common-tree-mix-v134.js?b=135"></script>');
-  document.write('<script src="js/40-verdant-common-tree-structure-v135.js?b=135"></script>');
-  document.write('<script src="js/28-verdant-instanced-renderer.js?b=135"></script>');
+  document.write('<script src="js/20-verdant-route-audit.js?b=136"></script>');
+  document.write('<script src="js/21-verdant-terrain-polish.js?b=136"></script>');
+  document.write('<script src="js/35-verdant-mountains-v123.js?b=136"></script>');
+  document.write('<script src="js/37-verdant-mountains-v129.js?b=136"></script>');
+  document.write('<script src="js/25-verdant-lite-richness.js?b=136"></script>');
+  document.write('<script src="js/26-verdant-real-nature.js?b=136"></script>');
+  document.write('<script src="js/30-verdant-natural-v119.js?b=136"></script>');
+  document.write('<script src="js/31-verdant-enrichment-v120.js?b=136"></script>');
+  document.write('<script src="js/32-verdant-fauna-buildings-v121.js?b=136"></script>');
+  document.write('<script src="js/33-verdant-terrain-birds-v122.js?b=136"></script>');
+  document.write('<script src="js/34-verdant-assets-gate-v123.js?b=136"></script>');
+  document.write('<script src="js/36-verdant-wildlife-v125.js?b=136"></script>');
+  document.write('<script src="js/38-verdant-world-cleanup-v129.js?b=136"></script>');
+  document.write('<script src="js/27-verdant-billboard-cleanup.js?b=136"></script>');
+  document.write('<script src="js/39-verdant-common-tree-mix-v134.js?b=136"></script>');
+  document.write('<script src="js/41-verdant-common-tree-compact-v136.js?b=136"></script>');
+  document.write('<script src="js/28-verdant-instanced-renderer.js?b=136"></script>');
 }
