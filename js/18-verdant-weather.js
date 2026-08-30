@@ -1,11 +1,11 @@
 "use strict";
 
 /* Verdant Rift weather -----------------------------------------------------
-   Screen-space rain + route-aware mist. The richer v132 cloud layers and
-   ringed planet live in sky_verdant.svg; weather only modulates mist/rain. */
+   Screen-space rain + route-aware mist.  It is intentionally visual only:
+   trainer physics and road geometry never depend on the weather state. */
 (function(){
   const sc=SCENES.find(s=>s.id==='verdant');
-  if(sc){sc.skyImg='assets/images/sky_verdant.svg?b=132';sc._clearFogDen=sc.sky.fogDen;}
+  if(sc){sc.skyImg='assets/images/sky_verdant.svg?b=131';sc._clearFogDen=sc.sky.fogDen;}
 
   const cv=document.createElement('canvas');
   cv.id='verdantWeatherFx';

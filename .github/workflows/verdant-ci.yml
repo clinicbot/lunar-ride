@@ -103,9 +103,6 @@ jobs:
           console.log('ok: rejected v130 palms are fully removed from the branch and runtime');
           NODE
 
-      - name: Verdant v132 living-world and sky regression test
-        run: node tests/verdant-v132-expansion-smoke.js
-
       - name: Verdant atmosphere and retained v128 mountain regression test
         run: |
           node - <<'NODE'
@@ -114,12 +111,11 @@ jobs:
           const weather=fs.readFileSync('js/18-verdant-weather.js','utf8');
           const mountains=fs.readFileSync('js/35-verdant-mountains-v123.js','utf8');
           if((sky.match(/<path /g)||[]).length!==0)throw new Error('painted skyline paths must remain absent');
-          for(const k of ['NO painted mountain','real 3-D terrain','ringed-planet','cloud-layer-high','cloud-layer-mid','cloud-layer-low'])
-            if(!sky.includes(k))throw new Error('v132 sky marker missing: '+k);
-          if(!weather.includes('sky_verdant.svg?b=132'))throw new Error('v132 skyline cache-bust missing');
+          if(!sky.includes('NO painted mountain')||!sky.includes('real 3-D terrain'))throw new Error('atmosphere-only skyline marker missing');
+          if(!weather.includes('sky_verdant.svg?b=131'))throw new Error('v131 skyline cache-bust missing');
           for(const k of ['oldAlpine','H[v]-=oldA','alpineRidges','__verdantMountainsV128'])
             if(!mountains.includes(k))throw new Error('retained v128 alpine cleanup missing: '+k);
-          console.log('ok: richer v132 atmosphere and retained v128 legacy-dome removal');
+          console.log('ok: atmosphere-only sky and retained v128 legacy-dome removal');
           NODE
 
       - name: Verify current Verdant wiring
@@ -128,17 +124,15 @@ jobs:
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
           const loader=R('js/19-verdant-assets.js'),lite=R('js/25-verdant-lite-richness.js'),sw=R('sw.js');
           const mountains=R('js/35-verdant-mountains-v123.js'),m129=R('js/37-verdant-mountains-v129.js');
-          const wild=R('js/36-verdant-wildlife-v125.js'),cleanup=R('js/38-verdant-world-cleanup-v129.js'),v132=R('js/39-verdant-v132-expansion.js');
-          for(const f of ['36-verdant-wildlife-v125.js','35-verdant-mountains-v123.js','37-verdant-mountains-v129.js','38-verdant-world-cleanup-v129.js','39-verdant-v132-expansion.js'])
-            if(!loader.includes(f+'?b=132'))throw new Error('v132 loader wiring missing '+f);
-          if(!lite.includes("const RELEASE='132'"))throw new Error('v132 label missing');
-          if(!sw.includes("lunar-ride-v132"))throw new Error('v132 cache missing');
-          if(!sw.includes('verdant_mushroom_tree_v132.b64.0'))throw new Error('v132 mushroom asset not cached');
+          const wild=R('js/36-verdant-wildlife-v125.js'),cleanup=R('js/38-verdant-world-cleanup-v129.js');
+          for(const f of ['36-verdant-wildlife-v125.js','35-verdant-mountains-v123.js','37-verdant-mountains-v129.js','38-verdant-world-cleanup-v129.js'])
+            if(!loader.includes(f+'?b=131'))throw new Error('v131 loader wiring missing '+f);
+          if(!lite.includes("const RELEASE='131'"))throw new Error('v131 label missing');
+          if(!sw.includes("lunar-ride-v131"))throw new Error('v131 cache missing');
           if(!mountains.includes('ROAD_CORE=46')||!mountains.includes('FULL_REPLACE=ROAD_CORE+ROAD_FADE'))throw new Error('v126 full-route mountain protection missing');
           if(!mountains.includes('__verdantMountainsV128'))throw new Error('v128 mountain cleanup missing');
           if(!m129.includes('__verdantRoadbedV129')||!m129.includes('__verdantMountainsV129'))throw new Error('v129 terrain cleanup incomplete');
           if(!wild.includes('stagHerds')||!wild.includes('retunedFrogs')||!wild.includes('dragonflySwarms'))throw new Error('v125 wildlife layer incomplete');
           if(!cleanup.includes('legacyBillboardsDisabled:true')||!cleanup.includes('extraStagHerds'))throw new Error('v129 final cleanup incomplete');
-          if(!v132.includes('__verdantV132')||!v132.includes('cleanPropsNearRoad'))throw new Error('v132 final expansion incomplete');
-          console.log('ok: current Verdant v132 wiring and retained protections');
+          console.log('ok: current Verdant v131 wiring, rejected palms absent');
           NODE

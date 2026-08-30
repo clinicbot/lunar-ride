@@ -1,82 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 1024" preserveAspectRatio="xMidYMid slice">
 <defs>
   <linearGradient id="sky" x2="0" y2="1">
-    <stop stop-color="#7897aa"/>
-    <stop offset=".36" stop-color="#a7bcc2"/>
-    <stop offset=".70" stop-color="#d0d5d0"/>
+    <stop stop-color="#8da9b3"/>
+    <stop offset=".48" stop-color="#bac9c8"/>
+    <stop offset=".76" stop-color="#d6d8ce"/>
     <stop offset="1" stop-color="#aab7af"/>
   </linearGradient>
   <linearGradient id="haze" x2="0" y2="1">
-    <stop stop-color="#dce3df" stop-opacity="0"/>
-    <stop offset=".42" stop-color="#cbd5d0" stop-opacity=".18"/>
-    <stop offset="1" stop-color="#aab9b3" stop-opacity=".34"/>
+    <stop stop-color="#d9dfda" stop-opacity="0"/>
+    <stop offset=".42" stop-color="#cbd4cd" stop-opacity=".18"/>
+    <stop offset="1" stop-color="#aebbb4" stop-opacity=".30"/>
   </linearGradient>
-  <radialGradient id="planet" cx="38%" cy="32%" r="72%">
-    <stop stop-color="#d8e1df"/>
-    <stop offset=".45" stop-color="#9eb9bd"/>
-    <stop offset=".78" stop-color="#6f8fa1"/>
-    <stop offset="1" stop-color="#4c6578"/>
-  </radialGradient>
-  <linearGradient id="ring" x1="0" x2="1">
-    <stop stop-color="#d9cec0" stop-opacity=".18"/>
-    <stop offset=".35" stop-color="#f0e1c9" stop-opacity=".62"/>
-    <stop offset=".68" stop-color="#b6c5c7" stop-opacity=".48"/>
-    <stop offset="1" stop-color="#728c9b" stop-opacity=".14"/>
-  </linearGradient>
-  <filter id="cloud"><feGaussianBlur stdDeviation="26"/></filter>
-  <filter id="cloudSoft"><feGaussianBlur stdDeviation="46"/></filter>
-  <filter id="veil"><feGaussianBlur stdDeviation="66"/></filter>
-  <filter id="planetGlow"><feGaussianBlur stdDeviation="14"/></filter>
+  <filter id="cloud"><feGaussianBlur stdDeviation="34"/></filter>
+  <filter id="veil"><feGaussianBlur stdDeviation="58"/></filter>
 </defs>
 <rect width="2048" height="1024" fill="url(#sky)"/>
 
-<!-- v132: atmosphere only. There are deliberately NO painted mountain,
-     hill, dome or triangular skyline silhouettes. All landscape silhouette
-     comes from the real 3-D terrain. -->
-
-<!-- cloud-layer-high: thin, high altitude cloud streaks -->
-<g id="cloud-layer-high" fill="#eef4f3" opacity=".19" filter="url(#cloudSoft)">
-  <ellipse cx="120" cy="145" rx="290" ry="42"/>
-  <ellipse cx="520" cy="118" rx="250" ry="34"/>
-  <ellipse cx="990" cy="158" rx="340" ry="44"/>
-  <ellipse cx="1450" cy="116" rx="280" ry="36"/>
-  <ellipse cx="1930" cy="160" rx="320" ry="42"/>
+<!-- v128: atmosphere only.  There are deliberately NO painted mountain,
+     hill, dome or triangular skyline silhouettes in this panorama.  All
+     landscape silhouette now comes from the real 3-D terrain. -->
+<g fill="#edf1ec" opacity=".30" filter="url(#cloud)">
+  <ellipse cx="245" cy="245" rx="300" ry="72"/>
+  <ellipse cx="610" cy="300" rx="390" ry="84"/>
+  <ellipse cx="1120" cy="220" rx="330" ry="70"/>
+  <ellipse cx="1645" cy="285" rx="430" ry="88"/>
+  <ellipse cx="2010" cy="215" rx="250" ry="64"/>
 </g>
 
-<!-- ringed-planet: a restrained sci-fi landmark, no landscape geometry -->
-<g id="ringed-planet" transform="translate(1570 270) rotate(-14)" opacity=".78">
-  <ellipse cx="0" cy="0" rx="220" ry="57" fill="none" stroke="#dfe8e5" stroke-opacity=".16" stroke-width="34" filter="url(#planetGlow)"/>
-  <ellipse cx="0" cy="0" rx="215" ry="54" fill="none" stroke="url(#ring)" stroke-width="22"/>
-  <circle cx="0" cy="0" r="112" fill="url(#planet)"/>
-  <ellipse cx="-18" cy="-27" rx="70" ry="24" fill="#dbe5e1" opacity=".12"/>
-  <ellipse cx="20" cy="18" rx="92" ry="29" fill="#49687c" opacity=".11"/>
-  <ellipse cx="0" cy="0" rx="215" ry="54" fill="none" stroke="#f1dfc2" stroke-opacity=".22" stroke-width="7"/>
-</g>
-
-<!-- cloud-layer-mid: denser cloud banks with overlapping puffs -->
-<g id="cloud-layer-mid" fill="#edf2ef" opacity=".34" filter="url(#cloud)">
-  <ellipse cx="205" cy="285" rx="235" ry="68"/>
-  <ellipse cx="420" cy="315" rx="260" ry="76"/>
-  <ellipse cx="755" cy="255" rx="245" ry="62"/>
-  <ellipse cx="1060" cy="310" rx="330" ry="80"/>
-  <ellipse cx="1400" cy="345" rx="250" ry="66"/>
-  <ellipse cx="1795" cy="315" rx="345" ry="82"/>
-  <ellipse cx="2045" cy="265" rx="220" ry="58"/>
-</g>
-
-<!-- cloud-layer-low: darker monsoon banks near the horizon -->
-<g id="cloud-layer-low" fill="#b9c8c6" opacity=".22" filter="url(#cloudSoft)">
-  <ellipse cx="340" cy="520" rx="390" ry="84"/>
-  <ellipse cx="940" cy="548" rx="470" ry="96"/>
-  <ellipse cx="1540" cy="515" rx="430" ry="88"/>
-  <ellipse cx="2010" cy="545" rx="300" ry="74"/>
-</g>
-
-<!-- Broad non-silhouette mist banks soften the horizon. -->
-<g fill="#e2e8e3" opacity=".18" filter="url(#veil)">
-  <ellipse cx="280" cy="790" rx="540" ry="126"/>
-  <ellipse cx="990" cy="810" rx="700" ry="142"/>
-  <ellipse cx="1730" cy="785" rx="600" ry="124"/>
+<!-- Broad, non-silhouette mist banks soften the horizon without introducing
+     any shape that can be mistaken for geometry. -->
+<g fill="#e2e8e3" opacity=".17" filter="url(#veil)">
+  <ellipse cx="280" cy="780" rx="520" ry="120"/>
+  <ellipse cx="980" cy="805" rx="680" ry="138"/>
+  <ellipse cx="1710" cy="770" rx="570" ry="118"/>
 </g>
 <rect y="690" width="2048" height="334" fill="url(#haze)"/>
 </svg>
