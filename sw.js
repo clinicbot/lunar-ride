@@ -28,7 +28,7 @@ const CORE = [
   'js/49-aqua-rift-v143.js', 'js/50-aqua-real-fish-v144.js',
   'js/51-aqua-fish-visibility-v145.js', 'js/52-aqua-depth-distribution-v146.js',
   'js/53-aqua-swim-motion-v147.js', 'js/54-aqua-tail-animation-v148.js',
-  'js/28-verdant-instanced-renderer.js',
+  'js/55-aqua-uturn-continuity-v149.js', 'js/28-verdant-instanced-renderer.js',
   'assets/images/verdant_rift_card.svg', 'assets/images/aqua_rift_card.svg', 'assets/images/sky_verdant.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
   'assets/models/verdant_monkey.gltf', 'assets/models/verdant_ship.gltf',
