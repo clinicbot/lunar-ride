@@ -92,7 +92,7 @@ jobs:
             if(!depth.includes(k))throw new Error('Aqua v146 runtime marker missing '+k);
           for(const k of ["VERSION=147","VERTICAL_DRIFT=.18","horizontal-elliptical-swim","headingFollowsVelocity:true","removesDroneBob:true"])
             if(!swim.includes(k))throw new Error('Aqua v147 runtime marker missing '+k);
-          for(const k of ["VERSION=148","FRAME_COUNT=24","TAIL_AMPLITUDE=.075","aquaTailAnimated:true","geometryBaked:true","w.__aquaFishV148"])
+          for(const k of ["VERSION=148","FRAME_COUNT=24","TAIL_AMPLITUDE=.075","aquaTailAnimated:true","geometryBaked:true","world.__aquaFishV148"])
             if(!tail.includes(k))throw new Error('Aqua v148 runtime marker missing '+k);
           if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring was disturbed');
           console.log('ok: Aqua v148 keeps v147 trajectories and adds shared baked body/tail flex while Verdant v142 remains intact');
