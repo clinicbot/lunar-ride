@@ -2,7 +2,7 @@ name: Aqua v160 rocky shoulders + upper fish checks
 
 on:
   push:
-    branches: [fixes-build-90]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

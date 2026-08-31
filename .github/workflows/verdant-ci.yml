@@ -2,7 +2,7 @@ name: Verdant Rift checks
 
 on:
   push:
-    branches: [fixes-build-90]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

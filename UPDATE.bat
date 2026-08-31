@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-echo Updating Lunar Ride test branch...
+echo Updating Lunar Ride...
 where git >nul 2>nul
 if errorlevel 1 (
   echo.
@@ -12,7 +12,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-git pull --ff-only origin fixes-build-90
+git pull --ff-only origin main
 if errorlevel 1 (
   echo.
   echo Update could not be completed automatically.
