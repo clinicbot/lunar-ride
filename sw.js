@@ -35,6 +35,7 @@ const CORE = [
   'js/62a-aqua-v156-model-siren.js', 'js/62b-aqua-v156-model-crawler.js',
   'js/62c-aqua-v156-model-eelbeast.js', 'js/62d-aqua-v156-model-leviathan.js',
   'js/62-aqua-creatures-v156.js', 'js/63-aqua-visible-creatures-v157.js',
+  'js/64-aqua-no-podium-v158.js',
   'js/28-verdant-instanced-renderer.js',
   'assets/images/verdant_rift_card.svg', 'assets/images/aqua_rift_card.svg', 'assets/images/sky_verdant.svg',
   'assets/models/verdant_bear.gltf', 'assets/models/verdant_frog.gltf',
