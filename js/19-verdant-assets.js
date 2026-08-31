@@ -49,8 +49,9 @@
 
 /* Verdant remains v142. Aqua is a separate world: v143 builds the glass
    ocean, v144 imports the real Quaternius fish/reef, v145 corrects their
-   imported node transform + hard-isolates fauna, and v146 redistributes the
-   fish bilaterally from low/eye-level through the high water column. */
+   imported node transform + hard-isolates fauna, v146 redistributes the fish
+   throughout the water column, and v147 replaces drone bobbing with sustained
+   horizontal swimming motion. */
 if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/20-verdant-route-audit.js?b=142"></script>');
   document.write('<script src="js/21-verdant-terrain-polish.js?b=142"></script>');
@@ -74,9 +75,10 @@ if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/45-verdant-wildlife-buildings-mushrooms-v140.js?b=142"></script>');
   document.write('<script src="js/47-verdant-uploaded-mushroom-replace-v141.js?b=142"></script>');
   document.write('<script src="js/48-verdant-mushroom-carpet-fix-v142.js?b=142"></script>');
-  document.write('<script src="js/49-aqua-rift-v143.js?b=146"></script>');
-  document.write('<script src="js/50-aqua-real-fish-v144.js?b=146"></script>');
-  document.write('<script src="js/51-aqua-fish-visibility-v145.js?b=146"></script>');
-  document.write('<script src="js/52-aqua-depth-distribution-v146.js?b=146"></script>');
+  document.write('<script src="js/49-aqua-rift-v143.js?b=147"></script>');
+  document.write('<script src="js/50-aqua-real-fish-v144.js?b=147"></script>');
+  document.write('<script src="js/51-aqua-fish-visibility-v145.js?b=147"></script>');
+  document.write('<script src="js/52-aqua-depth-distribution-v146.js?b=147"></script>');
+  document.write('<script src="js/53-aqua-swim-motion-v147.js?b=147"></script>');
   document.write('<script src="js/28-verdant-instanced-renderer.js?b=142"></script>');
 }
