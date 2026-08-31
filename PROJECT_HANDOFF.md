@@ -11,142 +11,74 @@ Persistent continuation note. Before changing code, verify latest `fixes-build-9
 - Create a backup branch before risky visual/world changes.
 - GitHub connector access is independent of local git/container networking; do not confuse the two.
 
-## Current checkpoint — 2026-08-31
+## Current checkpoint — Aqua v157
 - Verdant Rift remains **v142** and must be preserved.
-- Aqua Rift current release is **v156**.
-- v156 code/wiring/CI feature checkpoint: `d9b5e4bc3940ad1786c8b2798e11ae3798734e98`.
-- Aqua CI run `33404254807`: **SUCCESS**.
-- Verdant CI run `33404254821`: **SUCCESS** on the same code checkpoint.
-- Canonical backup immediately before v156: `backup-v155-before-aqua-creatures-v156`.
+- Aqua Rift current release is **v157**.
+- Backup immediately before v157: `backup-v156-before-visible-creatures-v157`.
+- v157 layer: `js/63-aqua-visible-creatures-v157.js`.
+- v157 regression: `tests/aqua-v157-visible-creatures-smoke.js`.
 - `js/09-bluetooth.js` remains untouched.
 
-## Visual history leading to v156
-v153 introduced six recognizable coral families; v154 increased close hero presence and overlapping clusters; v155 tried to replace podiums with organic colonies. The user's v155 screenshot proved the flat dark platforms were still visible. Inspection showed this was not a service-worker/cache issue: v155 `moundBase()` still emitted several thin rectangular `box()` ledges under hero colonies.
+## Why v157 was required
+The user's v156 screenshot showed that the dark rectangular coral bases were still visible. The user also did not see any of the four newly imported creature families. Inspection of v156 confirmed the creatures were placed far too far from the tunnel: small creatures were roughly 28–98 m from the glass and leviathans 82–145 m away.
 
-The user then supplied four GLB water-creature models and explicitly asked to add them to Aqua for more interest while fixing the platforms.
+The user explicitly requested moving them very close to the glass because the purpose is for the rider to see them.
 
-## Aqua v156 — true podium removal + uploaded water creatures
-New runtime/data files:
-1. `js/62a-aqua-v156-model-siren.js`
-2. `js/62b-aqua-v156-model-crawler.js`
-3. `js/62c-aqua-v156-model-eelbeast.js`
-4. `js/62d-aqua-v156-model-leviathan.js`
-5. `js/62-aqua-creatures-v156.js`
+## v157 podium fix
+v156's podium suppression depended on `Error().stack` containing the function name `moundBase`. That is not reliable in browser execution.
 
-Regression: `tests/aqua-v156-creatures-smoke.js`.
+v157 wraps `MeshB.prototype.box` again, but uses an Aqua-build-active flag plus dimensions instead of stack inspection. During Aqua construction it suppresses very flat decorative boxes (`h <= .14`, `w <= 2.25`, `d <= 1.05`) matching the reef-base geometry. Structural tunnel rails remain because they are much taller (`h=.35/.48`).
 
-### User-uploaded model conversion
-The four user GLBs were inspected and simplified to lightweight quantized geometry. Their compact position/index payloads are stored as base64 uint16 data in the four `62a..62d` JS files. `js/62-aqua-creatures-v156.js` reconstructs positions/normals at GL initialization and registers each model directly in the established `GLCRE` creature registry. This avoids adding a new GLB/parser/texture dependency to the lightweight Lunar Ride runtime.
+Telemetry:
+- `hardFlatBaseSuppression:true`
+- `flatBoxesSuppressed`
 
-Registered model keys:
-- `aqSiren156`
-- `aqCrawler156`
-- `aqEel156`
-- `aqLeviathan156`
+## v157 creature visibility
+All 36 v156 uploaded creatures are retained and repositioned deterministically after the v156 build:
+- 16 eelbeasts
+- 10 sirens
+- 8 crawlers
+- 2 leviathans
 
-### Actual platform fix
-v156 intentionally does **not** rebuild the entire approved v155 reef again. Instead it fixes the exact defect at the source-call level: it wraps `MeshB.prototype.box` and suppresses only the very flat box dimensions called from a function named `moundBase` (`h<=.12`, `d<=.60`, `w<=2.10`).
+Small creatures are now only **2.2–7.5 m outside the local glass radius**. Leviathans are **8–15 m outside the glass**. Their vertical positions are road-relative rather than seabed-relative so they remain in the rider's visible water column.
 
-This removes the three v155 hero-mound ledge/platform boxes while preserving:
-- Aqua structural tunnel rails (`h=.35`),
-- all non-mound geometry,
-- all Verdant geometry.
+### Encounter km
+Eelbeasts: 0.15, 0.45, 0.80, 1.15, 1.55, 2.05, 2.45, 2.85, 3.30, 3.75, 4.20, 4.65, 5.10, 5.55, 6.15, 6.70 km.
 
-The remaining v155 mound is composed of rounded rock/rubble spheres, so visually it should read as an irregular reef foundation instead of a black stage.
+Sirens: 0.30, 0.95, 1.75, 2.45, 3.15, 3.85, 4.55, 5.25, 5.95, 6.65 km.
 
-Regression explicitly creates two fake `moundBase()` boxes plus one tunnel-rail box and verifies only the mound boxes are suppressed.
+Crawlers: 0.55, 1.40, 2.25, 3.10, 3.95, 4.80, 5.65, 6.50 km.
 
-### 36 new water creatures
-v156 adds exactly **36** moving user-model creatures, all outside the glass and using the established `type:'drone'` orbit/swim movement contract:
-- **10 sirens** — medium-large, mixed depth, moderate distance;
-- **8 crawlers** — slightly larger/deeper/farther;
-- **16 eel-beasts** — most common, elongated orientation with a 90° yaw bias;
-- **2 leviathans** — very large, very slow, rare and far from the tube.
+Leviathans: **1.65 km** and **5.70 km**.
 
-The population is deliberately sparse compared with the 258 existing fish. The intent is occasional interesting silhouettes/events rather than another repetitive school.
-
-Telemetry `w.__aquaV156` records:
-- `reefBaseBoxesRemoved:true`
-- `reefBaseCylindersRemoved:true`
-- `platformBoxesSuppressed`
-- `uploadedUserModels:true`
-- `customCreatureCount:36`
-- creature counts 10 / 8 / 16 / 2
-- `heroLeviathans:2`
-- v155 reef counts carried forward
-- jelly/fish preservation
-- road/glass/Verdant isolation.
+The first four planned encounters therefore occur at 0.15, 0.30, 0.45 and 0.55 km so visual verification requires only the first half-kilometre.
 
 ## Preserved Aqua systems
-- v155 reef composition remains exact: **2,800 groups** = 700 near / 1,400 mid / 700 far.
-- 280 hero colonies remain (140 primary + 140 secondary).
-- 2,800 mound groups and 840 accents remain.
-- v153-v155 coral families/composition remain intact except the thin v155 moundBase boxes are suppressed.
-- v152: 60 proper shared project jellyfish remain (`assets/models/creature_jelly.gltf`).
-- v144-v150: 258 Quaternius fish and their visibility/depth/swim/tail/face/U-turn behavior remain unchanged.
-- Road, glass and water remain unchanged.
-- Aqua tunnel structural rails remain unchanged.
+- Exact 2,800 reef placements from v155/v156 remain.
+- v156 uploaded geometry payloads remain in `js/aqua-v156-model-*.js`.
+- 60 proper shared v152 jellyfish remain unchanged.
+- Existing 258 Quaternius fish and all swim/tail/face/U-turn layers remain unchanged.
+- Road, glass, water and tunnel systems remain unchanged.
 - Verdant v142 remains isolated.
 
 ## Current Aqua wiring
-`js/19-verdant-assets.js` loads Aqua with cache-buster `?b=156` in order:
-1. v143 base Glass Ocean
-2. v144 real fish
-3. v145 visibility/fauna isolation
-4. v146 depth distribution
-5. v147 swim trajectory
-6. v148 body/tail animation
-7. v149 U-turn continuity
-8. v150 fish faces / reef cleanup
-9. v151 historical coral/jelly layer
-10. v152 proper shared jellyfish
-11. v153 recognizable HQ coral
-12. v154 hero clusters
-13. v155 coral colonies / mound composition
-14. v156 siren model payload
-15. v156 crawler model payload
-16. v156 eel-beast model payload
-17. v156 leviathan model payload
-18. **v156 platform filter + creature population**
+`js/19-verdant-assets.js` loads Aqua v143→v157 in order, all Aqua layers cache-busted with `?b=157`. Verdant layers remain `?b=142`.
 
-Verdant scripts remain `?b=142`.
-`sw.js` intentionally retains cache name `lunar-ride-v142`, preserves the original `js/32-verdant-fauna-buildings-v121.js` entry, and includes all five v156 files.
+`sw.js` intentionally retains cache name `lunar-ride-v142` while caching Aqua through `js/63-aqua-visible-creatures-v157.js` and all four v156 model-payload JavaScript files.
 
-## CI
-Aqua workflow: `.github/workflows/aqua-ci.yml`.
-Verdant workflow: `.github/workflows/verdant-ci.yml`.
+Aqua CI now protects v143→v157, including syntax, runtime regressions, v156 uploaded-creature wiring and v157 near-glass placement / hard-base-suppression markers.
 
-Aqua CI now protects **v143→v156**:
-- syntax for all Aqua scripts including 62a-d/main and all regressions;
-- all runtime smoke tests through v156;
-- Quaternius fish/provenance checks;
-- shared jelly asset/loader checks;
-- `?b=156` loader wiring for every Aqua layer;
-- service-worker inclusion for all v156 model/runtime files;
-- Verdant v142 wiring/cache invariants;
-- v152/v153/v154/v155 regression markers;
-- v156 model payload presence, registration, exact 36-creature population and selective moundBase box suppression.
-
-Feature checkpoint results:
-- Aqua run `33404254807` — **SUCCESS**.
-- Verdant run `33404254821` — **SUCCESS**.
-
-## Verdant Rift approved state — v142
-Do not disturb while tuning Aqua. Mushrooms 25% scale; bilateral four-colour hillside flowers; 14 bears; v140 cats/dragonflies/deer/buildings; approved v137 TwistedTree and v136 CommonTree mixes. Rejected v132 bundle, global v133 alpha changes, v135 synthetic CommonTree and v130 palms remain off. GPU nature instancing remains `js/28-verdant-instanced-renderer.js`.
-
-## Immediate visual test — v156
+## Immediate visual test
 Run:
 `UPDATE.bat` → `ride.bat` → close/reopen → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
 
-Look specifically for:
-- the dark rectangular platforms under coral should finally be gone;
-- rounded irregular rock/rubble should remain under colonies;
-- new user-model creatures should appear at different depths and on both sides, not in a single line;
-- only two giant leviathans exist, so sightings should be occasional;
-- fish and proper v152 jellyfish should be unchanged;
-- no creature enters the glass tube;
-- frame rate should remain smooth;
-- Verdant must be visually unchanged.
+Inspect specifically:
+1. the black/flat podium bases should be gone;
+2. visible creatures should appear already at 0.15–0.55 km;
+3. the first leviathan should be clearly visible near 1.65 km;
+4. no creature should intersect the glass;
+5. performance, fish and jellyfish should remain unchanged;
+6. Verdant Rift remains visually unchanged.
 
-## Next task after this handoff
-Wait for the user's v156 screenshot/performance feedback. If platforms still appear, identify the visible geometry source before changing cache or coral density. If the new creatures are poorly oriented/scaled/sparse/dense, tune only v156 model transform/population parameters. Do not disturb Verdant, fish, jellyfish or the approved v155 reef budget without explicit visual evidence.
+## Next task
+Wait for the user's v157 screenshot/performance feedback. If the creatures are visible but orientation/scale/motion is weak, tune those properties rather than moving them far away again. If any rectangular bases remain, inspect which geometry primitive is still producing them rather than reintroducing stack-trace filtering.
