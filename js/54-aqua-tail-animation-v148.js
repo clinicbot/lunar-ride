@@ -121,12 +121,15 @@
     const axisR=(along,side,up)=>{const q=[eyeR,eyeR,eyeR];q[la]=along;q[sa]=side;q[ua]=up;return q;};
     const centre=(along,side,up)=>{const q=[0,0,0];q[la]=along;q[sa]=side;q[ua]=up;return q;};
 
-    const eyeAlong=head+inward*L*.105,eyeUp=up0+shape.extent[ua]*.10;
+    /* Keep the eye's front-back thickness well inside BODY_START=.14 while
+       preserving its full lateral size. This prevents pupils/eyes from being
+       caught by the first body-flex vertices on compact species. */
+    const eyeAlong=head+inward*L*.090,eyeUp=up0+shape.extent[ua]*.10;
     for(const sg of [-1,1]){
       const ec=centre(eyeAlong,side0+sg*sideHalf,eyeUp);
-      addEllipsoid(ec,axisR(eyeR*.92,eyeR,eyeR*.92),EYE,8,5);
+      addEllipsoid(ec,axisR(eyeR*.55,eyeR,eyeR*.92),EYE,8,5);
       const pc=ec.slice();pc[sa]+=sg*eyeR*.70;
-      addEllipsoid(pc,axisR(eyeR*.48,eyeR*.44,eyeR*.48),PUP,7,4);
+      addEllipsoid(pc,axisR(eyeR*.38,eyeR*.44,eyeR*.48),PUP,7,4);
     }
     const mouthAlong=head+inward*L*.025,mouthUp=up0-shape.extent[ua]*.10;
     addEllipsoid(centre(mouthAlong,side0,mouthUp),axisR(eyeR*.24,eyeR*.72,eyeR*.28),MOUTH,8,4);
