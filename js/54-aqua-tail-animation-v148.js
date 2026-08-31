@@ -6,7 +6,11 @@
    bakes 24 shared geometry frames per species. The head stays almost fixed,
    the body bends progressively, and the tail receives the largest lateral
    excursion. Small reef fish beat faster; sharks/swordfish beat slower.
-   Verdant and every non-Aqua creature still use the original loader. */
+   Verdant and every non-Aqua creature still use the original loader.
+
+   js/19 loads this file before js/07 defines updateActors(), so the model/frame
+   hooks install immediately while the per-frame phase updater retries on the
+   next task until physics exists, exactly like v147's motion wrapper. */
 (function(){
   const VERSION=148,FRAME_COUNT=24;
   const BODY_START=.14,TAIL_AMPLITUDE=.075,SPATIAL_PHASE=1.55;
@@ -98,7 +102,7 @@
         ca=Math.cos(ang),sn=Math.sin(ang),lat=P[i+sa]-side0;
       pos[i]=P[i];pos[i+1]=P[i+1];pos[i+2]=P[i+2];
       pos[i+la]=P[i+la]-lat*sn;pos[i+sa]=side0+lat*ca+disp;
-      let nl=N[i+la],ns=N[i+sa];
+      const nl=N[i+la],ns=N[i+sa];
       nrm[i]=N[i];nrm[i+1]=N[i+1];nrm[i+2]=N[i+2];
       nrm[i+la]=nl*ca-ns*sn;nrm[i+sa]=nl*sn+ns*ca;
       const ll=Math.hypot(nrm[i],nrm[i+1],nrm[i+2])||1;nrm[i]/=ll;nrm[i+1]/=ll;nrm[i+2]/=ll;
@@ -115,24 +119,34 @@
     return {pos:F.pos,nrm:F.nrm,col:G.col,limb:G.limbB,idx:G.idxB,count:G.count};
   };
 
-  const previousUpdate=updateActors;
-  updateActors=function(dt){
-    previousUpdate(dt);
-    if(!world||!state||!state.scene||state.scene.id!=='aqua'||!Array.isArray(world.actors))return;
-    let animated=0;
-    for(const a of world.actors){if(!a||a.aquaFish!==true)continue;
-      if(a.__aquaTailPhase===undefined)a.__aquaTailPhase=a.ph||0;
-      const base=TAIL_SPEED[a.gcre]||7.0,variation=.92+.16*(Math.sin((a.ph||0)*2.37)*.5+.5);
-      a.__aquaTailPhase=(a.__aquaTailPhase+dt*base*variation)%TWO_PI;animated++;}
-    if(!world.__aquaFishV148||world.__aquaFishV148.animated!==animated){
-      world.__aquaFishV148={version:VERSION,animated,framesPerSpecies:FRAME_COUNT,
-        bodyStart:BODY_START,tailAmplitude:TAIL_AMPLITUDE,spatialPhase:SPATIAL_PHASE,
-        speciesTailSpeed:Object.assign({},TAIL_SPEED),geometryBaked:true,headAnchored:true};
-      if(world.__aquaFishV147)world.__aquaFishV147.correctedByV148=true;
-      console.log('Aqua Rift v148 body/tail animation:',world.__aquaFishV148);
+  function installTailUpdate(){
+    if(globalThis.__aquaFishV148UpdateInstalled)return;
+    if(typeof updateActors!=='function'){
+      if(typeof setTimeout==='function')setTimeout(installTailUpdate,0);
+      return;
     }
-  };
+    globalThis.__aquaFishV148UpdateInstalled=true;
+    const previousUpdate=updateActors;
+    updateActors=function(dt){
+      previousUpdate(dt);
+      if(!world||!state||!state.scene||state.scene.id!=='aqua'||!Array.isArray(world.actors))return;
+      let animated=0;
+      for(const a of world.actors){if(!a||a.aquaFish!==true)continue;
+        if(a.__aquaTailPhase===undefined)a.__aquaTailPhase=a.ph||0;
+        const base=TAIL_SPEED[a.gcre]||7.0,variation=.92+.16*(Math.sin((a.ph||0)*2.37)*.5+.5);
+        a.__aquaTailPhase=(a.__aquaTailPhase+dt*base*variation)%TWO_PI;animated++;}
+      if(!world.__aquaFishV148||world.__aquaFishV148.animated!==animated){
+        world.__aquaFishV148={version:VERSION,animated,framesPerSpecies:FRAME_COUNT,
+          bodyStart:BODY_START,tailAmplitude:TAIL_AMPLITUDE,spatialPhase:SPATIAL_PHASE,
+          speciesTailSpeed:Object.assign({},TAIL_SPEED),geometryBaked:true,headAnchored:true,
+          deferredUpdateInstall:true};
+        if(world.__aquaFishV147)world.__aquaFishV147.correctedByV148=true;
+        console.log('Aqua Rift v148 body/tail animation:',world.__aquaFishV148);
+      }
+    };
+  }
 
   globalThis.__aquaFishV148Spec={VERSION,FRAME_COUNT,BODY_START,TAIL_AMPLITUDE,SPATIAL_PHASE,
     fishKeys:[...FISH_KEYS],tailSpeed:Object.assign({},TAIL_SPEED),analyseFishGeometry,deformFishFrame};
+  installTailUpdate();
 })();
