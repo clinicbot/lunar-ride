@@ -11,88 +11,91 @@ Persistent continuation note. Before changing code, verify latest `fixes-build-9
 - Create a backup branch before risky visual/world changes.
 - GitHub connector access is independent of local git/container networking; do not confuse the two.
 
-## Current checkpoint — Aqua v158
+## Current checkpoint — Aqua v159
 - Verdant Rift remains **v142** and must be preserved.
-- Aqua Rift current release is **v158**.
-- Backup immediately before v158: `backup-v157-before-no-podium-v158`.
-- v157 layer: `js/63-aqua-visible-creatures-v157.js`.
-- v158 layer: `js/64-aqua-no-podium-v158.js`.
-- v158 regression: `tests/aqua-v158-no-podium-smoke.js`.
+- Aqua Rift current release is **v159**.
+- Backup immediately before v159: `backup-v158-before-sand-ab-v159`.
+- v159 layer: `js/65-aqua-sand-ab-v159.js`.
+- v159 regression: `tests/aqua-v159-sand-ab-smoke.js`.
+- Sand-source provenance: `assets/images/AQUA_SAND_PROVENANCE.md`.
+- Dedicated v159 workflow: `.github/workflows/aqua-v159-ci.yml`.
 - `js/09-bluetooth.js` remains untouched.
 
-## Why v158 was required
-The user's v157 screenshot still showed the dark rectangular coral bases.
+## Why v159 was required
+The user's v158 screenshot still showed visible coral bases/platform-like mound geometry. The user also decided the four user-uploaded creature families added in v156 did not look good in Aqua and explicitly requested removing them.
 
-Inspection of `js/61-aqua-coral-colonies-v155.js` found the exact source: `moundBase()` creates one irregular `m.box(x,sy*.28,z,sx,sy,sz,...)` for every mound plus additional hero ledge boxes. The main mound boxes can have heights up to roughly `.44`.
+Instead of continuing to widen geometry suppression filters, the user proposed a more natural visual solution: cover/blend the reef floor beside the road with realistic sand, analogous to the improved asphalt treatment on the road. The user approved an A/B test of two high-quality Poly Haven CC0 sand sources in alternating route sections.
 
-v157's runtime filter only rejected boxes with `h <= .14`, so it removed some thin hero ledges but allowed the larger mound blocks that visually read as podiums. This explains why the screenshot barely changed.
-
-## v158 podium fix
-v158 wraps `MeshB.prototype.box` after v157 and, only while Aqua is being built, suppresses the full decorative v155 mound/ledge envelope:
-- local `y <= .15`
-- `h <= .50`
-- `.30 <= w <= 2.25`
-- `.20 <= d <= 1.10`
-- `em <= .0125` when emission is supplied
-
-This range covers the actual v155 mound block dimensions as well as the hero ledges. Larger/taller structural geometry passes through unchanged.
-
-Telemetry:
-- `version:158`
-- `completeV155PodiumEnvelopeSuppression:true`
-- `podiumBoxesSuppressed`
-- `sourcePodiumRootCause:'v155 moundBase boxes up to h=.44'`
-
-The v158 regression specifically verifies that a v155-style `h=.28` mound block and a hero ledge are suppressed while larger/taller structural boxes survive. It also verifies that non-Aqua worlds are not filtered.
-
-## v157 creature visibility remains current
-All 36 v156 uploaded creatures remain positioned deterministically near the glass:
+## v159 uploaded-creature removal
+v159 runs after the existing Aqua stack and removes every actor marked `aquaCreatureV156===true`. This removes all **36** experimental uploaded creatures:
 - 16 eelbeasts
 - 10 sirens
 - 8 crawlers
 - 2 leviathans
 
-Small creatures are **2.2–7.5 m outside the local glass radius**. Leviathans are **8–15 m outside the glass**. Vertical positions are road-relative so they remain in the rider's visible water column.
+The old v156/v157 model/placement JavaScript still loads for this low-risk A/B experiment, but its generated actors are removed immediately by v159. If v159 is approved, dead-code cleanup can be done later without mixing it into the visual test.
 
-### Encounter km
-Eelbeasts: 0.15, 0.45, 0.80, 1.15, 1.55, 2.05, 2.45, 2.85, 3.30, 3.75, 4.20, 4.65, 5.10, 5.55, 6.15, 6.70 km.
+The existing Quaternius fish and the 60 proper shared v152 jellyfish are preserved.
 
-Sirens: 0.30, 0.95, 1.75, 2.45, 3.15, 3.85, 4.55, 5.25, 5.95, 6.65 km.
+## v159 sand shoulder A/B experiment
+v159 generates two independent route-following seabed shoulder meshes outside the local glass envelope on **both** sides of the road.
 
-Crawlers: 0.55, 1.40, 2.25, 3.10, 3.95, 4.80, 5.65, 6.50 km.
+The shoulder spans approximately **0.35–19.5 m outside the local glass radius** and uses several cross-road rows with mild height variation. The purpose is to make the coral mound/base geometry read as partially buried in seabed sand rather than dark objects placed on platforms.
 
-Leviathans: **1.65 km** and **5.70 km**.
+### Route comparison schedule
+- **0.0–1.8 km:** Aerial Beach 01
+- **1.8–3.6 km:** Sand 03
+- **3.6–5.4 km:** Aerial Beach 01
+- **5.4 km–lap end:** Sand 03
+
+This provides two separate examples of each texture under different route views and lighting.
+
+### Texture sources
+Both are Poly Haven **CC0** assets:
+- A — Aerial Beach 01, author Rob Tuytel
+- B — Sand 03, author Charlotte Baglioni
+
+During v159, the 1K diffuse images are loaded from Poly Haven at runtime and passed through Lunar Ride's existing `conditionTile()` pipeline, which flattens baked lighting, makes the image tileable and derives a normal map. This keeps the A/B experiment small. Once a winner is chosen, the selected texture can be vendored into the repository for fully local/offline use.
+
+See `assets/images/AQUA_SAND_PROVENANCE.md` for source URLs and attribution/license notes.
+
+## Rendering approach
+- `w.sandA` and `w.sandB` are built as separate static meshes.
+- `uploadWorld()` uploads them to `gpu.sandA` / `gpu.sandB`.
+- The draw wrapper renders them immediately before the road.
+- During the main pass, the existing asphalt material shader is reused temporarily with the appropriate sand diffuse/normal pair, then the original asphalt textures are restored before the actual road is drawn.
+- During the shadow pass, the sand meshes are also drawn so they receive/cast scene-consistent shadows.
+- If the remote photos have not loaded yet, the road remains unaffected; the sand photo draw waits until the A/B textures are ready.
 
 ## Preserved Aqua systems
 - Exact 2,800 reef placements remain.
-- v156 uploaded geometry payloads remain in `js/62a..62d-aqua-v156-model-*.js`.
 - 60 proper shared v152 jellyfish remain unchanged.
 - Existing Quaternius fish and all swim/tail/face/U-turn layers remain unchanged.
-- v157 near-glass creature placement remains unchanged.
-- Road, glass, water and tunnel systems are intended to remain unchanged.
+- Road asphalt and road geometry remain unchanged.
+- Glass, water and tunnel systems remain unchanged.
 - Verdant v142 remains isolated.
 
-## Current Aqua wiring
-`js/19-verdant-assets.js` loads Aqua v143→v158 in order, all Aqua layers cache-busted with `?b=158`. Verdant layers remain `?b=142`.
+## Current wiring / cache / CI
+`js/19-verdant-assets.js` loads Aqua through v158 as before, then loads `js/65-aqua-sand-ab-v159.js?b=159`. Verdant layers remain `?b=142`.
 
-`sw.js` intentionally retains cache name `lunar-ride-v142` while caching Aqua through `js/64-aqua-no-podium-v158.js` and all four v156 model-payload JavaScript files.
+`sw.js` intentionally retains cache name `lunar-ride-v142` while adding the v159 script and provenance note to CORE. The two experimental sand photos are cross-origin remote resources and therefore are not included in the service-worker CORE cache during the A/B test.
 
-Aqua CI now protects v143→v158, including syntax, all runtime regressions, imported asset validation, v157 near-glass creature placement, and v158 full podium-envelope suppression / wiring.
-
-At the v158 code checkpoint commit `27a7e497578e76e0f42013d13db2de84c2982ac4`, both Aqua CI and Verdant CI completed successfully.
+CI coverage:
+- existing `.github/workflows/aqua-ci.yml` protects the established Aqua v143→v158 stack;
+- new `.github/workflows/aqua-v159-ci.yml` protects v159 syntax, dynamic removal of uploaded actors, A/B mesh generation, loader/cache wiring and provenance;
+- `.github/workflows/verdant-ci.yml` protects approved Verdant v142.
 
 ## Immediate visual test
 Run:
 `UPDATE.bat` → `ride.bat` → close/reopen → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
 
 Inspect specifically:
-1. the dark rectangular podium bases should now be gone;
-2. organic sphere/rubble mound geometry should remain so corals do not look completely unsupported;
-3. visible creatures should appear already at 0.15–0.55 km;
-4. the first leviathan should be clearly visible near 1.65 km;
-5. no creature should intersect the glass;
-6. performance, road/glass/tunnel, fish and jellyfish should remain unchanged;
-7. Verdant Rift remains visually unchanged.
+1. all four uploaded creature families should be gone;
+2. sand should appear along both sides of the road and visually bury/blend the coral bases;
+3. compare **Aerial Beach 01** over 0–1.8 km against **Sand 03** over 1.8–3.6 km;
+4. repeat the comparison over 3.6–5.4 km versus 5.4 km–lap end;
+5. choose which texture looks more natural underwater and better hides the coral bases;
+6. verify performance, fish, jellyfish, road and glass are unchanged.
 
 ## Next task
-Wait for the user's v158 screenshot/performance feedback. If any rectangular base still remains after v158, do not widen the runtime filter blindly: identify whether it is coming from a different primitive or a different layer and patch that exact source.
+Wait for the user's v159 visual feedback. If one sand clearly wins, keep that texture for the whole route, vendor it locally, and tune shoulder width/height/tint if needed. If neither works, adjust the shoulder geometry/tint before returning to destructive coral-base changes.
