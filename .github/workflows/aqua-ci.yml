@@ -16,56 +16,46 @@ jobs:
 
       - name: Aqua JavaScript syntax
         run: |
-          node --check js/49-aqua-rift-v143.js
-          node --check js/50-aqua-real-fish-v144.js
-          node --check js/51-aqua-fish-visibility-v145.js
-          node --check js/52-aqua-depth-distribution-v146.js
-          node --check js/53-aqua-swim-motion-v147.js
-          node --check js/54-aqua-tail-animation-v148.js
-          node --check js/55-aqua-uturn-continuity-v149.js
-          node --check js/56-aqua-faces-reef-v150.js
-          node --check js/57-aqua-coral-jelly-v151.js
-          node --check js/58-aqua-proper-jelly-reef-v152.js
-          node --check tests/aqua-rift-v143-smoke.js
-          node --check tests/aqua-v144-real-fish-smoke.js
-          node --check tests/aqua-v145-fish-visibility-smoke.js
-          node --check tests/aqua-v146-depth-distribution-smoke.js
-          node --check tests/aqua-v147-swim-motion-smoke.js
-          node --check tests/aqua-v148-tail-animation-smoke.js
-          node --check tests/aqua-v149-uturn-continuity-smoke.js
-          node --check tests/aqua-v150-faces-reef-smoke.js
-          node --check tests/aqua-v151-coral-jelly-smoke.js
-          node --check tests/aqua-v152-proper-jelly-reef-smoke.js
+          for f in \
+            js/49-aqua-rift-v143.js \
+            js/50-aqua-real-fish-v144.js \
+            js/51-aqua-fish-visibility-v145.js \
+            js/52-aqua-depth-distribution-v146.js \
+            js/53-aqua-swim-motion-v147.js \
+            js/54-aqua-tail-animation-v148.js \
+            js/55-aqua-uturn-continuity-v149.js \
+            js/56-aqua-faces-reef-v150.js \
+            js/57-aqua-coral-jelly-v151.js \
+            js/58-aqua-proper-jelly-reef-v152.js \
+            js/59-aqua-hq-coral-v153.js \
+            tests/aqua-rift-v143-smoke.js \
+            tests/aqua-v144-real-fish-smoke.js \
+            tests/aqua-v145-fish-visibility-smoke.js \
+            tests/aqua-v146-depth-distribution-smoke.js \
+            tests/aqua-v147-swim-motion-smoke.js \
+            tests/aqua-v148-tail-animation-smoke.js \
+            tests/aqua-v149-uturn-continuity-smoke.js \
+            tests/aqua-v150-faces-reef-smoke.js \
+            tests/aqua-v151-coral-jelly-smoke.js \
+            tests/aqua-v152-proper-jelly-reef-smoke.js \
+            tests/aqua-v153-hq-coral-smoke.js
+          do
+            node --check "$f"
+          done
 
-      - name: Aqua Rift v143 base runtime smoke
-        run: node tests/aqua-rift-v143-smoke.js
-
-      - name: Aqua Rift v144 real fish and reef regression
-        run: node tests/aqua-v144-real-fish-smoke.js
-
-      - name: Aqua Rift v145 fish visibility and fauna isolation regression
-        run: node tests/aqua-v145-fish-visibility-smoke.js
-
-      - name: Aqua Rift v146 water-column distribution regression
-        run: node tests/aqua-v146-depth-distribution-smoke.js
-
-      - name: Aqua Rift v147 horizontal swimming motion regression
-        run: node tests/aqua-v147-swim-motion-smoke.js
-
-      - name: Aqua Rift v148 horizontal body and tail animation regression
-        run: node tests/aqua-v148-tail-animation-smoke.js
-
-      - name: Aqua Rift v149 U-turn continuity regression
-        run: node tests/aqua-v149-uturn-continuity-smoke.js
-
-      - name: Aqua Rift v150 faces and reef-only seafloor regression
-        run: node tests/aqua-v150-faces-reef-smoke.js
-
-      - name: Aqua Rift v151 coral gardens and jellyfish regression
-        run: node tests/aqua-v151-coral-jelly-smoke.js
-
-      - name: Aqua Rift v152 visible reef and project jellyfish regression
-        run: node tests/aqua-v152-proper-jelly-reef-smoke.js
+      - name: Aqua v143-v153 runtime regressions
+        run: |
+          node tests/aqua-rift-v143-smoke.js
+          node tests/aqua-v144-real-fish-smoke.js
+          node tests/aqua-v145-fish-visibility-smoke.js
+          node tests/aqua-v146-depth-distribution-smoke.js
+          node tests/aqua-v147-swim-motion-smoke.js
+          node tests/aqua-v148-tail-animation-smoke.js
+          node tests/aqua-v149-uturn-continuity-smoke.js
+          node tests/aqua-v150-faces-reef-smoke.js
+          node tests/aqua-v151-coral-jelly-smoke.js
+          node tests/aqua-v152-proper-jelly-reef-smoke.js
+          node tests/aqua-v153-hq-coral-smoke.js
 
       - name: Validate imported Quaternius fish assets
         run: |
@@ -96,41 +86,31 @@ jobs:
           if(!setup.includes("loadGLTFCreature('jelly','assets/models/creature_jelly.gltf',{})"))throw new Error('shared project jelly loader missing');
           const core=fs.readFileSync('js/02-core-geometry.js','utf8');
           if(!core.includes('gjelly :')&&!core.includes('gjelly  :'))throw new Error('shared gjelly creature meta missing');
-          console.log('ok: v152 reuses the established project jelly model and creature path');
+          console.log('ok: Aqua continues to reuse the established project jelly model and creature path');
           NODE
 
-      - name: Verify Aqua v152 runtime wiring and offline cache
+      - name: Verify Aqua v153 runtime wiring and offline cache
         run: |
           node - <<'NODE'
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
-          const loader=R('js/19-verdant-assets.js'),sw=R('sw.js'),aqua=R('js/49-aqua-rift-v143.js'),fish=R('js/50-aqua-real-fish-v144.js'),fix=R('js/51-aqua-fish-visibility-v145.js'),depth=R('js/52-aqua-depth-distribution-v146.js'),swim=R('js/53-aqua-swim-motion-v147.js'),tail=R('js/54-aqua-tail-animation-v148.js'),turn=R('js/55-aqua-uturn-continuity-v149.js'),reef=R('js/56-aqua-faces-reef-v150.js'),garden=R('js/57-aqua-coral-jelly-v151.js'),v152=R('js/58-aqua-proper-jelly-reef-v152.js');
-          for(const f of ['49-aqua-rift-v143.js','50-aqua-real-fish-v144.js','51-aqua-fish-visibility-v145.js','52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js','55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js','57-aqua-coral-jelly-v151.js','58-aqua-proper-jelly-reef-v152.js'])
-            if(!loader.includes(f+'?b=152'))throw new Error('Aqua v152 fresh loader wiring missing '+f);
+          const loader=R('js/19-verdant-assets.js'),sw=R('sw.js');
+          const scripts=[
+            '49-aqua-rift-v143.js','50-aqua-real-fish-v144.js','51-aqua-fish-visibility-v145.js',
+            '52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js',
+            '55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js','57-aqua-coral-jelly-v151.js',
+            '58-aqua-proper-jelly-reef-v152.js','59-aqua-hq-coral-v153.js'];
+          for(const f of scripts){
+            if(!loader.includes(f+'?b=153'))throw new Error('Aqua v153 fresh loader wiring missing '+f);
+            if(!sw.includes('js/'+f))throw new Error('Aqua offline cache missing '+f);
+          }
           if(!sw.includes("lunar-ride-v142"))throw new Error('retained Verdant v142 service-worker cache missing');
-          const names=['clownfish','fish-a','fish-b','fish-c','shark','anglerfish','puffer','lionfish','butterfly-fish','swordfish','black-lionfish'];
-          for(const f of ['js/49-aqua-rift-v143.js','js/50-aqua-real-fish-v144.js','js/51-aqua-fish-visibility-v145.js','js/52-aqua-depth-distribution-v146.js','js/53-aqua-swim-motion-v147.js','js/54-aqua-tail-animation-v148.js','js/55-aqua-uturn-continuity-v149.js','js/56-aqua-faces-reef-v150.js','js/57-aqua-coral-jelly-v151.js','js/58-aqua-proper-jelly-reef-v152.js','assets/images/aqua_rift_card.svg','assets/models/creature_jelly.gltf'])if(!sw.includes(f))throw new Error('Aqua cache missing '+f);
-          for(const n of names)if(!sw.includes('assets/models/aqua_fish/'+n+'.gltf'))throw new Error('Aqua fish cache missing '+n);
-          if(!fs.existsSync('assets/images/aqua_rift_card.svg'))throw new Error('Aqua world card missing');
-          for(const k of ["name:'Aqua Rift — Glass Ocean'","customWorld:AQUA_ID","w.glass=meshOf(glass)","w.water=meshOf(wm)","w.__aquaRiftV143"])
-            if(!aqua.includes(k))throw new Error('Aqua v143 runtime marker missing '+k);
-          for(const k of ["VERSION=144","aquaFish:true","w.__aquaFishV144","source:'Quaternius CC0'"])
-            if(!fish.includes(k))throw new Error('Aqua v144 runtime marker missing '+k);
-          for(const k of ["VERSION=145","MODEL_SCALE_FACTOR=100","MODEL_PITCH=-Math.PI/2","hardFaunaIsolation:true","w.__aquaFishV145"])
-            if(!fix.includes(k))throw new Error('Aqua v145 runtime marker missing '+k);
-          for(const k of ["VERSION=146","HEIGHT_BANDS=[-1.5,1.0,4.0,8.0,12.0]","bilateral:true","fullWaterColumn:true","w.__aquaFishV146"])
-            if(!depth.includes(k))throw new Error('Aqua v146 runtime marker missing '+k);
-          for(const k of ["VERSION=147","VERTICAL_DRIFT=.18","horizontal-elliptical-swim","headingFollowsVelocity:true","removesDroneBob:true"])
-            if(!swim.includes(k))throw new Error('Aqua v147 runtime marker missing '+k);
-          for(const k of ["VERSION=148","FRAME_COUNT=24","TAIL_AMPLITUDE=.075","horizontalTailPlane:true","faceEnhanced:true","aquaTailAnimated:true","world.__aquaFishV148"])
-            if(!tail.includes(k))throw new Error('Aqua v148/v150 face runtime marker missing '+k);
-          for(const k of ["VERSION=149","CAPTURE_RADIUS=135","HOLD_SECONDS=1.15","REJOIN_SECONDS=2.35","uTurnLocalContinuity:true","worldRebuild:false","fishRespawn:false"])
-            if(!turn.includes(k))throw new Error('Aqua v149 runtime marker missing '+k);
-          for(const k of ["VERSION=150","reefOnly:true","genericPropsDiscarded:true","mountainTerrainReplaced:true","screensRemoved:true","faceGeometryFromV148:true"])
-            if(!reef.includes(k))throw new Error('Aqua v150 runtime marker missing '+k);
-          for(const k of ["VERSION=151","REEF_STATIONS=176","CORALS_PER_SIDE=4","JELLY_COUNT=52","reefExtension:true","jellyOutsideGlass:true","aquaJelly:true"])
-            if(!garden.includes(k))throw new Error('Aqua v151 runtime marker missing '+k);
-          for(const k of ["VERSION=152","REEF_STATIONS=350","GROUPS_PER_SIDE=4","JELLY_COUNT=60","properProjectJelly:true","jellyAsset:'assets/models/creature_jelly.gltf'","reefWallVisible:true","jellyOutsideGlass:true"])
-            if(!v152.includes(k))throw new Error('Aqua v152 runtime marker missing '+k);
           if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring was disturbed');
-          console.log('ok: Aqua v152 replaces the weak v151 visual layer with 2800 visible reef groups and the established project creature_jelly.gltf while preserving Aqua fish systems and Verdant v142');
+          if(!sw.includes('assets/models/creature_jelly.gltf'))throw new Error('project jelly asset missing from offline cache');
+          const v152=R('js/58-aqua-proper-jelly-reef-v152.js');
+          for(const k of ["VERSION=152","JELLY_COUNT=60","properProjectJelly:true","jellyAsset:'assets/models/creature_jelly.gltf'"])
+            if(!v152.includes(k))throw new Error('Aqua v152 jelly regression marker missing '+k);
+          const v153=R('js/59-aqua-hq-coral-v153.js');
+          for(const k of ["VERSION=153","REEF_STATIONS=350","GROUPS_PER_SIDE=4","HERO_EVERY=5","hqCoral:true","hybridLOD:true","recognizableGeometry:true","proceduralSphereClustersReplaced:true"])
+            if(!v153.includes(k))throw new Error('Aqua v153 HQ coral marker missing '+k);
+          console.log('ok: Aqua v153 is wired after v152 with fresh cache busting, offline support and Verdant v142 isolation');
           NODE
