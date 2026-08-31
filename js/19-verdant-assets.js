@@ -51,7 +51,8 @@
    ocean, v144 imports the real Quaternius fish/reef, v145 corrects their
    imported node transform + hard-isolates fauna, v146 redistributes the fish
    throughout the water column, v147 replaces drone bobbing with sustained
-   horizontal swimming, and v148 bakes visible body/tail flex into the fish. */
+   horizontal swimming, v148 bakes body/tail flex, and v149 forces that flex
+   into the horizontal plane and preserves nearby schools across U-turns. */
 if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/20-verdant-route-audit.js?b=142"></script>');
   document.write('<script src="js/21-verdant-terrain-polish.js?b=142"></script>');
@@ -75,11 +76,12 @@ if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/45-verdant-wildlife-buildings-mushrooms-v140.js?b=142"></script>');
   document.write('<script src="js/47-verdant-uploaded-mushroom-replace-v141.js?b=142"></script>');
   document.write('<script src="js/48-verdant-mushroom-carpet-fix-v142.js?b=142"></script>');
-  document.write('<script src="js/49-aqua-rift-v143.js?b=148"></script>');
-  document.write('<script src="js/50-aqua-real-fish-v144.js?b=148"></script>');
-  document.write('<script src="js/51-aqua-fish-visibility-v145.js?b=148"></script>');
-  document.write('<script src="js/52-aqua-depth-distribution-v146.js?b=148"></script>');
-  document.write('<script src="js/53-aqua-swim-motion-v147.js?b=148"></script>');
-  document.write('<script src="js/54-aqua-tail-animation-v148.js?b=148"></script>');
+  document.write('<script src="js/49-aqua-rift-v143.js?b=149"></script>');
+  document.write('<script src="js/50-aqua-real-fish-v144.js?b=149"></script>');
+  document.write('<script src="js/51-aqua-fish-visibility-v145.js?b=149"></script>');
+  document.write('<script src="js/52-aqua-depth-distribution-v146.js?b=149"></script>');
+  document.write('<script src="js/53-aqua-swim-motion-v147.js?b=149"></script>');
+  document.write('<script src="js/54-aqua-tail-animation-v148.js?b=149"></script>');
+  document.write('<script src="js/55-aqua-uturn-continuity-v149.js?b=149"></script>');
   document.write('<script src="js/28-verdant-instanced-renderer.js?b=142"></script>');
 }
