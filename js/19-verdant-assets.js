@@ -98,6 +98,10 @@ if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/59-aqua-hq-coral-v153.js?b=157"></script>');
   document.write('<script src="js/60-aqua-hero-coral-v154.js?b=157"></script>');
   document.write('<script src="js/61-aqua-coral-colonies-v155.js?b=157"></script>');
+  document.write('<script src="js/62a-aqua-v156-model-siren.js?b=157"></script>');
+  document.write('<script src="js/62b-aqua-v156-model-crawler.js?b=157"></script>');
+  document.write('<script src="js/62c-aqua-v156-model-eelbeast.js?b=157"></script>');
+  document.write('<script src="js/62d-aqua-v156-model-leviathan.js?b=157"></script>');
   document.write('<script src="js/62-aqua-creatures-v156.js?b=157"></script>');
   document.write('<script src="js/63-aqua-visible-creatures-v157.js?b=157"></script>');
   document.write('<script src="js/28-verdant-instanced-renderer.js?b=142"></script>');
