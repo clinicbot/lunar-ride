@@ -13,84 +13,94 @@ Persistent continuation note. Before changing code, verify latest `fixes-build-9
 
 ## Current checkpoint — 2026-08-31
 - Verdant Rift remains **v142** and must be preserved.
-- Aqua Rift current release is **v152**.
-- v152 code/wiring checkpoint before this handoff: `9aa836a33c211be48045b8ec39f2cbaf7bbcec49`.
-- Aqua CI run `33386203118`: **SUCCESS**.
-- Verdant CI run `33386203090`: **SUCCESS** on the same checkpoint.
-- Canonical backup before v152: `backup-v151-before-aqua-v152-proper-jelly-coral` at exact v151 final HEAD `07fa11d93278a6feceb0966ee04a2ba12cc0fd6e`.
-- Two redundant same-HEAD v152 backup branches were also accidentally created (`...-2`, `...-final`); they are harmless. Use the canonical backup above.
-- Earlier canonical backups remain: `backup-v150-before-aqua-reef-jelly-v151`, `backup-v149-before-aqua-faces-reef-v150`, `backup-v148-before-aqua-axis-uturn-v149`, `backup-v147-before-aqua-tail-animation-v148`, `backup-v146-before-aqua-swim-motion-v147`, `backup-v145-before-aqua-depth-v146`, `backup-v144-before-aqua-fish-visibility-v145`, `backup-v143-before-aqua-fish-pack-v144`, `backup-v142-before-aqua-rift`.
+- Aqua Rift current release is **v153**.
+- v153 code/wiring/CI feature checkpoint: `d3a3d03094e390b38df676d5973f451fd635127a`.
+- Aqua CI run `33392300322`: **SUCCESS**.
+- Verdant CI run `33392300238`: **SUCCESS** on the same checkpoint.
+- Canonical backup immediately before v153: `backup-v152-before-aqua-hq-coral-v153` at exact pre-v153 HEAD `23c96d831701f69c743d3cb49c48f429cba761b2`.
+- Earlier canonical backups remain available for v143→v152 history.
 - `js/09-bluetooth.js` remains untouched.
 
-## Aqua v152 — visible reef walls + the proper shared project jellyfish
-New layer: `js/58-aqua-proper-jelly-reef-v152.js`.
-Regression: `tests/aqua-v152-proper-jelly-reef-smoke.js`.
+## Aqua v153 — high-quality coral geometry
+New layer: `js/59-aqua-hq-coral-v153.js`.
+Regression: `tests/aqua-v153-hq-coral-smoke.js`.
 
-### Why v152 exists
-After v151 the user clarified two issues from visual testing:
-1. The intended jellyfish were **not** Aqua's old procedural `jellyAqua`; he meant the higher-quality jellyfish already used in the other Lunar Ride worlds.
-2. The v151 coral extension was technically present but visually too distant/small to read. The visual target is the obvious colourful reef-garden/reef-wall feel seen beside the glass tunnel in the user's Zwift reference screenshot.
+### Why v153 exists
+The user visually tested v152 and reported that the coral was present but graphically very low quality. The problem was not density: v152 already had 2,800 groups. The weak point was that recognizable coral forms were approximated mainly by spheres and cylinders.
 
-### Correct jellyfish source
-The exact existing project asset was identified and verified:
-- asset: `assets/models/creature_jelly.gltf`
-- shared loader already present in `js/06-textures-renderer-setup.js`:
-  `loadGLTFCreature('jelly','assets/models/creature_jelly.gltf',{});`
-- shared creature metadata: `CREATURE.gjelly` in `js/02-core-geometry.js`.
-- renderer already draws `gcre:'jelly'` through the GLCRE path.
+v153 therefore keeps the established composition but **rebuilds `w.props` again** with better geometry rather than stacking more coral.
 
-v152 therefore removes all v151 actors with `aquaJelly:true` and creates **60** true shared-model actors with:
-- `type:'gjelly'`
-- `gcre:'jelly'`
-- `meta:CREATURE.gjelly`
-- `aquaJellyV152:true`.
+### Six recognizable coral families
+1. **Branching / staghorn** — tapered tubes in arbitrary 3-D directions, secondary branches and rounded bright tips at higher LOD.
+2. **Sea fan** — radial spokes plus connecting lattice so the silhouette reads as a fan rather than a row of blobs.
+3. **Brain coral** — a domed polar mesh with sinusoidal ridge height/colour variation.
+4. **Plate coral** — layered wavy discs with visible thickness and support stems.
+5. **Tube sponge** — tapered hollow pipes with bright rims and dark openings.
+6. **Soft coral** — curved/tapered fingers with branching at hero LOD.
 
-They alternate left/right, always stay outside the local glass radius, and use three glass-relative distance bands. Exact deterministic count split is 12 close / 30 mid / 18 far. Four height ranges cover ~1.6–14.5 m relative to the road. The normal shared `gjelly` float/wander update supplies slow drift and gentle vertical motion; a v152 Aqua-only wrapper adds only a subtle ±3.5% scale pulse. The old v151 procedural jelly updater is harmless because its actors are removed and v152 actors use a different marker.
+Each group still receives a low reef-rock base so the garden has visual mass. The approved colour weighting from v152 is retained: 25% purple, 20% pink, 20% orange, 15% turquoise, 10% blue, 10% cream/white.
 
-`sw.js` now explicitly caches `assets/models/creature_jelly.gltf` as well as the v152 script.
+### Placement and LOD
+The total composition remains exactly **2,800 reef groups**:
+- 350 route stations;
+- 4 groups per side per station;
+- 700 near / 1,400 mid / 700 far;
+- every placement remains outside the local glass radius (`glassRadius + >=1.35 m`), including widened galleries.
 
-### Reef rebuilt for visibility
-v152 deliberately **replaces `w.props` after v151** instead of stacking more weak coral geometry. It reconstructs the approved glass structural ribs/low rails, then adds a new high-visibility coral composition.
+Hybrid detail budget:
+- **140 hero groups** in the nearest band, deterministic 70 per side;
+- **1,494 medium-detail groups**;
+- **1,166 simple/far groups**.
 
-- `REEF_STATIONS=350` around the full lap.
-- `GROUPS_PER_SIDE=4` per station on each side.
-- Exact total: **2,800 coral groups**.
-- Depth composition: 700 near / 1,400 mid / 700 far groups.
-- Every placement is pushed to at least `glassRadius + 1.35 m`, including widened panorama galleries, so coral never enters the tube.
-- The closest layer hugs just outside the glass, the two middle layers create the main visible reef garden/wall, and the far layer extends depth into the underwater fog.
-- Shapes are broad/organic: brain/lobe clusters, broad plates, fan clusters, rounded branching gardens and thick sponge clusters. A low teal reef mound gives each group visual mass. No thin coloured pole forms are used.
-- Colour bag implements the requested weighting: 25% purple, 20% pink, 20% orange, 15% turquoise, 10% blue, 10% cream/white.
-- Visual rhythm: 20% of route stations are richer/larger; 10% are breathing zones at reduced scale; the rest are normal density. Group count stays deterministic while perceived density varies.
-- Existing v150 seabed/terrain, road, glass, water and route geometry are not changed.
+The v153 smoke world reports roughly **403,514 reef triangles**. This is intentional: close detail is funded by cheaper far LOD instead of increasing the 2,800-placement count.
 
-Telemetry: `world.__aquaV152` includes `reefWallVisible:true`, exact reef counts, density-rhythm counts, colour weights, removed v151 jelly count, `properProjectJelly:true`, `jellyAsset:'assets/models/creature_jelly.gltf'`, `jellyGcre:'jelly'`, exact jelly distance counts, `fishPreserved`, `roadUnchanged`, `glassUnchanged`, and `verdantUntouched:true`.
+Telemetry: `world.__aquaV153` includes `hqCoral:true`, exact reef/depth counts, hero/medium/simple counts, per-type counts, `hybridLOD:true`, `recognizableGeometry:true`, `closeHeroCorals:true`, `proceduralSphereClustersReplaced:true`, triangle count, fish/jelly preservation and isolation markers.
+
+## Asset research performed for v153
+- Repository inspection found no dedicated coral/reef models to reuse.
+- External permissive-asset research found MiniPoly's **Coral Reef Kit** on Poly Pizza; the primary `Coral Reef Set` is CC0/Public Domain while the other bundle variants are CC-BY.
+- The external asset was **not imported** into v153. The final implementation is self-contained project-native geometry, avoiding new texture/file-size/license/loader dependencies and giving exact control over WebGL triangle budget.
+- If a later iteration explicitly needs model/texture realism beyond v153, external CC0 assets can be revisited as a separate controlled step.
+
+## v152 preserved jellyfish system
+`js/58-aqua-proper-jelly-reef-v152.js` remains immediately before v153 in the stack.
+- 60 shared project jellyfish from `assets/models/creature_jelly.gltf`.
+- `type:'gjelly'`, `gcre:'jelly'`, `meta:CREATURE.gjelly`.
+- always outside glass, three distance bands, four height ranges.
+- subtle v152 pulse retained.
+
+v153 does **not** rebuild or mutate actors; it only rebuilds the reef/structural props mesh. Thus the proper v152 jellyfish remain the active jelly system.
 
 ## Retained Aqua systems
-- **v151** `js/57-aqua-coral-jelly-v151.js`: remains in the historical stack/regression, but v152 replaces its props and removes its procedural Aqua jelly actors at runtime.
-- **v150** `js/56-aqua-faces-reef-v150.js` + face enhancement in js/54: removes terrestrial scenery/mountains, creates low seabed, and gives all 11 fish geometric eyes/pupils/mouth.
-- **v149** `js/55-aqua-uturn-continuity-v149.js`: horizontal tail plane and local U-turn school continuity (135 m capture; 1.15 s hold + 2.35 s rejoin).
-- **v148** `js/54-aqua-tail-animation-v148.js`: 24 geometry-baked body/tail frames per species, rigid head, species-specific tail rate.
-- **v147** `js/53-aqua-swim-motion-v147.js`: sustained shallow horizontal elliptical swimming, tangent yaw, only ±0.18 m fish depth drift.
-- **v146** `js/52-aqua-depth-distribution-v146.js`: 258 fish spread bilaterally through height bands `[-1.5,1,4,8,12]`.
-- **v145** `js/51-aqua-fish-visibility-v145.js`: hard Aqua fauna isolation and Quaternius transform fix (scale ×100, pitch -π/2).
-- **v144** `js/50-aqua-real-fish-v144.js`: 11 Quaternius CC0 species, 258 fish; assets in `assets/models/aqua_fish/` with provenance.
-- **v143** `js/49-aqua-rift-v143.js`: separate **Aqua Rift — Glass Ocean** scene, transparent half-cylinder tunnel, panorama galleries and overhead water surface.
+- **v152** `js/58-aqua-proper-jelly-reef-v152.js`: proper shared project jellyfish and prior visible reef checkpoint; v153 replaces only its coral props geometry.
+- **v151** `js/57-aqua-coral-jelly-v151.js`: historical layer; its procedural jelly actors are removed by v152.
+- **v150** `js/56-aqua-faces-reef-v150.js`: removes terrestrial scenery/mountains, creates low seabed and readable fish faces.
+- **v149** `js/55-aqua-uturn-continuity-v149.js`: local U-turn school continuity.
+- **v148** `js/54-aqua-tail-animation-v148.js`: 24 baked body/tail frames per species.
+- **v147** `js/53-aqua-swim-motion-v147.js`: sustained shallow horizontal swimming.
+- **v146** `js/52-aqua-depth-distribution-v146.js`: 258 fish spread bilaterally through the water column.
+- **v145** `js/51-aqua-fish-visibility-v145.js`: hard Aqua fauna isolation and imported model transform fix.
+- **v144** `js/50-aqua-real-fish-v144.js`: 11 Quaternius CC0 fish species, 258 fish total.
+- **v143** `js/49-aqua-rift-v143.js`: separate **Aqua Rift — Glass Ocean** scene, transparent half-cylinder tunnel, galleries and water surface.
+
+No v153 change should disturb road, tunnel glass/water, fish, fish faces/tails, U-turn behavior or jellyfish unless technically necessary and explicitly validated.
 
 ## Current Aqua wiring
-`js/19-verdant-assets.js` loads Aqua v143→v152 with cache-buster `?b=152` in order:
+`js/19-verdant-assets.js` loads Aqua v143→v153 with cache-buster `?b=153` in order:
 1. v143 base Glass Ocean
-2. v144 real fish/reef
+2. v144 real fish
 3. v145 visibility/fauna isolation
 4. v146 water-column distribution
 5. v147 swimming trajectory
 6. v148 body/tail animation + face-enhanced loader
 7. v149 U-turn continuity
-8. v150 reef-only terrain/props cleanup
+8. v150 reef-only cleanup / fish faces
 9. v151 historical coral/procedural-jelly layer
-10. v152 visible reef rebuild + proper shared jellyfish
+10. v152 visible reef + proper shared jellyfish
+11. **v153 HQ coral geometry / LOD rebuild**
 
 Verdant files remain `?b=142`.
-`sw.js` intentionally retains cache name `lunar-ride-v142` for established Verdant CI invariants while caching all Aqua layers through js/58, all fish assets, and `assets/models/creature_jelly.gltf`.
+`sw.js` intentionally retains cache name `lunar-ride-v142` for established Verdant invariants while caching all Aqua layers through js/59, all fish assets and `assets/models/creature_jelly.gltf`.
 
 ## Verdant Rift approved state — v142
 Do not disturb while tuning Aqua. Mushrooms 25% scale; bilateral four-colour hillside flowers; 14 bears; v140 cats/dragonflies/deer/buildings; approved v137 TwistedTree and v136 CommonTree mixes. Rejected v132 bundle, global v133 alpha changes, v135 synthetic CommonTree and v130 palms remain off. GPU nature instancing remains `js/28-verdant-instanced-renderer.js`.
@@ -98,17 +108,33 @@ Do not disturb while tuning Aqua. Mushrooms 25% scale; bilateral four-colour hil
 ## CI
 Aqua workflow: `.github/workflows/aqua-ci.yml`.
 Verdant workflow: `.github/workflows/verdant-ci.yml`.
-Aqua CI now protects v143→v152. The v152 regression verifies exact 2,800 reef groups, near/mid/far counts, rich/breathing rhythm, removal of procedural Aqua jelly actors, 60 replacement actors using `type:'gjelly'`, `gcre:'jelly'` and `CREATURE.gjelly`, outside-glass placement, four height bands, fish preservation and pulse behavior. CI also parses `assets/models/creature_jelly.gltf` and verifies the existing shared loader path. Verdant CI remains green on approved v142.
 
-## Immediate visual test for v152
-Run `UPDATE.bat` → `ride.bat` → close/reopen → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
+Aqua CI now protects **v143→v153**:
+- syntax for all Aqua layers and regressions;
+- all runtime smoke/regression tests v143 through v153;
+- imported Quaternius fish asset/provenance checks;
+- shared `creature_jelly.gltf` loader/meta checks;
+- v153 loader cache-busting + service-worker cache checks;
+- v152 jelly regression markers;
+- v153 exact reef budget, 140 hero groups, six coral families, substantial geometry and non-Aqua isolation.
 
-Look for:
-- the jellyfish should now visibly be the same project jelly model used in the other worlds, not the old Aqua procedural dome/tentacle mesh;
-- colourful coral should form obvious gardens/walls immediately outside both sides of the glass, much closer to the Zwift reference composition;
-- the near/mid reef should be visually dominant, with far reef providing depth rather than disappearing entirely in fog;
-- occasional denser sections and quieter breathing sections should avoid uniform clutter;
-- no coral or jellyfish should enter the glass tube or road;
-- existing 258 fish, fish faces/tail motion and U-turn continuity should remain unchanged;
+Feature checkpoint results:
+- Aqua `33392300322` — SUCCESS.
+- Verdant `33392300238` — SUCCESS.
+
+## Immediate visual test — v153
+Run:
+`UPDATE.bat` → `ride.bat` → close/reopen → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
+
+Look specifically for:
+- close coral should now read as recognizable branching/fan/brain/plate/sponge/soft forms, not coloured spherical blobs;
+- hero colonies should be large/close enough to appreciate at riding speed;
+- reef should remain obvious on both sides and entirely outside the tube;
+- frame rate should remain smooth despite close detail;
+- the same proper project jellyfish from v152 should still be present;
+- all 258 fish, fish faces/tail motion and U-turn continuity should remain unchanged;
 - no terrestrial buildings/masts/mountains/fauna should return;
 - Verdant Rift must remain visually unchanged.
+
+## Next task after this handoff
+Wait for the user's v153 visual result/screenshot. Do not automatically start v154. If tuning is needed, base it on what is actually visible and change only the coral geometry/scale/placement derived from v153 unless the user requests broader changes.
