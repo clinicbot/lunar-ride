@@ -8,6 +8,11 @@
    excursion. Small reef fish beat faster; sharks/swordfish beat slower.
    Verdant and every non-Aqua creature still use the original loader.
 
+   All imported Aqua fish are authored long-axis Y and are rotated -90 deg on
+   X at actor level by v145. Therefore local X is the only correct lateral tail
+   plane after that rotation; local Z becomes world vertical. Earlier automatic
+   transverse-axis selection made sharks and several other species buck up/down.
+
    js/19 loads this file before js/07 defines updateActors(), so the model/frame
    hooks install immediately while the per-frame phase updater retries on the
    next task until physics exists, exactly like v147's motion wrapper. */
@@ -67,7 +72,7 @@
     GLCRE[key]={ready:true,N:FRAME_COUNT,frames,col:mk(new Float32Array(CV)),
       limbB:mk(limb),idxB:mk(new Uint32Array(I),gl.ELEMENT_ARRAY_BUFFER),count:I.length,
       aquaTailAnimated:true,fishShape:shape};
-    console.log('Aqua v148 tail/body fish baked:',key,FRAME_COUNT,'frames','axis',shape.longAxis,'tailHigh',shape.tailHigh);
+    console.log('Aqua v148 tail/body fish baked:',key,FRAME_COUNT,'frames','axis',shape.longAxis,'side',shape.sideAxis,'tailHigh',shape.tailHigh);
     if(typeof updBuildTag==='function')updBuildTag();
     return GLCRE[key];
   }
@@ -75,8 +80,18 @@
   function analyseFishGeometry(P){
     const mn=[Infinity,Infinity,Infinity],mx=[-Infinity,-Infinity,-Infinity];
     for(let i=0;i<P.length;i+=3)for(let a=0;a<3;a++){const v=P[i+a];if(v<mn[a])mn[a]=v;if(v>mx[a])mx[a]=v;}
-    const ex=mx.map((v,a)=>v-mn[a]),longAxis=ex.indexOf(Math.max(...ex)),rem=[0,1,2].filter(a=>a!==longAxis);
-    const sideAxis=ex[rem[0]]<=ex[rem[1]]?rem[0]:rem[1],upAxis=rem[0]===sideAxis?rem[1]:rem[0];
+    const ex=mx.map((v,a)=>v-mn[a]),longAxis=ex.indexOf(Math.max(...ex));
+    let sideAxis,upAxis;
+    if(longAxis===1){
+      /* Quaternius FBX2glTF fish: local Y -> forward after v145 pitch,
+         local X -> world horizontal, local Z -> world vertical. */
+      sideAxis=0;upAxis=2;
+    }else{
+      /* Defensive fallback for any future differently-authored model. Prefer
+         X when it is transverse because actor pitch never turns X vertical. */
+      const rem=[0,1,2].filter(a=>a!==longAxis);
+      sideAxis=rem.includes(0)?0:rem[0];upAxis=rem[0]===sideAxis?rem[1]:rem[0];
+    }
     const L=Math.max(ex[longAxis],1e-6),edge=.22;
     let loMin=Infinity,loMax=-Infinity,hiMin=Infinity,hiMax=-Infinity,loN=0,hiN=0;
     for(let i=0;i<P.length;i+=3){const u=(P[i+longAxis]-mn[longAxis])/L,s=P[i+sideAxis];
@@ -85,7 +100,8 @@
     const loSpread=loN?loMax-loMin:ex[sideAxis],hiSpread=hiN?hiMax-hiMin:ex[sideAxis];
     const tailHigh=hiSpread<=loSpread;
     return {mn,mx,extent:ex,longAxis,sideAxis,upAxis,length:L,tailHigh,
-      sideCentre:(mn[sideAxis]+mx[sideAxis])*.5,lowSpread:loSpread,highSpread:hiSpread};
+      horizontalFlexAxis:sideAxis===0,sideCentre:(mn[sideAxis]+mx[sideAxis])*.5,
+      lowSpread:loSpread,highSpread:hiSpread};
   }
 
   function deformFishFrame(P,N,shape,cycle){
@@ -139,7 +155,7 @@
         world.__aquaFishV148={version:VERSION,animated,framesPerSpecies:FRAME_COUNT,
           bodyStart:BODY_START,tailAmplitude:TAIL_AMPLITUDE,spatialPhase:SPATIAL_PHASE,
           speciesTailSpeed:Object.assign({},TAIL_SPEED),geometryBaked:true,headAnchored:true,
-          deferredUpdateInstall:true};
+          horizontalTailPlane:true,deferredUpdateInstall:true};
         if(world.__aquaFishV147)world.__aquaFishV147.correctedByV148=true;
         console.log('Aqua Rift v148 body/tail animation:',world.__aquaFishV148);
       }
