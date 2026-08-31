@@ -1,21 +1,12 @@
 "use strict";
 
-/* Aqua Rift v148 — articulated-looking body/tail swim animation ------------
-   v147 gave the fish proper horizontal trajectories but the meshes themselves
-   were still rigid. This Aqua-only loader intercepts the 11 fish models and
-   bakes 24 shared geometry frames per species. The head stays almost fixed,
-   the body bends progressively, and the tail receives the largest lateral
-   excursion. Small reef fish beat faster; sharks/swordfish beat slower.
-   Verdant and every non-Aqua creature still use the original loader.
-
-   All imported Aqua fish are authored long-axis Y and are rotated -90 deg on
-   X at actor level by v145. Therefore local X is the only correct lateral tail
-   plane after that rotation; local Z becomes world vertical. Earlier automatic
-   transverse-axis selection made sharks and several other species buck up/down.
-
-   js/19 loads this file before js/07 defines updateActors(), so the model/frame
-   hooks install immediately while the per-frame phase updater retries on the
-   next task until physics exists, exactly like v147's motion wrapper. */
+/* Aqua Rift v148 — articulated body/tail animation, face-enhanced by v150 ---
+   v147 gives the fish horizontal trajectories.  This loader bakes 24 shared
+   geometry frames per species, keeps the head stable, bends the tail in the
+   horizontal plane, and now adds durable geometric eyes/pupils/mouth details
+   before the frames are baked.  That makes faces readable even though Lunar
+   Ride's lightweight creature path does not render the tiny source textures.
+   Verdant and every non-Aqua creature keep the original loader. */
 (function(){
   const VERSION=148,FRAME_COUNT=24;
   const BODY_START=.14,TAIL_AMPLITUDE=.075,SPATIAL_PHASE=1.55;
@@ -61,7 +52,12 @@
     }
     if(!P.length||!I.length)throw new Error('empty fish mesh');
 
-    const shape=analyseFishGeometry(P),mk=(d,t)=>{const b=gl.createBuffer();gl.bindBuffer(t||gl.ARRAY_BUFFER,b);
+    /* Analyse the untouched source body first. Facial geometry is then added
+       into the anchored head region, so eyes and mouth ride with the head but
+       never get dragged by the tail wave. */
+    const shape=analyseFishGeometry(P);
+    const face=addFaceDetail(P,N,I,CV,shape,key);
+    const mk=(d,t)=>{const b=gl.createBuffer();gl.bindBuffer(t||gl.ARRAY_BUFFER,b);
       gl.bufferData(t||gl.ARRAY_BUFFER,d,gl.STATIC_DRAW);return b;};
     const frames=[];
     for(let f=0;f<FRAME_COUNT;f++){
@@ -71,8 +67,9 @@
     const limb=new Float32Array(P.length/3);
     GLCRE[key]={ready:true,N:FRAME_COUNT,frames,col:mk(new Float32Array(CV)),
       limbB:mk(limb),idxB:mk(new Uint32Array(I),gl.ELEMENT_ARRAY_BUFFER),count:I.length,
-      aquaTailAnimated:true,fishShape:shape};
-    console.log('Aqua v148 tail/body fish baked:',key,FRAME_COUNT,'frames','axis',shape.longAxis,'side',shape.sideAxis,'tailHigh',shape.tailHigh);
+      aquaTailAnimated:true,fishShape:shape,faceEnhanced:true,faceDetail:face};
+    console.log('Aqua fish baked:',key,FRAME_COUNT,'frames','axis',shape.longAxis,
+      'side',shape.sideAxis,'tailHigh',shape.tailHigh,'face',face);
     if(typeof updBuildTag==='function')updBuildTag();
     return GLCRE[key];
   }
@@ -82,16 +79,8 @@
     for(let i=0;i<P.length;i+=3)for(let a=0;a<3;a++){const v=P[i+a];if(v<mn[a])mn[a]=v;if(v>mx[a])mx[a]=v;}
     const ex=mx.map((v,a)=>v-mn[a]),longAxis=ex.indexOf(Math.max(...ex));
     let sideAxis,upAxis;
-    if(longAxis===1){
-      /* Quaternius FBX2glTF fish: local Y -> forward after v145 pitch,
-         local X -> world horizontal, local Z -> world vertical. */
-      sideAxis=0;upAxis=2;
-    }else{
-      /* Defensive fallback for any future differently-authored model. Prefer
-         X when it is transverse because actor pitch never turns X vertical. */
-      const rem=[0,1,2].filter(a=>a!==longAxis);
-      sideAxis=rem.includes(0)?0:rem[0];upAxis=rem[0]===sideAxis?rem[1]:rem[0];
-    }
+    if(longAxis===1){sideAxis=0;upAxis=2;}
+    else{const rem=[0,1,2].filter(a=>a!==longAxis);sideAxis=rem.includes(0)?0:rem[0];upAxis=rem[0]===sideAxis?rem[1]:rem[0];}
     const L=Math.max(ex[longAxis],1e-6),edge=.22;
     let loMin=Infinity,loMax=-Infinity,hiMin=Infinity,hiMax=-Infinity,loN=0,hiN=0;
     for(let i=0;i<P.length;i+=3){const u=(P[i+longAxis]-mn[longAxis])/L,s=P[i+sideAxis];
@@ -102,6 +91,46 @@
     return {mn,mx,extent:ex,longAxis,sideAxis,upAxis,length:L,tailHigh,
       horizontalFlexAxis:sideAxis===0,sideCentre:(mn[sideAxis]+mx[sideAxis])*.5,
       lowSpread:loSpread,highSpread:hiSpread};
+  }
+
+  function addFaceDetail(P,N,I,CV,shape,key){
+    const la=shape.longAxis,sa=shape.sideAxis,ua=shape.upAxis,L=shape.length,
+      inward=shape.tailHigh?1:-1,head=shape.tailHigh?shape.mn[la]:shape.mx[la],
+      side0=(shape.mn[sa]+shape.mx[sa])*.5,up0=(shape.mn[ua]+shape.mx[ua])*.5,
+      sideHalf=Math.max(L*.035,shape.extent[sa]*.39),
+      eyeR=Math.max(L*.020,Math.min(L*.045,Math.max(shape.extent[sa],shape.extent[ua])*.105));
+    const EYE=[.94,.91,.64,.18],PUP=[.012,.016,.015,.01],MOUTH=[.055,.018,.022,.015];
+
+    const addEllipsoid=(centre,radii,col,seg=8,rings=5)=>{
+      const base=P.length/3;
+      for(let r=0;r<=rings;r++){
+        const th=r/rings*Math.PI,st=Math.sin(th),ct=Math.cos(th);
+        for(let s=0;s<=seg;s++){
+          const ph=s/seg*TWO_PI,cp=Math.cos(ph),sp=Math.sin(ph);
+          const v=[centre[0]+radii[0]*st*cp,centre[1]+radii[1]*ct,centre[2]+radii[2]*st*sp];
+          const nn=[(v[0]-centre[0])/(radii[0]*radii[0]),(v[1]-centre[1])/(radii[1]*radii[1]),(v[2]-centre[2])/(radii[2]*radii[2])];
+          const nl=Math.hypot(nn[0],nn[1],nn[2])||1;
+          P.push(v[0],v[1],v[2]);N.push(nn[0]/nl,nn[1]/nl,nn[2]/nl);CV.push(col[0],col[1],col[2],col[3]);
+        }
+      }
+      for(let r=0;r<rings;r++)for(let s=0;s<seg;s++){
+        const a=base+r*(seg+1)+s,b=a+seg+1;
+        I.push(a,b,a+1,a+1,b,b+1);
+      }
+    };
+    const axisR=(along,side,up)=>{const q=[eyeR,eyeR,eyeR];q[la]=along;q[sa]=side;q[ua]=up;return q;};
+    const centre=(along,side,up)=>{const q=[0,0,0];q[la]=along;q[sa]=side;q[ua]=up;return q;};
+
+    const eyeAlong=head+inward*L*.105,eyeUp=up0+shape.extent[ua]*.10;
+    for(const sg of [-1,1]){
+      const ec=centre(eyeAlong,side0+sg*sideHalf,eyeUp);
+      addEllipsoid(ec,axisR(eyeR*.92,eyeR,eyeR*.92),EYE,8,5);
+      const pc=ec.slice();pc[sa]+=sg*eyeR*.70;
+      addEllipsoid(pc,axisR(eyeR*.48,eyeR*.44,eyeR*.48),PUP,7,4);
+    }
+    const mouthAlong=head+inward*L*.025,mouthUp=up0-shape.extent[ua]*.10;
+    addEllipsoid(centre(mouthAlong,side0,mouthUp),axisR(eyeR*.24,eyeR*.72,eyeR*.28),MOUTH,8,4);
+    return {key,eyes:2,pupils:2,mouth:1,eyeRadius:eyeR,headEnd:shape.tailHigh?'low':'high'};
   }
 
   function deformFishFrame(P,N,shape,cycle){
@@ -155,7 +184,7 @@
         world.__aquaFishV148={version:VERSION,animated,framesPerSpecies:FRAME_COUNT,
           bodyStart:BODY_START,tailAmplitude:TAIL_AMPLITUDE,spatialPhase:SPATIAL_PHASE,
           speciesTailSpeed:Object.assign({},TAIL_SPEED),geometryBaked:true,headAnchored:true,
-          horizontalTailPlane:true,deferredUpdateInstall:true};
+          horizontalTailPlane:true,faceEnhanced:true,deferredUpdateInstall:true};
         if(world.__aquaFishV147)world.__aquaFishV147.correctedByV148=true;
         console.log('Aqua Rift v148 body/tail animation:',world.__aquaFishV148);
       }
@@ -163,6 +192,7 @@
   }
 
   globalThis.__aquaFishV148Spec={VERSION,FRAME_COUNT,BODY_START,TAIL_AMPLITUDE,SPATIAL_PHASE,
-    fishKeys:[...FISH_KEYS],tailSpeed:Object.assign({},TAIL_SPEED),analyseFishGeometry,deformFishFrame};
+    fishKeys:[...FISH_KEYS],tailSpeed:Object.assign({},TAIL_SPEED),analyseFishGeometry,
+    addFaceDetail,deformFishFrame};
   installTailUpdate();
 })();
