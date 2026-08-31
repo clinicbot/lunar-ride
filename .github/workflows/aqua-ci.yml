@@ -28,6 +28,7 @@ jobs:
             js/57-aqua-coral-jelly-v151.js \
             js/58-aqua-proper-jelly-reef-v152.js \
             js/59-aqua-hq-coral-v153.js \
+            js/60-aqua-hero-coral-v154.js \
             tests/aqua-rift-v143-smoke.js \
             tests/aqua-v144-real-fish-smoke.js \
             tests/aqua-v145-fish-visibility-smoke.js \
@@ -38,12 +39,13 @@ jobs:
             tests/aqua-v150-faces-reef-smoke.js \
             tests/aqua-v151-coral-jelly-smoke.js \
             tests/aqua-v152-proper-jelly-reef-smoke.js \
-            tests/aqua-v153-hq-coral-smoke.js
+            tests/aqua-v153-hq-coral-smoke.js \
+            tests/aqua-v154-hero-coral-smoke.js
           do
             node --check "$f"
           done
 
-      - name: Aqua v143-v153 runtime regressions
+      - name: Aqua v143-v154 runtime regressions
         run: |
           node tests/aqua-rift-v143-smoke.js
           node tests/aqua-v144-real-fish-smoke.js
@@ -56,6 +58,7 @@ jobs:
           node tests/aqua-v151-coral-jelly-smoke.js
           node tests/aqua-v152-proper-jelly-reef-smoke.js
           node tests/aqua-v153-hq-coral-smoke.js
+          node tests/aqua-v154-hero-coral-smoke.js
 
       - name: Validate imported Quaternius fish assets
         run: |
@@ -89,7 +92,7 @@ jobs:
           console.log('ok: Aqua continues to reuse the established project jelly model and creature path');
           NODE
 
-      - name: Verify Aqua v153 runtime wiring and offline cache
+      - name: Verify Aqua v154 runtime wiring and offline cache
         run: |
           node - <<'NODE'
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
@@ -98,13 +101,14 @@ jobs:
             '49-aqua-rift-v143.js','50-aqua-real-fish-v144.js','51-aqua-fish-visibility-v145.js',
             '52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js',
             '55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js','57-aqua-coral-jelly-v151.js',
-            '58-aqua-proper-jelly-reef-v152.js','59-aqua-hq-coral-v153.js'];
+            '58-aqua-proper-jelly-reef-v152.js','59-aqua-hq-coral-v153.js','60-aqua-hero-coral-v154.js'];
           for(const f of scripts){
-            if(!loader.includes(f+'?b=153'))throw new Error('Aqua v153 fresh loader wiring missing '+f);
+            if(!loader.includes(f+'?b=154'))throw new Error('Aqua v154 fresh loader wiring missing '+f);
             if(!sw.includes('js/'+f))throw new Error('Aqua offline cache missing '+f);
           }
           if(!sw.includes("lunar-ride-v142"))throw new Error('retained Verdant v142 service-worker cache missing');
           if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring was disturbed');
+          if(!sw.includes('js/32-verdant-fauna-buildings-v121.js'))throw new Error('Verdant v121 cache entry was disturbed');
           if(!sw.includes('assets/models/creature_jelly.gltf'))throw new Error('project jelly asset missing from offline cache');
           const v152=R('js/58-aqua-proper-jelly-reef-v152.js');
           for(const k of ["VERSION=152","JELLY_COUNT=60","properProjectJelly:true","jellyAsset:'assets/models/creature_jelly.gltf'"])
@@ -112,5 +116,8 @@ jobs:
           const v153=R('js/59-aqua-hq-coral-v153.js');
           for(const k of ["VERSION=153","REEF_STATIONS=350","GROUPS_PER_SIDE=4","HERO_EVERY=5","hqCoral:true","hybridLOD:true","recognizableGeometry:true","proceduralSphereClustersReplaced:true"])
             if(!v153.includes(k))throw new Error('Aqua v153 HQ coral marker missing '+k);
-          console.log('ok: Aqua v153 is wired after v152 with fresh cache busting, offline support and Verdant v142 isolation');
+          const v154=R('js/60-aqua-hero-coral-v154.js');
+          for(const k of ["VERSION=154","HERO_GROUPS=280","heroClusters:true","reefPedestals:true","clusteredComposition:true","closeWallFeeling:true","heroClusterCount:heroClusters"])
+            if(!v154.includes(k))throw new Error('Aqua v154 hero coral marker missing '+k);
+          console.log('ok: Aqua v154 is wired after v153 with fresh cache busting, offline support and Verdant v142 isolation');
           NODE
