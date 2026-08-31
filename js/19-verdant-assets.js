@@ -62,8 +62,10 @@
    coral colonies, v156 imports the four user-provided water-creature meshes,
    v157 moves all 36 uploaded creatures close enough to the glass to read
    during normal riding, v158 matches and removes the full v155 mound/ledge
-   box envelope, and v159 removes those uploaded creature actors and overlays
-   alternating CC0 Poly Haven sand shoulders for an A/B visual comparison. */
+   box envelope, v159 removes those uploaded creature actors and overlays
+   alternating CC0 Poly Haven sand shoulders for an A/B visual comparison,
+   and v160 replaces the A/B sand with full-lap rocky/rubble shoulders and
+   adds visible fish schools above the buried glass tunnel. */
 if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/20-verdant-route-audit.js?b=142"></script>');
   document.write('<script src="js/21-verdant-terrain-polish.js?b=142"></script>');
@@ -108,5 +110,6 @@ if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/63-aqua-visible-creatures-v157.js?b=158"></script>');
   document.write('<script src="js/64-aqua-no-podium-v158.js?b=158"></script>');
   document.write('<script src="js/65-aqua-sand-ab-v159.js?b=159"></script>');
+  document.write('<script src="js/66-aqua-rocky-upperfish-v160.js?b=160"></script>');
   document.write('<script src="js/28-verdant-instanced-renderer.js?b=142"></script>');
 }
