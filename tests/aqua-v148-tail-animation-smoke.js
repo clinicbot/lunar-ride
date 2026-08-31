@@ -1,7 +1,7 @@
 "use strict";
 const fs=require('fs'),vm=require('vm'),path=require('path');
 const src=fs.readFileSync('js/54-aqua-tail-animation-v148.js','utf8');
-for(const m of ['VERSION=148','FRAME_COUNT=24','TAIL_AMPLITUDE=.075','aquaTailAnimated:true','geometryBaked:true','__aquaFishV148','installTailUpdate','setTimeout(installTailUpdate,0)'])
+for(const m of ['VERSION=148','FRAME_COUNT=24','TAIL_AMPLITUDE=.075','aquaTailAnimated:true','geometryBaked:true','horizontalTailPlane:true','__aquaFishV148','installTailUpdate','setTimeout(installTailUpdate,0)'])
   if(!src.includes(m))throw new Error('missing Aqua v148 marker '+m);
 
 let oldLoads=0,oldUpdates=0;
@@ -33,7 +33,10 @@ if(headMove>1e-7)throw new Error('head should remain anchored, moved '+headMove)
 if(tailMove<sh.length*.04||tailDelta<sh.length*.04)throw new Error('tail bend too small '+tailMove+' delta '+tailDelta);
 for(let i=0;i<f0.nrm.length;i+=3){const l=Math.hypot(f0.nrm[i],f0.nrm[i+1],f0.nrm[i+2]);if(!Number.isFinite(l)||Math.abs(l-1)>.001)throw new Error('bad deformed normal '+l);}
 
-/* Run the same geometric invariant across every real imported fish mesh. */
+/* Run the same geometric invariant across every real imported fish mesh.
+   All current Quaternius fish are Y-long and v145 pitches them -90deg on X,
+   so lateral tail flex MUST be local X. Local Z would become vertical world
+   motion and produce the reported shark 'galloping' effect. */
 const files=['clownfish','fish-a','fish-b','fish-c','shark','anglerfish','puffer','lionfish','butterfly-fish','swordfish','black-lionfish'];
 for(const name of files){
   const j=JSON.parse(fs.readFileSync(path.join('assets/models/aqua_fish',name+'.gltf'),'utf8')),
@@ -47,14 +50,20 @@ for(const name of files){
     for(let i=0;i<p.length;i+=3){RP.push(p[i],p[i+1],p[i+2]);if(n)RN.push(n[i],n[i+1],n[i+2]);else RN.push(0,1,0);}
   }
   const shape=S.analyseFishGeometry(RP),a=S.deformFishFrame(RP,RN,shape,0),b=S.deformFishFrame(RP,RN,shape,.25);
-  let headDelta=0,tailDelta2=0,headN=0,tailN=0;
+  if(shape.longAxis!==1)throw new Error(name+' unexpected authored long axis '+shape.longAxis);
+  if(shape.sideAxis!==0||shape.upAxis!==2||!shape.horizontalFlexAxis)
+    throw new Error(name+' tail flex is not horizontal '+JSON.stringify(shape));
+  let headDelta=0,tailDelta2=0,verticalDelta=0,headN=0,tailN=0;
   for(let i=0;i<RP.length;i+=3){const raw=(RP[i+shape.longAxis]-shape.mn[shape.longAxis])/shape.length,
-      u=shape.tailHigh?raw:1-raw,d=Math.abs(a.pos[i+shape.sideAxis]-b.pos[i+shape.sideAxis]);
-    if(u<.10){headDelta=Math.max(headDelta,d);headN++;}if(u>.90){tailDelta2=Math.max(tailDelta2,d);tailN++;}}
+      u=shape.tailHigh?raw:1-raw,d=Math.abs(a.pos[i+shape.sideAxis]-b.pos[i+shape.sideAxis]),
+      dv=Math.abs(a.pos[i+shape.upAxis]-b.pos[i+shape.upAxis]);
+    if(u<.10){headDelta=Math.max(headDelta,d);headN++;}
+    if(u>.90){tailDelta2=Math.max(tailDelta2,d);verticalDelta=Math.max(verticalDelta,dv);tailN++;}}
   if(!headN||!tailN)throw new Error(name+' missing head/tail samples');
   if(headDelta>shape.length*.001)throw new Error(name+' head not anchored '+headDelta);
   if(tailDelta2<shape.length*.035)throw new Error(name+' tail beat too small '+tailDelta2+' L '+shape.length);
-  console.log('real fish deform ok',name,'longAxis',shape.longAxis,'sideAxis',shape.sideAxis,'tailHigh',shape.tailHigh,'L',shape.length.toFixed(4),'tailDelta',tailDelta2.toFixed(4));
+  if(verticalDelta>1e-7)throw new Error(name+' deformation leaked into vertical local Z '+verticalDelta);
+  console.log('real fish horizontal deform ok',name,'longAxis',shape.longAxis,'sideAxis',shape.sideAxis,'tailHigh',shape.tailHigh,'L',shape.length.toFixed(4),'tailDelta',tailDelta2.toFixed(4));
 }
 
 /* animated Aqua fish use their own phase; unrelated creatures retain legacy frame path */
@@ -65,7 +74,7 @@ if(fr.legacy||fr.count!==9||fr.pos!=='p0')throw new Error('animated fish frame r
 ctx.world={actors:[fish],__aquaFishV147:{version:147}};ctx.state={scene:{id:'aqua'}};
 ctx.updateActors(.5);
 if(oldUpdates!==1||!(fish.__aquaTailPhase>4))throw new Error('tail phase did not advance independently '+fish.__aquaTailPhase);
-if(!ctx.world.__aquaFishV148||ctx.world.__aquaFishV148.animated!==1||!ctx.world.__aquaFishV147.correctedByV148)throw new Error('v148 telemetry missing');
+if(!ctx.world.__aquaFishV148||ctx.world.__aquaFishV148.animated!==1||!ctx.world.__aquaFishV148.horizontalTailPlane||!ctx.world.__aquaFishV147.correctedByV148)throw new Error('v148 telemetry missing');
 const legacy=ctx.glCreFrame({gcre:'vbear'});if(!legacy.legacy)throw new Error('non-Aqua glCreFrame path disturbed');
 ctx.loadGLTFCreature('vbear','bear.gltf',{});if(oldLoads!==1)throw new Error('non-Aqua loader interception leaked');
 
@@ -87,4 +96,4 @@ late.updateActors(.25);
 if(lateBaseCalls!==1||!(late.world.actors[0].__aquaTailPhase>.2)||!late.world.__aquaFishV148?.deferredUpdateInstall)
   throw new Error('deferred updater did not advance tail phase after js/07-style late definition');
 
-console.log('ok: Aqua v148 keeps heads anchored, bends all real fish tails, advances independent species phases, survives pre-js/07 load order via deferred install, and leaves non-Aqua paths untouched');
+console.log('ok: Aqua v148 now forces every real fish tail into the horizontal X plane, keeps heads anchored, advances independent species phases, survives pre-js/07 load order, and leaves non-Aqua paths untouched');
