@@ -13,164 +13,140 @@ Persistent continuation note. Before changing code, verify latest `fixes-build-9
 
 ## Current checkpoint — 2026-08-31
 - Verdant Rift remains **v142** and must be preserved.
-- Aqua Rift current release is **v155**.
-- v155 code/wiring/CI feature checkpoint before this handoff commit: `c70c59dd3a171aa111b15a6ea0bdd13d8bf57297`.
-- Aqua CI run `33398577795`: **SUCCESS**.
-- Verdant CI run `33398577774`: **SUCCESS** on the same code checkpoint.
-- Canonical backup immediately before v155: `backup-v154-before-aqua-reef-colonies-v155` at exact v154 final HEAD `58144f47c86b0069ac6cc09a5ed91835b7d383f1`.
-- Earlier canonical backups remain available for v143→v154 history.
+- Aqua Rift current release is **v156**.
+- v156 code/wiring/CI feature checkpoint: `d9b5e4bc3940ad1786c8b2798e11ae3798734e98`.
+- Aqua CI run `33404254807`: **SUCCESS**.
+- Verdant CI run `33404254821`: **SUCCESS** on the same code checkpoint.
+- Canonical backup immediately before v156: `backup-v155-before-aqua-creatures-v156`.
 - `js/09-bluetooth.js` remains untouched.
 
-## Visual history leading to v155
-### v153
-v153 replaced crude coral blobs with six recognizable procedural families and hybrid LOD. The user's screenshot showed improved silhouettes, but reef still felt like scattered low-poly props.
+## Visual history leading to v156
+v153 introduced six recognizable coral families; v154 increased close hero presence and overlapping clusters; v155 tried to replace podiums with organic colonies. The user's v155 screenshot proved the flat dark platforms were still visible. Inspection showed this was not a service-worker/cache issue: v155 `moundBase()` still emitted several thin rectangular `box()` ledges under hero colonies.
 
-### v154
-v154 doubled close hero presence to 280 groups and formed overlapping clusters on dark reef ledges. The user's screenshot showed a clear composition improvement: the side scenery finally began to read as reef.
+The user then supplied four GLB water-creature models and explicitly asked to add them to Aqua for more interest while fixing the platforms.
 
-However the v154 screenshot still showed three defects:
-1. dark bases looked artificial, like black podiums under coral sculptures;
-2. individual close coral still looked low-poly / schematic;
-3. reef mass was still too discontinuous: object → gap → object instead of broad colony/reef shapes.
+## Aqua v156 — true podium removal + uploaded water creatures
+New runtime/data files:
+1. `js/62a-aqua-v156-model-siren.js`
+2. `js/62b-aqua-v156-model-crawler.js`
+3. `js/62c-aqua-v156-model-eelbeast.js`
+4. `js/62d-aqua-v156-model-leviathan.js`
+5. `js/62-aqua-creatures-v156.js`
 
-The user explicitly asked to continue, creating v155.
+Regression: `tests/aqua-v156-creatures-smoke.js`.
 
-## Aqua v155 — organic reef colonies
-New layer: `js/61-aqua-coral-colonies-v155.js`.
-Regression: `tests/aqua-v155-reef-colonies-smoke.js`.
+### User-uploaded model conversion
+The four user GLBs were inspected and simplified to lightweight quantized geometry. Their compact position/index payloads are stored as base64 uint16 data in the four `62a..62d` JS files. `js/62-aqua-creatures-v156.js` reconstructs positions/normals at GL initialization and registers each model directly in the established `GLCRE` creature registry. This avoids adding a new GLB/parser/texture dependency to the lightweight Lunar Ride runtime.
 
-### Fixed placement budget
-v155 still rebuilds `w.props` and preserves the established placement count:
-- 350 route stations;
-- 4 groups per side per station;
-- exact total **2,800 reef placements**;
-- 700 near / 1,400 mid / 700 far.
+Registered model keys:
+- `aqSiren156`
+- `aqCrawler156`
+- `aqEel156`
+- `aqLeviathan156`
 
-This is intentionally not another raw density increase.
+### Actual platform fix
+v156 intentionally does **not** rebuild the entire approved v155 reef again. Instead it fixes the exact defect at the source-call level: it wraps `MeshB.prototype.box` and suppresses only the very flat box dimensions called from a function named `moundBase` (`h<=.12`, `d<=.60`, `w<=2.10`).
 
-### Organic reef mounds instead of podiums
-Every placement receives an irregular darker reef foundation generated from asymmetric rock masses, ledges and rubble rather than the v154 circular/stacked pedestal treatment.
+This removes the three v155 hero-mound ledge/platform boxes while preserving:
+- Aqua structural tunnel rails (`h=.35`),
+- all non-mound geometry,
+- all Verdant geometry.
 
-Telemetry:
-- `organicReefMounds:true`
-- `moundGroups:2800`
-- `podiumBasesRemoved:true`.
+The remaining v155 mound is composed of rounded rock/rubble spheres, so visually it should read as an irregular reef foundation instead of a black stage.
 
-### 280 hero colonies
-The v154 280-hero budget remains:
-- **140 primary hero colonies** in the closest band;
-- **140 secondary hero colonies** in the second band.
+Regression explicitly creates two fake `moundBase()` boxes plus one tunnel-rail box and verifies only the mound boxes are suppressed.
 
-Primary hero colonies now contain the main coral plus about five or six overlapping companion forms, irregular mound pieces, rubble and several local mini-coral accents. Secondary heroes contain multiple companions and accents.
+### 36 new water creatures
+v156 adds exactly **36** moving user-model creatures, all outside the glass and using the established `type:'drone'` orbit/swim movement contract:
+- **10 sirens** — medium-large, mixed depth, moderate distance;
+- **8 crawlers** — slightly larger/deeper/farther;
+- **16 eel-beasts** — most common, elongated orientation with a 90° yaw bias;
+- **2 leviathans** — very large, very slow, rare and far from the tube.
 
-Telemetry:
-- `heroGroups:280`
-- `primaryHeroes:140`
-- `secondaryHeroes:140`
-- `heroColonyGroups:280`
-- `accentGroups:840`
-- `reefColonies:true`
-- `closeColonyContinuity:true`.
+The population is deliberately sparse compared with the 258 existing fish. The intent is occasional interesting silhouettes/events rather than another repetitive school.
 
-### Closer / larger close reef
-The nearest placement floor is approximately `glassRadius + 1.02 m`, still outside the glass envelope. Close hero scaling is increased again so colonies occupy more screen space at riding speed.
-
-### Coral families retained
-The six v153/v154 recognizable families remain:
-1. branching / staghorn;
-2. sea fan lattice;
-3. ridged brain coral;
-4. layered wavy plate coral;
-5. hollow tube sponge;
-6. soft branching coral.
-
-Medium/far LOD remains cheaper to keep the added close-colony richness focused where it matters.
-
-## External CC0 model research after v154 feedback
-A stronger model-based path was investigated before finalizing v155.
-
-A separate open-source ocean project documents three **CC0 Smithsonian Institution** coral scans:
-- **Stylaster sanguineus** — lace coral;
-- **Seriatopora hystrix** — birdsnest coral;
-- **Goniastrea favulus** — brain coral.
-
-The licence evidence is clean CC0/Public Domain. These are materially more realistic source meshes than Lunar Ride's procedural coral.
-
-Important compatibility constraint: the readily reusable optimized GLBs in that project are Meshopt-compressed and use KTX2/Basis textures. Lunar Ride's current lightweight glTF path has not been validated for those extensions. Do not simply copy those optimized files into the project without adding/validating decoder support or producing compatible uncompressed embedded glTF versions. v155 therefore fixes the immediately visible podium/continuity problem now while keeping controlled CC0 model import as a future fidelity step.
-
-Earlier MiniPoly/Poly Pizza CC0 coral research also remains relevant, but any external asset must be verified for format, licence and runtime performance before shipping.
+Telemetry `w.__aquaV156` records:
+- `reefBaseBoxesRemoved:true`
+- `reefBaseCylindersRemoved:true`
+- `platformBoxesSuppressed`
+- `uploadedUserModels:true`
+- `customCreatureCount:36`
+- creature counts 10 / 8 / 16 / 2
+- `heroLeviathans:2`
+- v155 reef counts carried forward
+- jelly/fish preservation
+- road/glass/Verdant isolation.
 
 ## Preserved Aqua systems
-- **v154** `js/60-aqua-hero-coral-v154.js`: historical hero-cluster/pedestal layer; v155 supersedes its props result at runtime.
-- **v153** `js/59-aqua-hq-coral-v153.js`: six recognizable coral geometry families / hybrid LOD.
-- **v152** `js/58-aqua-proper-jelly-reef-v152.js`: 60 proper shared project jellyfish.
-- **v151** `js/57-aqua-coral-jelly-v151.js`: historical procedural-jelly layer removed/superseded later.
-- **v150** `js/56-aqua-faces-reef-v150.js`: reef-only cleanup / readable fish faces.
-- **v149** `js/55-aqua-uturn-continuity-v149.js`: local U-turn school continuity.
-- **v148** `js/54-aqua-tail-animation-v148.js`: baked body/tail animation.
-- **v147** `js/53-aqua-swim-motion-v147.js`: horizontal swimming trajectory.
-- **v146** `js/52-aqua-depth-distribution-v146.js`: 258 fish throughout the water column.
-- **v145** `js/51-aqua-fish-visibility-v145.js`: fauna isolation + imported transform fix.
-- **v144** `js/50-aqua-real-fish-v144.js`: 11 Quaternius CC0 species, 258 fish total.
-- **v143** `js/49-aqua-rift-v143.js`: Aqua Rift — Glass Ocean scene.
-
-v155 does not modify actors, road, glass, water or tunnel systems. Regression verifies 60 v152 jellyfish and existing fish actors are preserved. Verdant v142 remains isolated.
+- v155 reef composition remains exact: **2,800 groups** = 700 near / 1,400 mid / 700 far.
+- 280 hero colonies remain (140 primary + 140 secondary).
+- 2,800 mound groups and 840 accents remain.
+- v153-v155 coral families/composition remain intact except the thin v155 moundBase boxes are suppressed.
+- v152: 60 proper shared project jellyfish remain (`assets/models/creature_jelly.gltf`).
+- v144-v150: 258 Quaternius fish and their visibility/depth/swim/tail/face/U-turn behavior remain unchanged.
+- Road, glass and water remain unchanged.
+- Aqua tunnel structural rails remain unchanged.
+- Verdant v142 remains isolated.
 
 ## Current Aqua wiring
-`js/19-verdant-assets.js` loads Aqua v143→v155 with cache-buster `?b=155` in order:
+`js/19-verdant-assets.js` loads Aqua with cache-buster `?b=156` in order:
 1. v143 base Glass Ocean
 2. v144 real fish
 3. v145 visibility/fauna isolation
-4. v146 water-column distribution
-5. v147 swimming trajectory
-6. v148 body/tail animation + face-enhanced loader
+4. v146 depth distribution
+5. v147 swim trajectory
+6. v148 body/tail animation
 7. v149 U-turn continuity
-8. v150 reef-only cleanup / fish faces
-9. v151 historical coral/procedural-jelly layer
-10. v152 visible reef + proper shared jellyfish
-11. v153 HQ recognizable coral geometry
-12. v154 hero clusters / old pedestal composition
-13. **v155 organic reef colonies / mound composition**
+8. v150 fish faces / reef cleanup
+9. v151 historical coral/jelly layer
+10. v152 proper shared jellyfish
+11. v153 recognizable HQ coral
+12. v154 hero clusters
+13. v155 coral colonies / mound composition
+14. v156 siren model payload
+15. v156 crawler model payload
+16. v156 eel-beast model payload
+17. v156 leviathan model payload
+18. **v156 platform filter + creature population**
 
-Verdant files remain `?b=142`.
-`sw.js` intentionally retains cache name `lunar-ride-v142` for established Verdant invariants while caching Aqua through `js/61-aqua-coral-colonies-v155.js`, all fish assets and `assets/models/creature_jelly.gltf`.
-
-## Verdant Rift approved state — v142
-Do not disturb while tuning Aqua. Mushrooms 25% scale; bilateral four-colour hillside flowers; 14 bears; v140 cats/dragonflies/deer/buildings; approved v137 TwistedTree and v136 CommonTree mixes. Rejected v132 bundle, global v133 alpha changes, v135 synthetic CommonTree and v130 palms remain off. GPU nature instancing remains `js/28-verdant-instanced-renderer.js`.
+Verdant scripts remain `?b=142`.
+`sw.js` intentionally retains cache name `lunar-ride-v142`, preserves the original `js/32-verdant-fauna-buildings-v121.js` entry, and includes all five v156 files.
 
 ## CI
 Aqua workflow: `.github/workflows/aqua-ci.yml`.
 Verdant workflow: `.github/workflows/verdant-ci.yml`.
 
-Aqua CI now protects **v143→v155**:
-- syntax for all Aqua layers and regressions;
-- all runtime smoke/regression tests through v155;
-- imported Quaternius fish asset/provenance checks;
-- shared `creature_jelly.gltf` loader/meta checks;
-- loader cache-busting `?b=155` for every Aqua layer;
-- service-worker inclusion through js/61;
-- Verdant v142 loader/cache isolation;
-- v152 proper jelly regression markers;
-- v153/v154 compatibility markers;
-- v155 exact 2,800 placement budget, 280 heroes, 2,800 mounds, 840 accents, six coral families, substantial geometry and non-Aqua isolation.
+Aqua CI now protects **v143→v156**:
+- syntax for all Aqua scripts including 62a-d/main and all regressions;
+- all runtime smoke tests through v156;
+- Quaternius fish/provenance checks;
+- shared jelly asset/loader checks;
+- `?b=156` loader wiring for every Aqua layer;
+- service-worker inclusion for all v156 model/runtime files;
+- Verdant v142 wiring/cache invariants;
+- v152/v153/v154/v155 regression markers;
+- v156 model payload presence, registration, exact 36-creature population and selective moundBase box suppression.
 
 Feature checkpoint results:
-- Aqua `33398577795` — **SUCCESS**.
-- Verdant `33398577774` — **SUCCESS**.
+- Aqua run `33404254807` — **SUCCESS**.
+- Verdant run `33404254821` — **SUCCESS**.
 
-## Immediate visual test — v155
+## Verdant Rift approved state — v142
+Do not disturb while tuning Aqua. Mushrooms 25% scale; bilateral four-colour hillside flowers; 14 bears; v140 cats/dragonflies/deer/buildings; approved v137 TwistedTree and v136 CommonTree mixes. Rejected v132 bundle, global v133 alpha changes, v135 synthetic CommonTree and v130 palms remain off. GPU nature instancing remains `js/28-verdant-instanced-renderer.js`.
+
+## Immediate visual test — v156
 Run:
 `UPDATE.bat` → `ride.bat` → close/reopen → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
 
 Look specifically for:
-- black/podium-looking v154 bases should be gone;
-- close reef should sit on irregular dark rock/rubble masses instead;
-- primary hero colonies should look broader and more crowded, with multiple coral forms overlapping;
-- reef should read more continuously on both sides;
-- no coral enters the tube;
-- frame rate remains smooth;
-- same proper v152 jellyfish and all fish behavior remain;
-- Verdant Rift is visually unchanged.
+- the dark rectangular platforms under coral should finally be gone;
+- rounded irregular rock/rubble should remain under colonies;
+- new user-model creatures should appear at different depths and on both sides, not in a single line;
+- only two giant leviathans exist, so sightings should be occasional;
+- fish and proper v152 jellyfish should be unchanged;
+- no creature enters the glass tube;
+- frame rate should remain smooth;
+- Verdant must be visually unchanged.
 
 ## Next task after this handoff
-Wait for the user's v155 screenshot/performance feedback. If rooting/composition is now convincing but close individual coral fidelity remains the main weakness, the next major step should be a **compatible CC0 model-based hero path**, not another placement-count increase.
+Wait for the user's v156 screenshot/performance feedback. If platforms still appear, identify the visible geometry source before changing cache or coral density. If the new creatures are poorly oriented/scaled/sparse/dense, tune only v156 model transform/population parameters. Do not disturb Verdant, fish, jellyfish or the approved v155 reef budget without explicit visual evidence.
