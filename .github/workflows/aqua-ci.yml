@@ -24,6 +24,7 @@ jobs:
           node --check js/54-aqua-tail-animation-v148.js
           node --check js/55-aqua-uturn-continuity-v149.js
           node --check js/56-aqua-faces-reef-v150.js
+          node --check js/57-aqua-coral-jelly-v151.js
           node --check tests/aqua-rift-v143-smoke.js
           node --check tests/aqua-v144-real-fish-smoke.js
           node --check tests/aqua-v145-fish-visibility-smoke.js
@@ -32,6 +33,7 @@ jobs:
           node --check tests/aqua-v148-tail-animation-smoke.js
           node --check tests/aqua-v149-uturn-continuity-smoke.js
           node --check tests/aqua-v150-faces-reef-smoke.js
+          node --check tests/aqua-v151-coral-jelly-smoke.js
 
       - name: Aqua Rift v143 base runtime smoke
         run: node tests/aqua-rift-v143-smoke.js
@@ -57,6 +59,9 @@ jobs:
       - name: Aqua Rift v150 faces and reef-only seafloor regression
         run: node tests/aqua-v150-faces-reef-smoke.js
 
+      - name: Aqua Rift v151 coral gardens and jellyfish regression
+        run: node tests/aqua-v151-coral-jelly-smoke.js
+
       - name: Validate imported Quaternius fish assets
         run: |
           node - <<'NODE'
@@ -76,16 +81,16 @@ jobs:
           if(!prov.includes('Quaternius')||!prov.includes('CC0')||!prov.includes('e160070ede35d2d1a62c7572e8b348211c58fe83'))throw new Error('fish provenance incomplete');
           NODE
 
-      - name: Verify Aqua v150 runtime wiring and offline cache
+      - name: Verify Aqua v151 runtime wiring and offline cache
         run: |
           node - <<'NODE'
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
-          const loader=R('js/19-verdant-assets.js'),sw=R('sw.js'),aqua=R('js/49-aqua-rift-v143.js'),fish=R('js/50-aqua-real-fish-v144.js'),fix=R('js/51-aqua-fish-visibility-v145.js'),depth=R('js/52-aqua-depth-distribution-v146.js'),swim=R('js/53-aqua-swim-motion-v147.js'),tail=R('js/54-aqua-tail-animation-v148.js'),turn=R('js/55-aqua-uturn-continuity-v149.js'),reef=R('js/56-aqua-faces-reef-v150.js');
-          for(const f of ['49-aqua-rift-v143.js','50-aqua-real-fish-v144.js','51-aqua-fish-visibility-v145.js','52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js','55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js'])
-            if(!loader.includes(f+'?b=150'))throw new Error('Aqua v150 fresh loader wiring missing '+f);
+          const loader=R('js/19-verdant-assets.js'),sw=R('sw.js'),aqua=R('js/49-aqua-rift-v143.js'),fish=R('js/50-aqua-real-fish-v144.js'),fix=R('js/51-aqua-fish-visibility-v145.js'),depth=R('js/52-aqua-depth-distribution-v146.js'),swim=R('js/53-aqua-swim-motion-v147.js'),tail=R('js/54-aqua-tail-animation-v148.js'),turn=R('js/55-aqua-uturn-continuity-v149.js'),reef=R('js/56-aqua-faces-reef-v150.js'),garden=R('js/57-aqua-coral-jelly-v151.js');
+          for(const f of ['49-aqua-rift-v143.js','50-aqua-real-fish-v144.js','51-aqua-fish-visibility-v145.js','52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js','55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js','57-aqua-coral-jelly-v151.js'])
+            if(!loader.includes(f+'?b=151'))throw new Error('Aqua v151 fresh loader wiring missing '+f);
           if(!sw.includes("lunar-ride-v142"))throw new Error('retained Verdant v142 service-worker cache missing');
           const names=['clownfish','fish-a','fish-b','fish-c','shark','anglerfish','puffer','lionfish','butterfly-fish','swordfish','black-lionfish'];
-          for(const f of ['js/49-aqua-rift-v143.js','js/50-aqua-real-fish-v144.js','js/51-aqua-fish-visibility-v145.js','js/52-aqua-depth-distribution-v146.js','js/53-aqua-swim-motion-v147.js','js/54-aqua-tail-animation-v148.js','js/55-aqua-uturn-continuity-v149.js','js/56-aqua-faces-reef-v150.js','assets/images/aqua_rift_card.svg'])if(!sw.includes(f))throw new Error('Aqua cache missing '+f);
+          for(const f of ['js/49-aqua-rift-v143.js','js/50-aqua-real-fish-v144.js','js/51-aqua-fish-visibility-v145.js','js/52-aqua-depth-distribution-v146.js','js/53-aqua-swim-motion-v147.js','js/54-aqua-tail-animation-v148.js','js/55-aqua-uturn-continuity-v149.js','js/56-aqua-faces-reef-v150.js','js/57-aqua-coral-jelly-v151.js','assets/images/aqua_rift_card.svg'])if(!sw.includes(f))throw new Error('Aqua cache missing '+f);
           for(const n of names)if(!sw.includes('assets/models/aqua_fish/'+n+'.gltf'))throw new Error('Aqua fish cache missing '+n);
           if(!fs.existsSync('assets/images/aqua_rift_card.svg'))throw new Error('Aqua world card missing');
           for(const k of ["name:'Aqua Rift — Glass Ocean'","customWorld:AQUA_ID","w.glass=meshOf(glass)","w.water=meshOf(wm)","w.__aquaRiftV143"])
@@ -104,6 +109,8 @@ jobs:
             if(!turn.includes(k))throw new Error('Aqua v149 runtime marker missing '+k);
           for(const k of ["VERSION=150","reefOnly:true","genericPropsDiscarded:true","mountainTerrainReplaced:true","screensRemoved:true","faceGeometryFromV148:true"])
             if(!reef.includes(k))throw new Error('Aqua v150 runtime marker missing '+k);
+          for(const k of ["VERSION=151","REEF_STATIONS=176","CORALS_PER_SIDE=4","JELLY_COUNT=52","reefExtension:true","jellyOutsideGlass:true","aquaJelly:true"])
+            if(!garden.includes(k))throw new Error('Aqua v151 runtime marker missing '+k);
           if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring was disturbed');
-          console.log('ok: Aqua v150 adds readable fish faces and a reef-only low seabed with no leaked land scenery while Verdant v142 remains intact');
+          console.log('ok: Aqua v151 enriches the clean v150 seabed with bilateral coral gardens and restored jellyfish while preserving Aqua fish systems and Verdant v142');
           NODE
