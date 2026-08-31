@@ -1,7 +1,7 @@
 "use strict";
 const fs=require('fs'),vm=require('vm'),path=require('path');
 const src=fs.readFileSync('js/54-aqua-tail-animation-v148.js','utf8');
-for(const m of ['VERSION=148','FRAME_COUNT=24','TAIL_AMPLITUDE=.075','aquaTailAnimated:true','geometryBaked:true','__aquaFishV148'])
+for(const m of ['VERSION=148','FRAME_COUNT=24','TAIL_AMPLITUDE=.075','aquaTailAnimated:true','geometryBaked:true','__aquaFishV148','installTailUpdate','setTimeout(installTailUpdate,0)'])
   if(!src.includes(m))throw new Error('missing Aqua v148 marker '+m);
 
 let oldLoads=0,oldUpdates=0;
@@ -68,4 +68,23 @@ if(oldUpdates!==1||!(fish.__aquaTailPhase>4))throw new Error('tail phase did not
 if(!ctx.world.__aquaFishV148||ctx.world.__aquaFishV148.animated!==1||!ctx.world.__aquaFishV147.correctedByV148)throw new Error('v148 telemetry missing');
 const legacy=ctx.glCreFrame({gcre:'vbear'});if(!legacy.legacy)throw new Error('non-Aqua glCreFrame path disturbed');
 ctx.loadGLTFCreature('vbear','bear.gltf',{});if(oldLoads!==1)throw new Error('non-Aqua loader interception leaked');
-console.log('ok: Aqua v148 keeps heads anchored, progressively bends real fish bodies/tails, advances independent species tail phases, and leaves non-Aqua paths untouched');
+
+/* Real page order: js/54 executes before js/07 creates updateActors. It must
+   load cleanly, schedule installation, and wrap updateActors after physics appears. */
+const queued=[];let lateBaseCalls=0;
+const late={console,Math,Float32Array,Uint32Array,
+  loadGLTFCreature:()=>{},glCreFrame:()=>({legacy:true}),GLCRE:{},world:null,state:null,
+  setTimeout:fn=>{queued.push(fn);return queued.length;}};late.globalThis=late;
+vm.createContext(late);vm.runInContext(src,late);
+if(late.__aquaFishV148UpdateInstalled)throw new Error('v148 updater installed before updateActors existed');
+if(queued.length!==1)throw new Error('v148 did not queue deferred installer exactly once: '+queued.length);
+late.updateActors=()=>{lateBaseCalls++;};
+late.world={actors:[{aquaFish:true,gcre:'aqClown',ph:.2}],__aquaFishV147:{version:147}};
+late.state={scene:{id:'aqua'}};
+queued.shift()();
+if(!late.__aquaFishV148UpdateInstalled||typeof late.updateActors!=='function')throw new Error('deferred updater did not install');
+late.updateActors(.25);
+if(lateBaseCalls!==1||!(late.world.actors[0].__aquaTailPhase>.2)||!late.world.__aquaFishV148?.deferredUpdateInstall)
+  throw new Error('deferred updater did not advance tail phase after js/07-style late definition');
+
+console.log('ok: Aqua v148 keeps heads anchored, bends all real fish tails, advances independent species phases, survives pre-js/07 load order via deferred install, and leaves non-Aqua paths untouched');
