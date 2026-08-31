@@ -16,7 +16,7 @@ const CORE = [
   'js/35-verdant-mountains-v123.js', 'js/37-verdant-mountains-v129.js',
   'js/25-verdant-lite-richness.js', 'js/26-verdant-real-nature.js',
   'js/30-verdant-natural-v119.js', 'js/31-verdant-enrichment-v120.js',
-  'js/32-verdant-fauna-buildings-mushrooms-v140.js', 'js/33-verdant-terrain-birds-v122.js',
+  'js/32-verdant-fauna-buildings-v121.js', 'js/33-verdant-terrain-birds-v122.js',
   'js/34-verdant-assets-gate-v123.js', 'js/36-verdant-wildlife-v125.js',
   'js/38-verdant-world-cleanup-v129.js', 'js/27-verdant-billboard-cleanup.js',
   'js/39-verdant-common-tree-mix-v134.js', 'js/41-verdant-common-tree-compact-v136.js',
