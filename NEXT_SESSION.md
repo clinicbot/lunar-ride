@@ -9,67 +9,70 @@ Read this file first, then `PROJECT_HANDOFF.md`.
 - Open draft PR #1 targets `main`.
 - Do not touch `js/09-bluetooth.js` unless explicitly requested.
 - Use the dedicated ChatGPT GitHub connector; do not confuse it with local `git clone`/container networking.
-- Before the next risky visual change, create a new backup from the current v153 checkpoint.
+- Before the next risky visual change, create a new backup from the current v154 checkpoint.
 
 ## Current world state
 - Verdant Rift remains approved **v142** and must not be changed.
-- Aqua Rift current release is **v153**.
-- v153 code/wiring/CI feature checkpoint: `d3a3d03094e390b38df676d5973f451fd635127a`.
-- Aqua CI run `33392300322` — **SUCCESS**.
-- Verdant CI run `33392300238` — **SUCCESS** on the same checkpoint.
-- Canonical pre-v153 backup: `backup-v152-before-aqua-hq-coral-v153` from exact pre-v153 HEAD `23c96d831701f69c743d3cb49c48f429cba761b2`.
+- Aqua Rift current release is **v154**.
+- v154 code/wiring/CI feature checkpoint: `ecfa09a111300e3f657df28ffb3bcfd620aeebfa`.
+- Aqua CI run `33394089760` — **SUCCESS**.
+- Verdant CI run `33394089757` — **SUCCESS** on the same checkpoint.
+- Canonical pre-v154 backup: `backup-v153-before-aqua-hero-coral-v154` from exact v153 HEAD `875ab0fe414c418798870eccf1f4c15889065be9`.
 - `js/09-bluetooth.js` remains untouched.
 
-## Aqua v153 — high-quality coral geometry
-New layer: `js/59-aqua-hq-coral-v153.js`.
-Regression: `tests/aqua-v153-hq-coral-smoke.js`.
+## Why v154 exists — exact visual feedback from v153
+The user visually tested v153 and sent a screenshot. The result was improved versus v152, but still not good enough:
+- coral silhouettes were more varied, but many still looked low-poly / schematic;
+- reef read as small scattered props instead of a rich reef wall;
+- coral close to the glass was not visually dominant enough;
+- the large fan silhouette on the right was the strongest direction: large recognizable forms close to the rider.
 
-v153 directly addresses the user's complaint that the v152 coral was graphically low quality. It does **not** increase the reef count. It preserves the exact 2,800-placement composition and rebuilds the coral layer with six recognizable geometric families:
-- branching / staghorn coral with tapered 3-D branches;
-- sea fans with a visible radial/cross lattice;
-- brain coral with ridged dome geometry;
-- layered wavy plate coral;
-- hollow tube sponges;
-- soft coral with curved tapered fingers.
+The user then explicitly said to continue working. v154 is therefore a composition/scale/cluster upgrade derived from v153.
 
-### Hybrid LOD / performance
-- Exact reef budget remains **2,800 groups**: 700 near / 1,400 mid / 700 far.
-- **140 close hero groups** (70 per side) receive the highest detail.
-- **1,494 medium-detail groups** fill near/mid reef.
-- **1,166 simple groups** carry the far silhouette.
-- Smoke telemetry produced ~403,514 reef triangles in the test world; the extra close-up fidelity is offset by simpler far LOD instead of adding more coral groups.
-- Colour weighting remains the approved v152 purple/pink/orange/turquoise/blue/cream palette.
+## Aqua v154 — hero coral clusters + reef pedestals
+New layer: `js/60-aqua-hero-coral-v154.js`.
+Regression: `tests/aqua-v154-hero-coral-smoke.js`.
+
+v154 still preserves the exact **2,800 placement** budget (700 near / 1,400 mid / 700 far), but changes how the closest reef reads:
+- **280 hero groups** total instead of 140: 140 primary near heroes + 140 secondary heroes;
+- primary hero placements contain the main coral plus three overlapping companion coral forms;
+- secondary heroes contain the main coral plus two companions;
+- every one of the 2,800 placements gets a dark reef pedestal / ledge so coral does not look like a small object sitting on a flat floor;
+- nearest reef starts at only `glassRadius + 1.10 m` and is scaled larger;
+- six recognizable families are retained: branching, fan, brain, plate, sponge and soft coral;
+- ordinary medium/far placements remain cheaper than hero clusters to control performance.
 
 ### Preserved systems
-- v152 shared jellyfish remain: 60 actors using `assets/models/creature_jelly.gltf`, `type:'gjelly'`, `gcre:'jelly'`.
-- Existing 258 fish and all fish motion/tail/faces/U-turn systems remain unchanged.
-- Road, glass, water/tunnel systems remain unchanged.
+- 60 proper shared jellyfish from v152 remain unchanged (`creature_jelly.gltf`, `type:'gjelly'`, `gcre:'jelly'`).
+- Existing 258 fish and fish swim/tail/face/U-turn systems remain unchanged.
+- Road, glass, water and tunnel systems remain unchanged.
 - Verdant v142 remains unchanged.
 - No terrestrial mountains, poles, buildings or land animals were introduced.
 
 ## Asset research note
-The repository had no dedicated coral/reef model assets. A suitable external candidate was found (MiniPoly Coral Reef Kit on Poly Pizza; one set is CC0), but v153 intentionally does **not** add an external dependency. The final implementation uses project-native lightweight mesh geometry so licensing, texture loading, file size and WebGL performance stay controlled. If the user later wants photorealistic/model-based coral, revisit this separately rather than mixing it into the current checkpoint.
+A CC0 external candidate still exists: MiniPoly `Coral Reef Set` on Poly Pizza. v154 does **not** import it; it remains project-native geometry. This was deliberate for this iteration so we could first fix the obvious composition problem from the screenshot without adding a new asset/loader dependency. If v154 still looks too low-poly after visual testing, the next iteration should strongly favor a controlled CC0 model import rather than simply increasing procedural complexity again.
 
 ## Wiring / cache
-- `js/19-verdant-assets.js` now loads Aqua v143→v153 in order, all Aqua layers with `?b=153`.
+- `js/19-verdant-assets.js` loads Aqua v143→v154 in order, all Aqua layers with `?b=154`.
 - Verdant layers remain `?b=142`.
-- `sw.js` keeps the intentional cache name `lunar-ride-v142` but includes `js/59-aqua-hq-coral-v153.js` for offline use.
-- Aqua CI now syntax-checks and runs regressions v143→v153 and verifies v153 wiring/cache plus v152 jelly preservation.
+- `sw.js` keeps the intentional cache name `lunar-ride-v142` but includes `js/60-aqua-hero-coral-v154.js`.
+- The original Verdant v121 cache entry `js/32-verdant-fauna-buildings-v121.js` is explicitly protected by Aqua CI.
+- Aqua CI syntax-checks and runs regressions v143→v154 and verifies v154 wiring/cache plus v152 jelly preservation.
 
-## NEXT TASK — user visual validation of v153
-Do **not** start v154 or make another coral change before seeing the user's v153 result unless the user explicitly asks.
+## NEXT TASK — user visual validation of v154
+Do not start another coral version before seeing the user's v154 screenshot unless explicitly requested.
 
 User workflow:
 `UPDATE.bat` → `ride.bat` → close/reopen browser/game → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
 
-Ask/look for:
-1. Do the closest corals now read clearly as branching coral, fan coral, brain coral, plates, sponges and soft coral rather than coloured blobs?
-2. Are the 140 hero groups close enough and large enough to appreciate while riding?
-3. Is the reef still colourful and obvious on both sides without entering the glass tube?
-4. Does performance remain smooth?
-5. Are the proper jellyfish and fish unchanged?
+Look for:
+1. Does the close reef now feel like larger continuous coral gardens/walls instead of isolated small props?
+2. Are hero clusters clearly larger and more visually dominant near both sides of the glass?
+3. Do the dark reef ledges make the coral feel rooted/natural rather than floating on a flat surface?
+4. Is performance still smooth?
+5. Are jellyfish and fish unchanged?
 
-If the user sends screenshots/feedback, tune **v153-derived coral geometry/scale/placement only** based on what is actually visible. Preserve Verdant and the approved Aqua systems.
+If the user still says the actual coral objects look too low-poly/synthetic despite the improved composition, the next step should be a controlled **CC0 external coral model import** (likely MiniPoly Coral Reef Set or another verified CC0 source), with a small number of model-based hero clusters and strict LOD/performance limits.
 
 ## Fresh-chat instruction
-If this is a new ChatGPT conversation, immediately read `NEXT_SESSION.md` and `PROJECT_HANDOFF.md` from branch `fixes-build-90` through the dedicated GitHub connector, verify the current branch HEAD and latest CI, then continue from the v153 visual-validation feedback. Do not ask the user to repeat the project history unless repository state conflicts with these notes.
+If this is a new ChatGPT conversation, immediately read `NEXT_SESSION.md` and `PROJECT_HANDOFF.md` from branch `fixes-build-90` through the dedicated GitHub connector, verify current branch HEAD and latest CI, then continue from the v154 visual-validation feedback. Do not ask the user to repeat the project history unless repository state conflicts with these notes.
