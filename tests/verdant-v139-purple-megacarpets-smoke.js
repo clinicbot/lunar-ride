@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/44-verdant-purple-flower-megacarpets-v139.js','utf8');
+const src=require('./_section')('js/44-verdant-purple-flower-megacarpets-v139.js');
 for(const marker of ['PATCH_COUNT=48','TARGET_TOTAL=113760','ROAD_EDGE_GAP=.10',
   'FLOWER_RADIUS_FACTOR=.80','flower4MegaCarpetV139','Flower_4_Group.gltf','__verdantPurpleCarpetsV139'])
   if(!src.includes(marker))throw new Error('missing v139 marker: '+marker);

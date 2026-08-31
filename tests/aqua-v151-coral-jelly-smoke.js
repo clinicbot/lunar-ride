@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/57-aqua-coral-jelly-v151.js','utf8');
+const src=require('./_section')('js/57-aqua-coral-jelly-v151.js');
 for(const m of ['VERSION=151','REEF_STATIONS=176','CORALS_PER_SIDE=4','JELLY_COUNT=52','reefExtension:true','jellyOutsideGlass:true','aquaJelly:true'])
   if(!src.includes(m))throw new Error('missing v151 marker '+m);
 

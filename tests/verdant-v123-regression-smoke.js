@@ -1,11 +1,11 @@
 'use strict';
 const fs=require('fs');
-const read=f=>fs.readFileSync(f,'utf8');
+const read=require('./_section');
 
 const mat=read('js/33-verdant-terrain-birds-v122.js');
 const mountains=read('js/35-verdant-mountains-v123.js');
 const gate=read('js/34-verdant-assets-gate-v123.js');
-const loader=read('js/19-verdant-assets.js');
+const loader=require('./_section').manifest();
 const lite=read('js/25-verdant-lite-richness.js');
 const sw=read('sw.js');
 
@@ -47,7 +47,7 @@ for(const f of ['35-verdant-mountains-v123.js','34-verdant-assets-gate-v123.js']
 const rm=lite.match(/const RELEASE='(\d+)'/),cm=sw.match(/lunar-ride-v(\d+)/);
 if(!rm||+rm[1]<123)throw new Error('current Verdant release label missing');
 if(!cm||+cm[1]!==+rm[1])throw new Error('service-worker cache/release mismatch');
-if(!sw.includes('35-verdant-mountains-v123.js')||!sw.includes('34-verdant-assets-gate-v123.js'))
+if(!sw.includes('js/70-verdant-world.js'))  /* the layers ship inside the bundle */
   throw new Error('service worker Verdant wiring missing');
 
 console.log(JSON.stringify({ok:true,buildings:buildingKeys.length,creatureAssets:creatureKeys.length,

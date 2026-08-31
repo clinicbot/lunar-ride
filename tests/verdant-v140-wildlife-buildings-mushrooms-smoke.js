@@ -1,6 +1,6 @@
 "use strict";
 const fs=require("fs"),vm=require("vm");
-const src=fs.readFileSync("js/45-verdant-wildlife-buildings-mushrooms-v140.js","utf8");
+const src=require("./_section")("js/45-verdant-wildlife-buildings-mushrooms-v140.js");
 for(const marker of ["CAT_MULT=10","DFLY_MULT=10","STAG_MULT=3","BUILDING_MULT=5","GIANT_CAT_FRACTION=.5",
   "GIANT_MUSHROOM_TARGET=240","SMALL_MUSHROOM_TARGET=2400","stampRoadPair","mushroomGiantV140","__verdantExpansionV140"])
   if(!src.includes(marker))throw new Error("missing v140 marker: "+marker);

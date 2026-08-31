@@ -31,8 +31,8 @@ global.MeshB=MeshB;
 for(const n of ['mCrystal','mFan','mBroad','mPine','mDome','mDish','mMast','mSolarFarm','mAstro','mRover','mShuttle','mDrone','mRider'])global[n]=()=>{};
 global.appendGLTF=()=>{};
 
-for(const f of ['js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js','js/22-verdant-visual-pass.js','js/23-verdant-depth-pass.js'])
-  vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
+for(const f of ['js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js'])
+  vm.runInThisContext(require('./_section')(f),{filename:f});
 
 const sc=SCENES.find(s=>s.id==='verdant');
 if(!sc)throw new Error('Verdant scene was not registered');
@@ -56,12 +56,11 @@ assert(w.road.pos.length>=w.nMain*18,'trail vertex data incomplete');
 assert(w.road.idx.length>=w.nMain*6,'trail surface incomplete');
 assert(w.veg&&w.veg.count>100000,'vegetation field too sparse');
 const count=t=>w.actors.filter(a=>a.type===t).length;
-assert(count('bear')===6,'bear population wrong after depth pass: '+count('bear'));
+assert(count('bear')>=4,'bear population missing after core passes: '+count('bear')); /* exact count is asserted by the v142 test */
 assert(count('frog')===12,'frog population wrong');
 assert(count('monkey')===14,'monkey population wrong');
 assert(count('insect')===36,'insect population wrong');
 assert(count('shuttle')>=9,'sky traffic missing');
 assert(w.verdant&&w.verdant.zoneAt(0)===0,'Verdant zone metadata missing');
-assert(w.__verdantVisual,'visual richness pass did not run');
-assert(w.__verdantDepth&&w.__verdantDepth.ponds===2&&w.__verdantDepth.earlyBears===2,'v108 depth pass did not run');
+/* the v107 visual/depth passes were retired with the layer flattening */
 console.log(JSON.stringify({ok:true,lapKm:(w.lapLen/1000).toFixed(2),maxGrade:maxG.toFixed(2),maxNearTrailSlope:w.__verdantTerrainAudit.maxNearTrailSlopePct.toFixed(2),maxRoadGroundGap:w.__verdantTerrainAudit.maxRoadGroundGap.toFixed(3),terrainTriangles:w.terrain.idx.length/3,trailTriangles:w.road.idx.length/3,vegetationQuads:w.veg.count/6,actors:w.actors.length,depth:w.__verdantDepth},null,2));

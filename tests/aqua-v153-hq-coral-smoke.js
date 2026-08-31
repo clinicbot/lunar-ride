@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/59-aqua-hq-coral-v153.js','utf8');
+const src=require('./_section')('js/59-aqua-hq-coral-v153.js');
 for(const m of ['VERSION=153','REEF_STATIONS=350','GROUPS_PER_SIDE=4','HERO_EVERY=5',
   'hqCoral:true','hybridLOD:true','recognizableGeometry:true','closeHeroCorals:true',
   'proceduralSphereClustersReplaced:true',"coralTypes:['branching','fan','brain','plate','sponge','soft']"])

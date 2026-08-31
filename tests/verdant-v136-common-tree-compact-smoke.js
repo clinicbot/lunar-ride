@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const code=fs.readFileSync('js/41-verdant-common-tree-compact-v136.js','utf8');
+const code=require('./_section')('js/41-verdant-common-tree-compact-v136.js');
 for(const k of [
   "const FILES={common1:'CommonTree_1.gltf',common3:'CommonTree_3.gltf',common5:'CommonTree_5.gltf'}",
   'const STRUCT_RATIO=.10',"mat.alphaMode==='MASK'",'isLeaf=masked&&/leaf|leaves/i.test',

@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/55-aqua-uturn-continuity-v149.js','utf8');
+const src=require('./_section')('js/55-aqua-uturn-continuity-v149.js');
 for(const m of ['VERSION=149','CAPTURE_RADIUS=135','HOLD_SECONDS=1.15','REJOIN_SECONDS=2.35','uTurnLocalContinuity:true','worldRebuild:false','fishRespawn:false'])
   if(!src.includes(m))throw new Error('missing Aqua v149 marker '+m);
 

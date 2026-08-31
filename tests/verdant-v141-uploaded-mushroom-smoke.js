@@ -8,8 +8,8 @@ const pr=a.meshes[0].primitives[0],ia=a.accessors[pr.indices],tri=ia.count/3;
 for(const k of ['POSITION','NORMAL','COLOR_0'])if(pr.attributes[k]===undefined)throw new Error('missing '+k);
 if(tri<100||tri>1000)throw new Error('unexpected optimized triangle count '+tri);
 
-const loader=fs.readFileSync('js/46-verdant-uploaded-mushroom-model-v141.js','utf8');
-const src=fs.readFileSync('js/47-verdant-uploaded-mushroom-replace-v141.js','utf8');
+const loader=require('./_section')('js/46-verdant-uploaded-mushroom-model-v141.js');
+const src=require('./_section')('js/47-verdant-uploaded-mushroom-replace-v141.js');
 for(const m of ['user-uploaded-glb','HERO_TARGET=240','PATCH_TARGET=2400','HERO_SCALE_MAX=1.80','mushroomTrees:false'])
   if(!src.includes(m))throw new Error('missing v141 marker '+m);
 if(!loader.includes('verdant_mushroom_uploaded_v141.gltf')||!loader.includes('XMLHttpRequest'))throw new Error('v141 uploaded model loader missing');

@@ -1,0 +1,74 @@
+name: Lunar Ride checks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JavaScript syntax
+        run: |
+          for f in js/*.js; do node --check "$f"; done
+          for f in tests/*.js; do node --check "$f"; done
+
+      - name: Runtime smoke tests
+        run: |
+          fails=0
+          for t in tests/*.js; do
+            case "$t" in tests/_*) continue;; esac
+            echo "== $t"
+            if ! timeout 60s node "$t"; then fails=$((fails+1)); echo "FAIL $t"; fi
+          done
+          test "$fails" -eq 0
+
+      - name: Validate creature and building assets
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const creatures=['verdant_bear.gltf','verdant_frog.gltf','verdant_monkey.gltf','verdant_ship.gltf',
+            'creature_stag.gltf','creature_jelly.gltf','creature_cat.gltf','creature_dragonfly.gltf',
+            'bird_kestrel.gltf','bird_gull.gltf','bird_finch.gltf','bird_ray.gltf'];
+          const buildings=['station_side.gltf','station_hangar.gltf','station_antenna.gltf','station_gate.gltf',
+            'station_refinery.gltf','station_ring.gltf','city_gate.gltf','city_dome.gltf','city_tower.gltf',
+            'city_arcology.gltf','city_spire_pair.gltf','city_cluster.gltf'];
+          for(const name of creatures.concat(buildings)){
+            const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
+            if(j.asset?.version!=='2.0'||!j.meshes?.length)throw new Error('invalid asset '+name);
+            for(const b of (j.buffers||[]))if(b.uri&&!b.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),b.uri)))
+              throw new Error(name+' missing buffer '+b.uri);
+            for(const im of (j.images||[]))if(im.uri&&!im.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),im.uri)))
+              throw new Error(name+' missing image '+im.uri);
+            console.log('ok',name);
+          }
+          NODE
+
+      - name: Validate imported nature dependencies
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const files=['CommonTree_1.gltf','CommonTree_3.gltf','CommonTree_5.gltf',
+            'TwistedTree_1.gltf','TwistedTree_3.gltf','Pine_1.gltf','Pine_3.gltf','Pine_5.gltf','DeadTree_2.gltf',
+            'Bush_Common.gltf','Bush_Common_Flowers.gltf','Fern_1.gltf','Flower_4_Group.gltf','Mushroom_Common.gltf',
+            'Rock_Medium_1.gltf','Rock_Medium_2.gltf','verdant_mushroom_uploaded_v141.gltf'];
+          for(const name of files){
+            const f=path.join('assets/models',name),j=JSON.parse(fs.readFileSync(f,'utf8'));
+            for(const b of (j.buffers||[]))if(b.uri&&!b.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),b.uri)))
+              throw new Error(name+' missing buffer '+b.uri);
+            for(const im of (j.images||[]))if(im.uri&&!im.uri.startsWith('data:')&&!fs.existsSync(path.join(path.dirname(f),im.uri)))
+              throw new Error(name+' missing image '+im.uri);
+            console.log('ok',name);
+          }
+          NODE
+
+      - name: Texture provenance stays documented
+        run: |
+          grep -q "CC0" assets/images/AQUA_SAND_PROVENANCE.md
+          grep -q "CC0" assets/images/AQUA_ROCK_PROVENANCE.md

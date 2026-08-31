@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const code=fs.readFileSync('js/42-verdant-twisted-tree-mix-v137.js','utf8');
+const code=require('./_section')('js/42-verdant-twisted-tree-mix-v137.js');
 for(const k of [
   "const FILES={twisted1:'TwistedTree_1.gltf',twisted3:'TwistedTree_3.gltf'}",
   'const DARK_RATIO=.50','v133ExactTwistedAlpha:true','exactV133AlphaOnDarkHalf:true',

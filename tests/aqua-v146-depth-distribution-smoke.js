@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/52-aqua-depth-distribution-v146.js','utf8');
+const src=require('./_section')('js/52-aqua-depth-distribution-v146.js');
 for(const m of ['VERSION=146','HEIGHT_BANDS=[-1.5,1.0,4.0,8.0,12.0]','bilateral:true','fullWaterColumn:true','__aquaFishV146'])
   if(!src.includes(m))throw new Error('missing Aqua v146 marker '+m);
 

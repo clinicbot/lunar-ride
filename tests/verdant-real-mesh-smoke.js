@@ -4,7 +4,7 @@ const fs=require('fs'),vm=require('vm');
 /* Build Verdant with the REAL MeshB/model routines from js/02.  The older
    smoke test intentionally stubs those routines for fast geometry invariants;
    this test exists specifically to catch browser-like mesh explosions. */
-const files=['js/02-core-geometry.js','js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js','js/22-verdant-visual-pass.js','js/23-verdant-depth-pass.js'];
+const files=['js/02-core-geometry.js','js/17-verdant-rift.js','js/20-verdant-route-audit.js','js/21-verdant-terrain-polish.js'];
 const prefix=`
 var SCENES=[];
 var ROUTE_STEP=4;
@@ -14,7 +14,7 @@ var GLCRE={};
 var buildWorld=function(){throw new Error('unexpected legacy world builder');};
 var appendGLTF=function(){};
 `;
-const source=prefix+files.map(f=>'\n/* '+f+' */\n'+fs.readFileSync(f,'utf8')).join('\n')+`
+const source=prefix+files.map(f=>'\n/* '+f+' */\n'+require('./_section')(f)).join('\n')+`
 ;globalThis.__REAL_SCENE=SCENES.find(s=>s.id==='verdant');
 globalThis.__REAL_BUILD=buildWorld;
 `;

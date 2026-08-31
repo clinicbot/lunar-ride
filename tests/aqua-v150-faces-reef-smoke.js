@@ -2,7 +2,7 @@
 const fs=require('fs'),vm=require('vm'),path=require('path');
 
 /* ---------- real-fish face geometry ------------------------------------- */
-const tailSrc=fs.readFileSync('js/54-aqua-tail-animation-v148.js','utf8');
+const tailSrc=require('./_section')('js/54-aqua-tail-animation-v148.js');
 for(const m of ['faceEnhanced:true','addFaceDetail','eyes:2','pupils:2','mouth:1'])
   if(!tailSrc.includes(m))throw new Error('missing v150 face marker '+m);
 const tailCtx={console,Math,Float32Array,Uint32Array,loadGLTFCreature:()=>{},glCreFrame:()=>({}),
@@ -39,7 +39,7 @@ for(const name of files){
 }
 
 /* ---------- reef-only world wrapper ------------------------------------ */
-const reefSrc=fs.readFileSync('js/56-aqua-faces-reef-v150.js','utf8');
+const reefSrc=require('./_section')('js/56-aqua-faces-reef-v150.js');
 for(const m of ['VERSION=150','reefOnly:true','genericPropsDiscarded:true','mountainTerrainReplaced:true','screensRemoved:true'])
   if(!reefSrc.includes(m))throw new Error('missing v150 reef marker '+m);
 class MeshB{

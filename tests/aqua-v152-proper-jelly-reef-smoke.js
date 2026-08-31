@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/58-aqua-proper-jelly-reef-v152.js','utf8');
+const src=require('./_section')('js/58-aqua-proper-jelly-reef-v152.js');
 for(const m of ['VERSION=152','REEF_STATIONS=350','GROUPS_PER_SIDE=4','JELLY_COUNT=60',
   "jellyAsset:'assets/models/creature_jelly.gltf'","gcre:'jelly'","type:'gjelly'",
   'properProjectJelly:true','reefWallVisible:true','jellyOutsideGlass:true'])

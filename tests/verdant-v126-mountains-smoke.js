@@ -1,10 +1,10 @@
 'use strict';
 const fs=require('fs');
-const read=f=>fs.readFileSync(f,'utf8');
+const read=require('./_section');
 
 const base=read('js/17-verdant-rift.js');
 const mountains=read('js/35-verdant-mountains-v123.js');
-const loader=read('js/19-verdant-assets.js');
+const loader=require('./_section').manifest();
 
 /* The original terrain carve reaches width+28 m.  The widest Verdant road is
    3.35 m half-width, so a 46 m hard core leaves >14 m safety beyond the carve. */

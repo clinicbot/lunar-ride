@@ -1,11 +1,11 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const main=fs.readFileSync('js/62-aqua-creatures-v156.js','utf8');
+const main=require('./_section')('js/62-aqua-creatures-v156.js');
 for(const m of ['VERSION=156','reefBaseBoxesRemoved:true','reefBaseCylindersRemoved:true','uploadedUserModels:true','customCreatureCount:36','aqSiren156','aqCrawler156','aqEel156','aqLeviathan156'])
   if(!main.includes(m))throw new Error('missing v156 marker '+m);
 const dataFiles=['62a-aqua-v156-model-siren.js','62b-aqua-v156-model-crawler.js','62c-aqua-v156-model-eelbeast.js','62d-aqua-v156-model-leviathan.js'];
 for(const f of dataFiles){
-  const s=fs.readFileSync('js/'+f,'utf8'),m=s.match(/='([A-Za-z0-9+/=]+)'/);
+  const s=require('./_section')('js/'+f),m=s.match(/='([A-Za-z0-9+/=]+)'/);
   if(!m||m[1].length<1000)throw new Error('bad payload '+f);
 }
 class MeshB{
@@ -34,7 +34,7 @@ const ctx={console,Math,Float32Array,Uint32Array,Uint16Array,Uint8Array,ArrayBuf
   atob:s=>Buffer.from(s,'base64').toString('binary'),mulberry32:a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;},
   initGL:()=>true,buildWorld:oldBuild};
 ctx.globalThis=ctx;vm.createContext(ctx);
-for(const f of dataFiles)vm.runInContext(fs.readFileSync('js/'+f,'utf8'),ctx);
+for(const f of dataFiles)vm.runInContext(require('./_section')('js/'+f),ctx);
 vm.runInContext(main,ctx);
 ctx.initGL();
 for(const k of ['aqSiren156','aqCrawler156','aqEel156','aqLeviathan156'])if(!ctx.GLCRE[k]?.ready||!ctx.GLCRE[k].count)throw new Error('model registration failed '+k);

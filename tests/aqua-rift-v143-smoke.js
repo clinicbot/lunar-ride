@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/49-aqua-rift-v143.js','utf8');
+const src=require('./_section')('js/49-aqua-rift-v143.js');
 for(const m of ["id:AQUA_ID","customWorld:AQUA_ID","GLASS_R=8.8","FISH_COUNT=96","GIANT_FISH_COUNT=12","JELLY_COUNT=24","Aqua Rift v143 ready"])
   if(!src.includes(m))throw new Error('missing Aqua v143 marker '+m);
 

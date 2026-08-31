@@ -29,8 +29,8 @@ global.buildWorld=()=>({
   instNature:{ready:true,routeKm:25,models,groups:{},stats:{total:0}}
 });
 
-vm.runInThisContext(fs.readFileSync('js/25-verdant-lite-richness.js','utf8'),{filename:'js/25-verdant-lite-richness.js'});
-vm.runInThisContext(fs.readFileSync('js/31-verdant-enrichment-v120.js','utf8'),{filename:'js/31-verdant-enrichment-v120.js'});
+vm.runInThisContext(require('./_section')('js/25-verdant-lite-richness.js'),{filename:'js/25-verdant-lite-richness.js'});
+vm.runInThisContext(require('./_section')('js/31-verdant-enrichment-v120.js'),{filename:'js/31-verdant-enrichment-v120.js'});
 const w=buildWorld({id:'verdant',seed:9157});
 const byType=t=>w.actors.filter(a=>a.type===t);
 const bears=byType('bear'),frogs=byType('frog'),monkeys=byType('monkey'),insects=byType('insect');

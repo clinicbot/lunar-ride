@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/51-aqua-fish-visibility-v145.js','utf8');
+const src=require('./_section')('js/51-aqua-fish-visibility-v145.js');
 for(const m of ['VERSION=145','MODEL_SCALE_FACTOR=100','MODEL_PITCH=-Math.PI/2','hardFaunaIsolation:true','__aquaFishV145'])
   if(!src.includes(m))throw new Error('missing Aqua v145 marker '+m);
 

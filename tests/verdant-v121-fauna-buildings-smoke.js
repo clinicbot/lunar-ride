@@ -25,7 +25,7 @@ global.buildWorld=()=>({
   props:{pos:new Float32Array(0),nrm:new Float32Array(0),col:new Float32Array(0),idx:new Uint32Array(0)}
 });
 
-vm.runInThisContext(fs.readFileSync('js/32-verdant-fauna-buildings-v121.js','utf8'),{filename:'js/32-verdant-fauna-buildings-v121.js'});
+vm.runInThisContext(require('./_section')('js/32-verdant-fauna-buildings-v121.js'),{filename:'js/32-verdant-fauna-buildings-v121.js'});
 const w=buildWorld({id:'verdant',seed:9157});
 const s=w.__verdantV121;
 if(!s)throw new Error('v121 stats missing');

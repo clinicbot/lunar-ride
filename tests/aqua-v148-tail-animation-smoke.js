@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const src=fs.readFileSync('js/54-aqua-tail-animation-v148.js','utf8');
+const src=require('./_section')('js/54-aqua-tail-animation-v148.js');
 for(const m of ['VERSION=148','FRAME_COUNT=24','TAIL_AMPLITUDE=.075','aquaTailAnimated:true','geometryBaked:true','horizontalTailPlane:true','__aquaFishV148','installTailUpdate','setTimeout(installTailUpdate,0)'])
   if(!src.includes(m))throw new Error('missing Aqua v148 marker '+m);
 

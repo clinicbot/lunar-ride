@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/65-aqua-sand-ab-v159.js','utf8');
+const src=require('./_section')('js/65-aqua-sand-ab-v159.js');
 for(const m of ['VERSION=159','uploadedCreaturesRemoved:true','sandABExperiment:true',
   "Aerial Beach 01","Sand 03","shoulderGlassGap:[.35,19.5]",
   'aerial_beach_01_diff_1k.jpg','sand_03_diff_1k.jpg'])

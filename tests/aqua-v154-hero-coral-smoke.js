@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/60-aqua-hero-coral-v154.js','utf8');
+const src=require('./_section')('js/60-aqua-hero-coral-v154.js');
 for(const m of ['VERSION=154','REEF_STATIONS=350','GROUPS_PER_SIDE=4',
   'heroClusters:true','reefPedestals:true','clusteredComposition:true','closeWallFeeling:true',
   'hqCoral:true','hybridLOD:true','recognizableGeometry:true','closeHeroCorals:true',

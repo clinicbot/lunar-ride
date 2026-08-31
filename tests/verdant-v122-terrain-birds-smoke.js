@@ -15,7 +15,7 @@ global.buildWorld=()=>({
   lapLen:25000,nMain:n,rx:fill(0),rz:fill(0),ry:fill(10),tx:fill(1),tz:fill(0),actors:[]
 });
 
-vm.runInThisContext(fs.readFileSync('js/33-verdant-terrain-birds-v122.js','utf8'),
+vm.runInThisContext(require('./_section')('js/33-verdant-terrain-birds-v122.js'),
   {filename:'js/33-verdant-terrain-birds-v122.js'});
 const w=buildWorld({id:'verdant',seed:9157});
 const s=w.__verdantV122;

@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/53-aqua-swim-motion-v147.js','utf8');
+const src=require('./_section')('js/53-aqua-swim-motion-v147.js');
 for(const m of ['VERSION=147','VERTICAL_DRIFT=.18',"motion:'horizontal-elliptical-swim'",'headingFollowsVelocity:true','removesDroneBob:true'])
   if(!src.includes(m))throw new Error('missing Aqua v147 marker '+m);
 

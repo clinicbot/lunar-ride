@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/63-aqua-visible-creatures-v157.js','utf8');
+const src=require('./_section')('js/63-aqua-visible-creatures-v157.js');
 for(const m of ['VERSION=157','hardFlatBaseSuppression:true','creaturesMovedNearGlass:true',
   'smallCreatureGlassGap:[2.2,7.5]','leviathanGlassGap:[8,15]',
   'firstEncountersKm:[.15,.30,.45,.55]','leviathanKm:[1.65,5.70]'])

@@ -1,9 +1,9 @@
 "use strict";
 const fs=require('fs');
-const R=f=>fs.readFileSync(f,'utf8');
+const R=require('./_section');
 const v=R('js/36-verdant-wildlife-v125.js');
 const loop=R('js/10-render-loop.js');
-const loader=R('js/19-verdant-assets.js');
+const loader=require('./_section').manifest();
 const lite=R('js/25-verdant-lite-richness.js');
 const sw=R('sw.js');
 
@@ -31,6 +31,6 @@ if(!/36-verdant-wildlife-v125\.js\?b=\d+/.test(loader))throw new Error('v125 wil
 const rm=lite.match(/const RELEASE='(\d+)'/),cm=sw.match(/lunar-ride-v(\d+)/);
 if(!rm||+rm[1]<125)throw new Error('current release label predates v125');
 if(!cm||+cm[1]!==+rm[1])throw new Error('service-worker cache/release mismatch');
-if(!sw.includes('js/36-verdant-wildlife-v125.js'))throw new Error('v125 service-worker cache wiring missing');
+if(!sw.includes('js/70-verdant-world.js'))throw new Error('v125 service-worker cache wiring missing (bundle)');
 
 console.log('ok: v125 living herds, flee behavior, moving frogs, swarms/flocks and lightweight palms are wired in release '+rm[1]);

@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/48-verdant-mushroom-carpet-fix-v142.js','utf8');
+const src=require('./_section')('js/48-verdant-mushroom-carpet-fix-v142.js');
 for(const m of ['MUSHROOM_SCALE_FACTOR=.25','CARPET_MIN_FAR=170','for(const side of [-1,1])','SNOW_ZONE=7',
   'BEAR_TARGET=14','flower4HillsideCurrentV142','flower4HillsidePurpleV142','flower4HillsideBlueV142','flower4HillsideRedV142',
   "FLOWER_LABELS=['current','purple','blue','red']","shuffledColourBag"])

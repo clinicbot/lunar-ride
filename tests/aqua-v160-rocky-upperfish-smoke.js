@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/66-aqua-rocky-upperfish-v160.js','utf8');
+const src=require('./_section')('js/66-aqua-rocky-upperfish-v160.js');
 for(const marker of ['VERSION=160','rockyShoulders:true','sand03Retired:true','UPPER_SCHOOLS=12','FISH_PER_UPPER_SCHOOL=5','Rocks Ground 04','aquaUpperFishV160:true']){
   if(!src.includes(marker))throw new Error('missing marker '+marker);
 }

@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/64-aqua-no-podium-v158.js','utf8');
+const src=require('./_section')('js/64-aqua-no-podium-v158.js');
 for(const marker of ['VERSION=158','completeV155PodiumEnvelopeSuppression:true','matchedHeightMax:.50','preservesV157CreaturePlacement:true']){
   if(!src.includes(marker))throw new Error('missing v158 marker '+marker);
 }
@@ -37,7 +37,7 @@ if(!aqua.__aquaV158.creaturesRemainNearGlass||aqua.__aquaV158.visibleCreatureCou
 ctx.buildWorld({id:'verdant'},()=>{});
 if(lastMesh.calls.length!==4)throw new Error('non-Aqua boxes were modified');
 
-const v155=fs.readFileSync('js/61-aqua-coral-colonies-v155.js','utf8');
+const v155=require('./_section')('js/61-aqua-coral-colonies-v155.js');
 if(!v155.includes('m.box(x,sy*.28,z,sx,sy,sz,col,.010)'))throw new Error('expected v155 mound root-cause box signature changed; review v158 matcher');
 if(!v155.includes('heroLevel===2?.28:.22'))throw new Error('expected v155 mound height range changed; review v158 matcher');
 console.log('ok: Aqua v158 suppresses the full v155 mound/ledge box envelope while preserving structural boxes, v157 creatures and non-Aqua worlds');

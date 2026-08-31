@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const code=fs.readFileSync('js/39-verdant-common-tree-mix-v134.js','utf8');
+const code=require('./_section')('js/39-verdant-common-tree-mix-v134.js');
 for(const k of ["const COMMON_KEYS=['common1','common3','common5']","const DARK_RATIO=.25","geometryUnchanged:true","positionsUnchanged:true","wildlifeUnchanged:true"])
   if(!code.includes(k))throw new Error('missing v134 marker: '+k);
 if(/twisted1|twisted3|pine1|pine3|pine5/.test(code))throw new Error('v134 mix must not target TwistedTree or Pine');

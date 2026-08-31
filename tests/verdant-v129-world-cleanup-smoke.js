@@ -1,7 +1,7 @@
 "use strict";
 const fs=require('fs');
-const R=f=>fs.readFileSync(f,'utf8');
-const loader=R('js/19-verdant-assets.js');
+const R=require('./_section');
+const loader=require('./_section').manifest();
 const terrain=R('js/37-verdant-mountains-v129.js');
 const cleanup=R('js/38-verdant-world-cleanup-v129.js');
 const nature=R('js/26-verdant-real-nature.js');
@@ -53,7 +53,7 @@ const rm=lite.match(/const RELEASE='(\d+)'/),cm=sw.match(/lunar-ride-v(\d+)/);
 if(!rm||+rm[1]<129)throw new Error('current Verdant release regressed below v129');
 if(!cm||+cm[1]!==+rm[1])throw new Error('service-worker cache/release mismatch');
 if(!/sky_verdant\.svg\?b=\d+/.test(weather))throw new Error('Verdant sky cache bust missing');
-if(!sw.includes('js/37-verdant-mountains-v129.js')||!sw.includes('js/38-verdant-world-cleanup-v129.js'))
+if(!sw.includes('js/70-verdant-world.js'))  /* the layers ship inside the bundle */
   throw new Error('retained v129 service-worker wiring missing');
 
 console.log('ok: retained v129 kills legacy billboards, protects the road, rejects road plants, breaks smooth domes and greatly increases wildlife');

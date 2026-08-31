@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/61-aqua-coral-colonies-v155.js','utf8');
+const src=require('./_section')('js/61-aqua-coral-colonies-v155.js');
 for(const m of ['VERSION=155','REEF_STATIONS=350','GROUPS_PER_SIDE=4',
   'reefColonies:true','organicReefMounds:true','closeColonyContinuity:true',
   'heroCoralColonies:true','podiumBasesRemoved:true','hqCoral:true',

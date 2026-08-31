@@ -1,6 +1,6 @@
 "use strict";
 const fs=require('fs'),vm=require('vm');
-const src=fs.readFileSync('js/50-aqua-real-fish-v144.js','utf8');
+const src=require('./_section')('js/50-aqua-real-fish-v144.js');
 for(const m of ["VERSION=144","SCHOOL_COUNT=30","FISH_PER_SCHOOL=8","HERO_FISH=18","EXTRA_CORAL=420","EXTRA_KELP=180","source:'Quaternius CC0'"])
   if(!src.includes(m))throw new Error('missing Aqua v144 marker '+m);
 const files=['clownfish','fish-a','fish-b','fish-c','shark','anglerfish','puffer','lionfish','butterfly-fish','swordfish','black-lionfish'];
