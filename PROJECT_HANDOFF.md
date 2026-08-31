@@ -11,91 +11,89 @@ Persistent continuation note. Before changing code, verify latest `fixes-build-9
 - Create a backup branch before risky visual/world changes.
 - GitHub connector access is independent of local git/container networking; do not confuse the two.
 
-## Current checkpoint — Aqua v159
+## Current checkpoint — Aqua v160
 - Verdant Rift remains **v142** and must be preserved.
-- Aqua Rift current release is **v159**.
-- Backup immediately before v159: `backup-v158-before-sand-ab-v159`.
+- Aqua Rift current release is **v160**.
+- Backup immediately before v160: `backup-v159-before-rocky-upperfish-v160`.
 - v159 layer: `js/65-aqua-sand-ab-v159.js`.
-- v159 regression: `tests/aqua-v159-sand-ab-smoke.js`.
-- Sand-source provenance: `assets/images/AQUA_SAND_PROVENANCE.md`.
-- Dedicated v159 workflow: `.github/workflows/aqua-v159-ci.yml`.
+- v160 layer: `js/66-aqua-rocky-upperfish-v160.js`.
+- v160 regression: `tests/aqua-v160-rocky-upperfish-smoke.js`.
+- Rocky-source provenance: `assets/images/AQUA_ROCK_PROVENANCE.md`.
+- Dedicated v160 workflow: `.github/workflows/aqua-v160-ci.yml`.
 - `js/09-bluetooth.js` remains untouched.
 
-## Why v159 was required
-The user's v158 screenshot still showed visible coral bases/platform-like mound geometry. The user also decided the four user-uploaded creature families added in v156 did not look good in Aqua and explicitly requested removing them.
+## User feedback leading to v160
+The v159 A/B visual test showed that **Aerial Beach 01** looked better than **Sand 03**, but some coral mound/base geometry remained obvious and the smooth shoulder treatment still looked too planar. The user proposed moving toward a **rocky/rubble seabed** instead of smooth sand and also requested that fish swim **above the underground glass tunnel**, not only around its sides.
 
-Instead of continuing to widen geometry suppression filters, the user proposed a more natural visual solution: cover/blend the reef floor beside the road with realistic sand, analogous to the improved asphalt treatment on the road. The user approved an A/B test of two high-quality Poly Haven CC0 sand sources in alternating route sections.
+## v160 rocky seabed
+v160 supersedes the v159 A/B visual appearance while reusing its proven GPU upload/draw path.
 
-## v159 uploaded-creature removal
-v159 runs after the existing Aqua stack and removes every actor marked `aquaCreatureV156===true`. This removes all **36** experimental uploaded creatures:
-- 16 eelbeasts
-- 10 sirens
-- 8 crawlers
-- 2 leviathans
+### Texture
+- **Rocks Ground 04** from Poly Haven.
+- Author: Rob Tuytel.
+- License: **CC0**.
+- Runtime 1K diffuse endpoint is documented in `assets/images/AQUA_ROCK_PROVENANCE.md`.
+- The photo is passed through the existing `conditionTile()` pipeline to generate tileable albedo and a derived normal map.
 
-The old v156/v157 model/placement JavaScript still loads for this low-risk A/B experiment, but its generated actors are removed immediately by v159. If v159 is approved, dead-code cleanup can be done later without mixing it into the visual test.
+### Geometry
+- The rocky shoulder now spans about **0.24–20.5 m outside the local glass radius** on both sides for the entire lap.
+- Cross-route rows use stronger uneven relief than v159 so the shoulder no longer reads as a smooth sheet.
+- Sparse partially buried low-poly rubble clusters are added along both sides. They use rounded sphere-based geometry rather than boxes/podiums and are intended to break silhouettes and visually cover exposed coral-base edges.
+- v160 sets `w.sandA` to the full-lap rocky mesh and retires the old v159 B mesh (`w.sandB=null`).
+- At draw time, v160 temporarily swaps the v159 sand material pair to the rocky material, then restores the previous values before the road itself is drawn.
 
-The existing Quaternius fish and the 60 proper shared v152 jellyfish are preserved.
+## v160 fish above the tunnel
+v160 adds **60 fish** in **12 schools of 5** above the glass tunnel crown.
 
-## v159 sand shoulder A/B experiment
-v159 generates two independent route-following seabed shoulder meshes outside the local glass envelope on **both** sides of the road.
+Placement:
+- route stations are distributed around the lap;
+- school centers stay near the route centerline with small lateral variation;
+- absolute fish height is based on the local road height plus the local glass radius;
+- fish are placed **4–11 m above the local top of the glass envelope**.
 
-The shoulder spans approximately **0.35–19.5 m outside the local glass radius** and uses several cross-road rows with mild height variation. The purpose is to make the coral mound/base geometry read as partially buried in seabed sand rather than dark objects placed on platforms.
+The new actors reuse existing Quaternius `gcre` fish models and are marked `aquaFish===true` plus `aquaUpperFishV160===true`. Because the v147 updater animates every Aqua actor marked `aquaFish`, the new upper schools automatically receive the established horizontal elliptical swimming motion. Existing tail/facial/U-turn layers remain in the stack.
 
-### Route comparison schedule
-- **0.0–1.8 km:** Aerial Beach 01
-- **1.8–3.6 km:** Sand 03
-- **3.6–5.4 km:** Aerial Beach 01
-- **5.4 km–lap end:** Sand 03
-
-This provides two separate examples of each texture under different route views and lighting.
-
-### Texture sources
-Both are Poly Haven **CC0** assets:
-- A — Aerial Beach 01, author Rob Tuytel
-- B — Sand 03, author Charlotte Baglioni
-
-During v159, the 1K diffuse images are loaded from Poly Haven at runtime and passed through Lunar Ride's existing `conditionTile()` pipeline, which flattens baked lighting, makes the image tileable and derives a normal map. This keeps the A/B experiment small. Once a winner is chosen, the selected texture can be vendored into the repository for fully local/offline use.
-
-See `assets/images/AQUA_SAND_PROVENANCE.md` for source URLs and attribution/license notes.
-
-## Rendering approach
-- `w.sandA` and `w.sandB` are built as separate static meshes.
-- `uploadWorld()` uploads them to `gpu.sandA` / `gpu.sandB`.
-- The draw wrapper renders them immediately before the road.
-- During the main pass, the existing asphalt material shader is reused temporarily with the appropriate sand diffuse/normal pair, then the original asphalt textures are restored before the actual road is drawn.
-- During the shadow pass, the sand meshes are also drawn so they receive/cast scene-consistent shadows.
-- If the remote photos have not loaded yet, the road remains unaffected; the sand photo draw waits until the A/B textures are ready.
+## v159 uploaded-creature removal remains active
+All 36 experimental uploaded v156 creature actors remain removed by v159. The old v156/v157 geometry/placement JavaScript remains loaded for now, but v159 filters those actors after build. No user-uploaded creature should appear in v160.
 
 ## Preserved Aqua systems
 - Exact 2,800 reef placements remain.
 - 60 proper shared v152 jellyfish remain unchanged.
-- Existing Quaternius fish and all swim/tail/face/U-turn layers remain unchanged.
+- Existing Quaternius fish remain; v160 is additive with 60 upper-tunnel fish.
+- Established swim/tail/face/U-turn systems remain unchanged.
 - Road asphalt and road geometry remain unchanged.
-- Glass, water and tunnel systems remain unchanged.
+- Glass, water and tunnel structure remain unchanged.
 - Verdant v142 remains isolated.
 
 ## Current wiring / cache / CI
-`js/19-verdant-assets.js` loads Aqua through v158 as before, then loads `js/65-aqua-sand-ab-v159.js?b=159`. Verdant layers remain `?b=142`.
+`js/19-verdant-assets.js` loads Aqua through v158 as before, then:
+- `js/65-aqua-sand-ab-v159.js?b=159`
+- `js/66-aqua-rocky-upperfish-v160.js?b=160`
 
-`sw.js` intentionally retains cache name `lunar-ride-v142` while adding the v159 script and provenance note to CORE. The two experimental sand photos are cross-origin remote resources and therefore are not included in the service-worker CORE cache during the A/B test.
+Verdant layers remain `?b=142`.
+
+`sw.js` intentionally retains cache name `lunar-ride-v142` while caching the v160 script and `assets/images/AQUA_ROCK_PROVENANCE.md`. The remote Poly Haven rocky image itself is not in CORE during the visual experiment.
 
 CI coverage:
-- existing `.github/workflows/aqua-ci.yml` protects the established Aqua v143→v158 stack;
-- new `.github/workflows/aqua-v159-ci.yml` protects v159 syntax, dynamic removal of uploaded actors, A/B mesh generation, loader/cache wiring and provenance;
+- `.github/workflows/aqua-ci.yml` protects the established Aqua stack;
+- `.github/workflows/aqua-v159-ci.yml` continues to protect the v159 dependency layer;
+- `.github/workflows/aqua-v160-ci.yml` protects v160 syntax, runtime rocky shoulder generation, 60 upper-tunnel fish, loader/cache wiring and CC0 provenance;
 - `.github/workflows/verdant-ci.yml` protects approved Verdant v142.
+
+At v160 code checkpoint commit `94a3bdb9f0607b8c71242201ff29ef07938c7868`, Aqua v160 CI, Aqua v159 CI, main Aqua CI and Verdant CI all completed successfully.
 
 ## Immediate visual test
 Run:
 `UPDATE.bat` → `ride.bat` → close/reopen → `Ctrl+F5` → **Aqua Rift — Glass Ocean**.
 
 Inspect specifically:
-1. all four uploaded creature families should be gone;
-2. sand should appear along both sides of the road and visually bury/blend the coral bases;
-3. compare **Aerial Beach 01** over 0–1.8 km against **Sand 03** over 1.8–3.6 km;
-4. repeat the comparison over 3.6–5.4 km versus 5.4 km–lap end;
-5. choose which texture looks more natural underwater and better hides the coral bases;
-6. verify performance, fish, jellyfish, road and glass are unchanged.
+1. rocky shoulders should replace both v159 sand looks over the full lap;
+2. remaining coral bases should read as buried/blended into an uneven rocky seabed rather than standing on a flat sheet;
+3. rounded rubble clusters should add natural irregularity without creating new podiums;
+4. fish schools should be visible above the tunnel crown/arches;
+5. upper fish density should add life without becoming visually noisy;
+6. road, glass, jellyfish and Verdant should remain unchanged;
+7. performance should remain smooth.
 
 ## Next task
-Wait for the user's v159 visual feedback. If one sand clearly wins, keep that texture for the whole route, vendor it locally, and tune shoulder width/height/tint if needed. If neither works, adjust the shoulder geometry/tint before returning to destructive coral-base changes.
+Wait for the user's v160 screenshot/performance feedback. If the rocky treatment is good but bases still peek through, adjust the local shoulder height/relief or rubble density before returning to destructive coral-base changes. If upper fish are too sparse/dense, tune school count/clearance rather than touching the established side-fish distribution.
