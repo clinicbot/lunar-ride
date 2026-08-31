@@ -17,10 +17,10 @@ jobs:
       - name: Aqua JavaScript syntax
         run: |
           for f in \
-            js/aqua-v156-model-siren.js \
-            js/aqua-v156-model-crawler.js \
-            js/aqua-v156-model-eel.js \
-            js/aqua-v156-model-leviathan.js \
+            js/62a-aqua-v156-model-siren.js \
+            js/62b-aqua-v156-model-crawler.js \
+            js/62c-aqua-v156-model-eelbeast.js \
+            js/62d-aqua-v156-model-leviathan.js \
             js/49-aqua-rift-v143.js \
             js/50-aqua-real-fish-v144.js \
             js/51-aqua-fish-visibility-v145.js \
@@ -120,7 +120,9 @@ jobs:
             if(!loader.includes(f+'?b=157'))throw new Error('Aqua v157 fresh loader wiring missing '+f);
             if(!sw.includes('js/'+f))throw new Error('Aqua offline cache missing '+f);
           }
-          for(const f of ['aqua-v156-model-siren.js','aqua-v156-model-crawler.js','aqua-v156-model-eel.js','aqua-v156-model-leviathan.js']){
+          const payloads=['62a-aqua-v156-model-siren.js','62b-aqua-v156-model-crawler.js','62c-aqua-v156-model-eelbeast.js','62d-aqua-v156-model-leviathan.js'];
+          for(const f of payloads){
+            if(!loader.includes(f+'?b=157'))throw new Error('Aqua v156 model loader missing '+f);
             if(!sw.includes('js/'+f))throw new Error('Aqua v156 uploaded model cache missing '+f);
           }
           if(!sw.includes("lunar-ride-v142"))throw new Error('retained Verdant v142 service-worker cache missing');
@@ -133,5 +135,5 @@ jobs:
           const v157=R('js/63-aqua-visible-creatures-v157.js');
           for(const k of ["VERSION=157","hardFlatBaseSuppression:true","creaturesMovedNearGlass:true","smallCreatureGlassGap:[2.2,7.5]","leviathanGlassGap:[8,15]"])
             if(!v157.includes(k))throw new Error('Aqua v157 visibility marker missing '+k);
-          console.log('ok: Aqua v157 is wired after v156 with near-glass uploaded creatures, hard flat-base suppression, offline support and Verdant v142 isolation');
+          console.log('ok: Aqua v157 is wired after all four v156 model payloads with near-glass creatures, hard flat-base suppression, offline support and Verdant v142 isolation');
           NODE
