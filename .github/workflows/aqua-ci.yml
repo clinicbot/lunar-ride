@@ -30,6 +30,11 @@ jobs:
             js/59-aqua-hq-coral-v153.js \
             js/60-aqua-hero-coral-v154.js \
             js/61-aqua-coral-colonies-v155.js \
+            js/62a-aqua-v156-model-siren.js \
+            js/62b-aqua-v156-model-crawler.js \
+            js/62c-aqua-v156-model-eelbeast.js \
+            js/62d-aqua-v156-model-leviathan.js \
+            js/62-aqua-creatures-v156.js \
             tests/aqua-rift-v143-smoke.js \
             tests/aqua-v144-real-fish-smoke.js \
             tests/aqua-v145-fish-visibility-smoke.js \
@@ -42,12 +47,13 @@ jobs:
             tests/aqua-v152-proper-jelly-reef-smoke.js \
             tests/aqua-v153-hq-coral-smoke.js \
             tests/aqua-v154-hero-coral-smoke.js \
-            tests/aqua-v155-reef-colonies-smoke.js
+            tests/aqua-v155-reef-colonies-smoke.js \
+            tests/aqua-v156-creatures-smoke.js
           do
             node --check "$f"
           done
 
-      - name: Aqua v143-v155 runtime regressions
+      - name: Aqua v143-v156 runtime regressions
         run: |
           node tests/aqua-rift-v143-smoke.js
           node tests/aqua-v144-real-fish-smoke.js
@@ -62,6 +68,7 @@ jobs:
           node tests/aqua-v153-hq-coral-smoke.js
           node tests/aqua-v154-hero-coral-smoke.js
           node tests/aqua-v155-reef-colonies-smoke.js
+          node tests/aqua-v156-creatures-smoke.js
 
       - name: Validate imported Quaternius fish assets
         run: |
@@ -95,7 +102,7 @@ jobs:
           console.log('ok: Aqua continues to reuse the established project jelly model and creature path');
           NODE
 
-      - name: Verify Aqua v155 runtime wiring and offline cache
+      - name: Verify Aqua v156 runtime wiring and offline cache
         run: |
           node - <<'NODE'
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
@@ -105,9 +112,10 @@ jobs:
             '52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js',
             '55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js','57-aqua-coral-jelly-v151.js',
             '58-aqua-proper-jelly-reef-v152.js','59-aqua-hq-coral-v153.js','60-aqua-hero-coral-v154.js',
-            '61-aqua-coral-colonies-v155.js'];
+            '61-aqua-coral-colonies-v155.js','62a-aqua-v156-model-siren.js','62b-aqua-v156-model-crawler.js',
+            '62c-aqua-v156-model-eelbeast.js','62d-aqua-v156-model-leviathan.js','62-aqua-creatures-v156.js'];
           for(const f of scripts){
-            if(!loader.includes(f+'?b=155'))throw new Error('Aqua v155 fresh loader wiring missing '+f);
+            if(!loader.includes(f+'?b=156'))throw new Error('Aqua v156 fresh loader wiring missing '+f);
             if(!sw.includes('js/'+f))throw new Error('Aqua offline cache missing '+f);
           }
           if(!sw.includes("lunar-ride-v142"))throw new Error('retained Verdant v142 service-worker cache missing');
@@ -126,5 +134,12 @@ jobs:
           const v155=R('js/61-aqua-coral-colonies-v155.js');
           for(const k of ["VERSION=155","HERO_GROUPS=280","reefColonies:true","organicReefMounds:true","closeColonyContinuity:true","heroCoralColonies:true","podiumBasesRemoved:true"])
             if(!v155.includes(k))throw new Error('Aqua v155 reef colony marker missing '+k);
-          console.log('ok: Aqua v155 is wired after v154 with fresh cache busting, organic reef colonies, offline support and Verdant v142 isolation');
+          const v156=R('js/62-aqua-creatures-v156.js');
+          for(const k of ["VERSION=156","reefBaseBoxesRemoved:true","reefBaseCylindersRemoved:true","uploadedUserModels:true","customCreatureCount:36","aqSiren156","aqCrawler156","aqEel156","aqLeviathan156"])
+            if(!v156.includes(k))throw new Error('Aqua v156 marker missing '+k);
+          for(const f of ['62a-aqua-v156-model-siren.js','62b-aqua-v156-model-crawler.js','62c-aqua-v156-model-eelbeast.js','62d-aqua-v156-model-leviathan.js']){
+            const s=R('js/'+f),m=s.match(/='([A-Za-z0-9+/=]+)'/);
+            if(!m||m[1].length<1000)throw new Error('Aqua v156 uploaded model payload missing '+f);
+          }
+          console.log('ok: Aqua v156 removes the remaining coral podium boxes, wires four uploaded creature models, preserves v155 reef counts and keeps Verdant v142 isolated');
           NODE
