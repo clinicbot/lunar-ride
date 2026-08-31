@@ -58,8 +58,10 @@
    creature_jelly.gltf actors, v153 replaces low-detail coral blobs with six
    recognizable coral geometries plus close hero LOD groups, v154 turns the
    close reef into larger overlapping hero clusters on dark reef ledges, v155
-   builds fuller coral colonies, and v156 removes the remaining flat moundBase
-   podium boxes and adds four user-uploaded water-creature families. */
+   replaces the podium-like ledges with organic reef mounds and fuller close
+   coral colonies, v156 imports the four user-provided water-creature meshes,
+   and v157 hard-removes remaining flat reef bases and moves all 36 uploaded
+   creatures close enough to the glass to read during normal riding. */
 if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/20-verdant-route-audit.js?b=142"></script>');
   document.write('<script src="js/21-verdant-terrain-polish.js?b=142"></script>');
@@ -83,23 +85,20 @@ if(typeof document!=='undefined'&&document.write){
   document.write('<script src="js/45-verdant-wildlife-buildings-mushrooms-v140.js?b=142"></script>');
   document.write('<script src="js/47-verdant-uploaded-mushroom-replace-v141.js?b=142"></script>');
   document.write('<script src="js/48-verdant-mushroom-carpet-fix-v142.js?b=142"></script>');
-  document.write('<script src="js/49-aqua-rift-v143.js?b=156"></script>');
-  document.write('<script src="js/50-aqua-real-fish-v144.js?b=156"></script>');
-  document.write('<script src="js/51-aqua-fish-visibility-v145.js?b=156"></script>');
-  document.write('<script src="js/52-aqua-depth-distribution-v146.js?b=156"></script>');
-  document.write('<script src="js/53-aqua-swim-motion-v147.js?b=156"></script>');
-  document.write('<script src="js/54-aqua-tail-animation-v148.js?b=156"></script>');
-  document.write('<script src="js/55-aqua-uturn-continuity-v149.js?b=156"></script>');
-  document.write('<script src="js/56-aqua-faces-reef-v150.js?b=156"></script>');
-  document.write('<script src="js/57-aqua-coral-jelly-v151.js?b=156"></script>');
-  document.write('<script src="js/58-aqua-proper-jelly-reef-v152.js?b=156"></script>');
-  document.write('<script src="js/59-aqua-hq-coral-v153.js?b=156"></script>');
-  document.write('<script src="js/60-aqua-hero-coral-v154.js?b=156"></script>');
-  document.write('<script src="js/61-aqua-coral-colonies-v155.js?b=156"></script>');
-  document.write('<script src="js/62a-aqua-v156-model-siren.js?b=156"></script>');
-  document.write('<script src="js/62b-aqua-v156-model-crawler.js?b=156"></script>');
-  document.write('<script src="js/62c-aqua-v156-model-eelbeast.js?b=156"></script>');
-  document.write('<script src="js/62d-aqua-v156-model-leviathan.js?b=156"></script>');
-  document.write('<script src="js/62-aqua-creatures-v156.js?b=156"></script>');
+  document.write('<script src="js/49-aqua-rift-v143.js?b=157"></script>');
+  document.write('<script src="js/50-aqua-real-fish-v144.js?b=157"></script>');
+  document.write('<script src="js/51-aqua-fish-visibility-v145.js?b=157"></script>');
+  document.write('<script src="js/52-aqua-depth-distribution-v146.js?b=157"></script>');
+  document.write('<script src="js/53-aqua-swim-motion-v147.js?b=157"></script>');
+  document.write('<script src="js/54-aqua-tail-animation-v148.js?b=157"></script>');
+  document.write('<script src="js/55-aqua-uturn-continuity-v149.js?b=157"></script>');
+  document.write('<script src="js/56-aqua-faces-reef-v150.js?b=157"></script>');
+  document.write('<script src="js/57-aqua-coral-jelly-v151.js?b=157"></script>');
+  document.write('<script src="js/58-aqua-proper-jelly-reef-v152.js?b=157"></script>');
+  document.write('<script src="js/59-aqua-hq-coral-v153.js?b=157"></script>');
+  document.write('<script src="js/60-aqua-hero-coral-v154.js?b=157"></script>');
+  document.write('<script src="js/61-aqua-coral-colonies-v155.js?b=157"></script>');
+  document.write('<script src="js/62-aqua-creatures-v156.js?b=157"></script>');
+  document.write('<script src="js/63-aqua-visible-creatures-v157.js?b=157"></script>');
   document.write('<script src="js/28-verdant-instanced-renderer.js?b=142"></script>');
 }
