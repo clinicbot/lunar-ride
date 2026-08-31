@@ -36,6 +36,7 @@ jobs:
             js/61-aqua-coral-colonies-v155.js \
             js/62-aqua-creatures-v156.js \
             js/63-aqua-visible-creatures-v157.js \
+            js/64-aqua-no-podium-v158.js \
             tests/aqua-rift-v143-smoke.js \
             tests/aqua-v144-real-fish-smoke.js \
             tests/aqua-v145-fish-visibility-smoke.js \
@@ -50,12 +51,13 @@ jobs:
             tests/aqua-v154-hero-coral-smoke.js \
             tests/aqua-v155-reef-colonies-smoke.js \
             tests/aqua-v156-creatures-smoke.js \
-            tests/aqua-v157-visible-creatures-smoke.js
+            tests/aqua-v157-visible-creatures-smoke.js \
+            tests/aqua-v158-no-podium-smoke.js
           do
             node --check "$f"
           done
 
-      - name: Aqua v143-v157 runtime regressions
+      - name: Aqua v143-v158 runtime regressions
         run: |
           node tests/aqua-rift-v143-smoke.js
           node tests/aqua-v144-real-fish-smoke.js
@@ -72,6 +74,7 @@ jobs:
           node tests/aqua-v155-reef-colonies-smoke.js
           node tests/aqua-v156-creatures-smoke.js
           node tests/aqua-v157-visible-creatures-smoke.js
+          node tests/aqua-v158-no-podium-smoke.js
 
       - name: Validate imported Quaternius fish assets
         run: |
@@ -105,7 +108,7 @@ jobs:
           console.log('ok: Aqua continues to reuse the established project jelly model and creature path');
           NODE
 
-      - name: Verify Aqua v157 runtime wiring and offline cache
+      - name: Verify Aqua v158 runtime wiring and offline cache
         run: |
           node - <<'NODE'
           const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
@@ -115,25 +118,26 @@ jobs:
             '52-aqua-depth-distribution-v146.js','53-aqua-swim-motion-v147.js','54-aqua-tail-animation-v148.js',
             '55-aqua-uturn-continuity-v149.js','56-aqua-faces-reef-v150.js','57-aqua-coral-jelly-v151.js',
             '58-aqua-proper-jelly-reef-v152.js','59-aqua-hq-coral-v153.js','60-aqua-hero-coral-v154.js',
-            '61-aqua-coral-colonies-v155.js','62-aqua-creatures-v156.js','63-aqua-visible-creatures-v157.js'];
+            '61-aqua-coral-colonies-v155.js','62-aqua-creatures-v156.js','63-aqua-visible-creatures-v157.js',
+            '64-aqua-no-podium-v158.js'];
           for(const f of scripts){
-            if(!loader.includes(f+'?b=157'))throw new Error('Aqua v157 fresh loader wiring missing '+f);
+            if(!loader.includes(f+'?b=158'))throw new Error('Aqua v158 fresh loader wiring missing '+f);
             if(!sw.includes('js/'+f))throw new Error('Aqua offline cache missing '+f);
           }
           const payloads=['62a-aqua-v156-model-siren.js','62b-aqua-v156-model-crawler.js','62c-aqua-v156-model-eelbeast.js','62d-aqua-v156-model-leviathan.js'];
           for(const f of payloads){
-            if(!loader.includes(f+'?b=157'))throw new Error('Aqua v156 model loader missing '+f);
+            if(!loader.includes(f+'?b=158'))throw new Error('Aqua v156 model loader missing '+f);
             if(!sw.includes('js/'+f))throw new Error('Aqua v156 uploaded model cache missing '+f);
           }
           if(!sw.includes("lunar-ride-v142"))throw new Error('retained Verdant v142 service-worker cache missing');
           if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring was disturbed');
           if(!sw.includes('js/32-verdant-fauna-buildings-v121.js'))throw new Error('Verdant v121 cache entry was disturbed');
           if(!sw.includes('assets/models/creature_jelly.gltf'))throw new Error('project jelly asset missing from offline cache');
-          const v156=R('js/62-aqua-creatures-v156.js');
-          for(const k of ["VERSION=156","customCreatureCount:36","uploadedUserModels:true","reefBaseBoxesRemoved:true"])
-            if(!v156.includes(k))throw new Error('Aqua v156 creature marker missing '+k);
           const v157=R('js/63-aqua-visible-creatures-v157.js');
-          for(const k of ["VERSION=157","hardFlatBaseSuppression:true","creaturesMovedNearGlass:true","smallCreatureGlassGap:[2.2,7.5]","leviathanGlassGap:[8,15]"])
+          for(const k of ["VERSION=157","creaturesMovedNearGlass:true","smallCreatureGlassGap:[2.2,7.5]","leviathanGlassGap:[8,15]"])
             if(!v157.includes(k))throw new Error('Aqua v157 visibility marker missing '+k);
-          console.log('ok: Aqua v157 is wired after all four v156 model payloads with near-glass creatures, hard flat-base suppression, offline support and Verdant v142 isolation');
+          const v158=R('js/64-aqua-no-podium-v158.js');
+          for(const k of ["VERSION=158","completeV155PodiumEnvelopeSuppression:true","matchedHeightMax:.50","preservesV157CreaturePlacement:true"])
+            if(!v158.includes(k))throw new Error('Aqua v158 no-podium marker missing '+k);
+          console.log('ok: Aqua v158 is wired after v157, removes the full v155 podium box envelope, keeps near-glass creatures, offline support and Verdant v142 isolation');
           NODE
