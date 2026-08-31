@@ -1,0 +1,37 @@
+name: Aqua v159 sand A-B checks
+
+on:
+  push:
+    branches: [fixes-build-90]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sand-ab-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Aqua v159 syntax
+        run: |
+          node --check js/65-aqua-sand-ab-v159.js
+          node --check tests/aqua-v159-sand-ab-smoke.js
+
+      - name: Aqua v159 runtime regression
+        run: node tests/aqua-v159-sand-ab-smoke.js
+
+      - name: Verify Aqua v159 wiring and provenance
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),R=f=>fs.readFileSync(f,'utf8');
+          const loader=R('js/19-verdant-assets.js'),sw=R('sw.js'),v=R('js/65-aqua-sand-ab-v159.js'),p=R('assets/images/AQUA_SAND_PROVENANCE.md');
+          if(!loader.includes('65-aqua-sand-ab-v159.js?b=159'))throw new Error('v159 loader wiring missing');
+          if(!sw.includes('js/65-aqua-sand-ab-v159.js'))throw new Error('v159 offline script cache missing');
+          for(const k of ['uploadedCreaturesRemoved:true','sandABExperiment:true','Aerial Beach 01','Sand 03','aerial_beach_01_diff_1k.jpg','sand_03_diff_1k.jpg'])
+            if(!v.includes(k))throw new Error('v159 marker missing '+k);
+          if(!p.includes('CC0')||!p.includes('polyhaven.com/a/aerial_beach_01')||!p.includes('polyhaven.com/a/sand_03'))throw new Error('sand provenance incomplete');
+          if(!loader.includes('48-verdant-mushroom-carpet-fix-v142.js?b=142'))throw new Error('Verdant v142 wiring disturbed');
+          console.log('ok: Aqua v159 is wired with the CC0 sand A/B experiment and uploaded creatures are removed after build');
+          NODE
