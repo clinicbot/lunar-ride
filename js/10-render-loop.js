@@ -418,8 +418,14 @@ function updateActors(dt){
       const v=Math.max(a.v,0.6);
       const acc=(P*0.975/v -0.0045*a.mass*gr*Math.cos(th)
                  -0.5*rho*0.32*a.v*a.v -a.mass*gr*Math.sin(th))/a.mass;
-      a.v=clamp(a.v+acc*dt,0,MAX_MS);
-      a.s+=dsg*a.v*dt;
+      if(a.net&&typeof MP_netDrive==='function'){
+        /* a network rider's position comes from its real rider, not from
+           the AI power model */
+        MP_netDrive(a,dt);
+      }else{
+        a.v=clamp(a.v+acc*dt,0,MAX_MS);
+        a.s+=dsg*a.v*dt;
+      }
       const L=world.lapLen;
       a.s=((a.s%L)+L)%L;
       /* keep the company near the player: anyone dropped or long gone off the
@@ -427,7 +433,7 @@ function updateActors(dt){
       const pms=playerMainS();
       let gap=((a.s-pms)%L+L)%L; if(gap>L/2)gap-=L;
       let tGap=gap*state.dir;                 /* + means ahead of the player */
-      if(a.oncoming){
+      if(a.oncoming&&!a.net){
         /* once it has swept past, it reappears far up the road and returns */
         if(tGap<-70||tGap>780){
           a.s=((pms+state.dir*(380+Math.random()*320))%L+L)%L;
@@ -436,7 +442,7 @@ function updateActors(dt){
           gap=((a.s-pms)%L+L)%L; if(gap>L/2)gap-=L;
           tGap=gap*state.dir;
         }
-      }else if(Math.abs(tGap)>700){
+      }else if(!a.net&&Math.abs(tGap)>700){
         a.s=((pms+state.dir*(tGap>0?-1:1)*(340+Math.random()*160))%L+L)%L;
         a.fac*=0.94+Math.random()*0.12;
         a.v=Math.max(4,a.v);
